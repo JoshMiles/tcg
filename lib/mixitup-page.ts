@@ -112,7 +112,8 @@ export const needsSetup = (cards: StatusCard[]): boolean => cards.some(c => c.to
 
 // ── This stream ──
 
-export const LOG_CAP = 20; // each log keeps its last 20 lines (lib/mixitup.ts, lib/commands.ts)
+export const LOG_CAP = 50; // the request log keeps its last 50 lines (lib/mixitup.ts); the command log keeps 20 (lib/commands.ts)
+const CMD_LOG_CAP = 20;
 const DAY_MS = 24 * 3600_000;
 
 export interface StreamNumbers {
@@ -134,7 +135,7 @@ export interface StreamNumbers {
 const amountOf = (detail: string): number => { const n = /^\+?(\d[\d,]*)/.exec(detail); return n ? Number(n[1].replace(/,/g, '')) : 0; };
 
 /**
- * Counts the two request logs (newest first, 20 lines each) inside the stream: from `since` (the stream marker, `twitch:live:since`),
+ * Counts the two request logs (newest first, 50 and 20 lines) inside the stream: from `since` (the stream marker, `twitch:live:since`),
  * or the last 24 hours when no stream is live. Numbers come only from what the logs hold, so a busy stream shows `partial`.
  */
 export function streamNumbers(log: MixItUpLogEntry[], cmdLog: MixItUpLogEntry[], since: number | null, now: number): StreamNumbers {
@@ -144,7 +145,7 @@ export function streamNumbers(log: MixItUpLogEntry[], cmdLog: MixItUpLogEntry[],
   const reasons = new Map<string, number>();
   for (const e of a) if (e.what === 'refused') { const r = e.detail.split(':')[0].trim(); reasons.set(r, (reasons.get(r) ?? 0) + 1); }
   const top = [...reasons.entries()].sort((x, y) => y[1] - x[1])[0];
-  const full = (all: MixItUpLogEntry[], kept: MixItUpLogEntry[]) => all.length >= LOG_CAP && kept.length === all.length;
+  const full = (all: MixItUpLogEntry[], kept: MixItUpLogEntry[], cap: number) => all.length >= cap && kept.length === all.length;
   return {
     label: since ? 'This stream' : 'Last 24 hours',
     paid: a.filter(e => e.what === 'deduct' && e.ok).length,
@@ -153,7 +154,7 @@ export function streamNumbers(log: MixItUpLogEntry[], cmdLog: MixItUpLogEntry[],
     commands: c.filter(e => e.what === 'command' && e.ok).length,
     refusals: a.filter(e => e.what === 'refused').length,
     topReason: top ? { label: REFUSAL_LABELS[top[0]] ?? top[0], count: top[1] } : null,
-    partial: full(log, a) || full(cmdLog, c),
+    partial: full(log, a, LOG_CAP) || full(cmdLog, c, CMD_LOG_CAP),
   };
 }
 
@@ -167,14 +168,15 @@ export type LogFilter = (typeof LOG_FILTERS)[number]['id'];
 export const pickLogFilter = (raw: string | undefined): LogFilter => LOG_FILTERS.find(f => f.id === raw)?.id ?? 'all';
 
 /**
- * Incoming = a chat command reaching the site; outgoing = the site's calls to Mix It Up (balance, deduct, add, test); refusals = a refused
- * or revoked pull, or a command that answered with an error.
+ * Incoming = a request from Mix It Up (a chat command, !pack, a card reward, a Stream Deck button); outgoing = the site's calls to Mix It Up (balance, deduct, add, test); refusals = a refused
+ * or revoked pull, or an incoming request that answered with an error or a refusal.
  */
+const isIn = (e: MixItUpLogEntry) => e.what === 'command' || e.what === 'pull' || e.what === 'grant' || e.what === 'buff';
 export function filterLog(log: MixItUpLogEntry[], f: LogFilter): MixItUpLogEntry[] {
   switch (f) {
-    case 'in': return log.filter(e => e.what === 'command');
+    case 'in': return log.filter(isIn);
     case 'out': return log.filter(e => e.what === 'balance' || e.what === 'deduct' || e.what === 'add' || e.what === 'test');
-    case 'refused': return log.filter(e => e.what === 'refused' || e.what === 'revoked' || (e.what === 'command' && !e.ok));
+    case 'refused': return log.filter(e => e.what === 'refused' || e.what === 'revoked' || (isIn(e) && !e.ok));
     default: return log;
   }
 }

@@ -144,12 +144,12 @@ export async function parseIncomingWebhook(req: Request): Promise<IncomingWebhoo
   if (limited) return { ok: false, response: limited };
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   if (!(await incomingSecretValid(body.secret, new URL(req.url).pathname))) {
-    return { ok: false, response: NextResponse.json({ error: 'Invalid secret' }, { status: 401 }) };
+    return { ok: false, response: NextResponse.json({ error: 'Invalid secret', message: 'Invalid secret' }, { status: 401 }) };
   }
   // A Twitch login (3 to 25 letters, digits and underscores, an @ in front is dropped); anything else is not a viewer.
   const username = cleanLogin(body.username);
   if (!username) {
-    return { ok: false, response: NextResponse.json({ error: 'username must be a Twitch login (3 to 25 letters, digits or underscores)' }, { status: 400 }) };
+    return { ok: false, response: NextResponse.json({ error: 'username must be a Twitch login (3 to 25 letters, digits or underscores)', message: 'That is not a Twitch name.' }, { status: 400 }) };
   }
   return { ok: true, username, body };
 }

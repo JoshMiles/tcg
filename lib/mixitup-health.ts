@@ -36,6 +36,22 @@ export async function noteIncoming(route: string, result: 'ok' | 'bad', now = Da
 /** Notes the outcome of the site's latest call to Mix It Up for one address. */
 export async function noteOutgoing(kind: OutKind, ok: boolean, detail: string, now = Date.now()): Promise<void> {
   try { await kv.hset(OUT, { [kind]: { at: now, ok, detail } satisfies OutResult }); } catch { /* the call must not notice */ }
+  if (kind === 'balance') await watchBalance(ok, detail);
+}
+
+const FAILS = 'mixitup:balance-fails';
+const FAILS_POSTED = 'mixitup:balance-fails-posted';
+/** The balance address failing 3 times in a row while the stream is live: one System post per streak (a success ends the streak). */
+async function watchBalance(ok: boolean, detail: string): Promise<void> {
+  try {
+    if (ok) { await kv.del(FAILS); await kv.del(FAILS_POSTED); return; }
+    if ((await kv.incr(FAILS)) < 3) return;
+    const { getLiveStatus } = await import('./twitch-live'); // loaded here: these modules import this one
+    if (!(await getLiveStatus().catch(() => null))?.live) return;
+    if (!(await kv.set(FAILS_POSTED, 1, { nx: true, ex: 86_400 }))) return;
+    const { notifySystem } = await import('./discord');
+    await notifySystem({ title: 'Mix It Up is not answering', text: `The balance address failed 3 times in a row while the stream is live (${detail}). Viewers cannot pay for packs until it answers.`, tone: 'bad' });
+  } catch { /* the call must not notice */ }
 }
 
 /** Everything recorded so far. Empty when nothing was recorded or the read fails. */

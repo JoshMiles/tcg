@@ -26,7 +26,7 @@ export function LogRows({ log, now, empty = 'Nothing yet.' }: { log: MixItUpLogE
 export function MixItUpLog({ log, filter, now }: { log: MixItUpLogEntry[]; filter: LogFilter; now: number }) {
   const shown = filterLog(log, filter);
   return (
-    <Panel title="Recent requests" icon="list" hint={<>The last 20 calls to and refusals for Mix It Up, and the last 20 chat commands. A <em>revoked</em> line is a pull that was not given, or a refund that could not be made; refund that viewer by hand if Mix It Up did take the currency.</>}>
+    <Panel title="Recent requests" icon="list" hint={<>The last 50 requests Mix It Up made to the site (<em>pull</em>, <em>grant</em>, <em>buff</em>, with the refusal reason) and calls the site made to Mix It Up, and the last 20 chat commands. A <em>revoked</em> line is a pull that was not given, or a refund that could not be made; refund that viewer by hand if Mix It Up did take the currency.</>}>
       <nav aria-label="Log filter" className="flex flex-wrap gap-2">
         {LOG_FILTERS.map(f => (
           <Link key={f.id} href={f.id === 'all' ? '/admin/mixitup?tab=log' : `/admin/mixitup?tab=log&filter=${f.id}`} scroll={false} aria-current={f.id === filter ? 'true' : undefined}
