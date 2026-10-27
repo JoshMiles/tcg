@@ -271,6 +271,19 @@ eq((await notes()).length, 0, 'no notice before staff act');
   const cA = await F.countNewFeedback({ login: modA, admin: false }), cB = await F.countNewFeedback({ login: modB, admin: false });
   eq(cB - cA, 2, 'the mod count leaves out the two items about that mod');
   eq(await F.countNewFeedback({ login: adm, admin: true }), await F.countNewFeedback(), 'the admin count is the full count');
+
+  // Discord routing (ROADMAP 54.6): an item naming staff goes to the admin log channel only; no admin log channel means no post at all
+  const v2 = `fbw_${tag}`, titleOf = () => hits.map(h => h.embeds[0]?.title ?? '');
+  let day = 10; const send = async (body: string) => { hits.length = 0; const r = await F.submitFeedback(v2, { kind: 'idea', title: 'Routing', body, includeDevice: false }, undefined, now2 + 86_400_000 * day++); ok(r.ok, 'sent'); await sleep(300); };
+  const chans = (...keys: string[]) => d.saveDiscordSettings({ enabled: true, channels: keys.map((k, i) => ({ ...dc.presetChannel(k), id: `rt${i}`, url: hook, enabled: true })) } as never);
+  await chans('feedback');
+  await send(`${modB} again`); eq(hits.length, 0, 'staff feedback with no admin log channel is not posted, and the send still works');
+  await send('about nobody'); eq(hits.length, 1, 'other feedback still reaches the feedback channel');
+  await chans('feedback', 'admin');
+  await send('about nobody'); eq(titleOf().filter(t => t.startsWith('Staff report')).length, 0, 'other feedback is not marked as a staff report');
+  eq(hits.length, 1, 'other feedback reaches only the feedback channel');
+  await send(`${modB} again`); eq(hits.length, 1, 'staff feedback reaches one channel (the admin log)');
+  ok(titleOf()[0].startsWith('Staff report | '), 'and is marked as a staff report');
 }
 
 server.close();
