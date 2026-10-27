@@ -25,6 +25,7 @@ export const DENY_PREFIXES = [
   'activity:',      // the live activity log and its sequence counter
   'lock:',          // short-lived locks
   'potw:week:',     // the edition of the week's once-a-week lock
+  'drill:month:',   // the restore drill's once-a-month lock
   'captcha:',       // short-lived pass tokens
   'showoff:cd:',    // cooldowns
   'trade:cd:',
