@@ -7,10 +7,12 @@ import type { StreamSummary } from './bridge-chat-core';
 /** One pull for the app's live feed window (ROADMAP 55.11), sent on its reveal. `image` is the card's image address; the app loads it only from the site or Vercel Blob. */
 export interface PullFeed { viewer: string; card: string; rarity: string; stars: number; variant: string; serial?: number; image?: string }
 
-export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command' | 'pull-event' | 'backup' | 'ledger' | 'summary';
+export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command' | 'pull-event' | 'backup' | 'ledger' | 'summary' | 'notice';
 /** `pull-event` (ROADMAP 55.8): `phase` 'start' shows `source` for `holdMs`; 'reveal' switches to `scene` for `secs` and/or saves a clip (and says `text` in chat, 55.10). Names are ones the app reported.
  *  `backup` (55.10): `phase` 'start' or 'end' saves every viewer's Brie Bucks to a CSV. `ledger`: the app posts its ledger to /api/bridge/ledger. */
-export interface BridgeJob { id: string; kind: JobKind; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; delayMs?: number; phase?: 'start' | 'reveal' | 'end'; source?: string; holdMs?: number; scene?: string; secs?: number; clip?: boolean; feed?: PullFeed; summary?: StreamSummary; at: number }
+export interface BridgeJob { id: string; kind: JobKind; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; delayMs?: number; phase?: 'start' | 'reveal' | 'end'; source?: string; holdMs?: number; scene?: string; secs?: number; clip?: boolean; feed?: PullFeed; summary?: StreamSummary; notice?: StaffNotice; at: number }
+/** A staff notice (ROADMAP 55.13): `href` is a path on the site (`/admin/...`); the app opens it on the paired site only. */
+export interface StaffNotice { kind: 'attention' | 'feedback' | 'refusal' | 'deploy'; title: string; text?: string; href: string }
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeReply { ok: boolean; status: number; body: unknown; error?: string }
 export interface BridgeCurrency { id: string; name: string }
@@ -29,7 +31,7 @@ export const TOUCH_EVERY_MS = 10_000;
 export const CONNECTED_MS = 60_000;
 export const BRIDGE_DID_NOT_ANSWER = 'TCG Bridge did not answer';
 
-const KINDS: readonly string[] = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh', 'run-command', 'pull-event', 'backup', 'ledger', 'summary'];
+const KINDS: readonly string[] = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh', 'run-command', 'pull-event', 'backup', 'ledger', 'summary', 'notice'];
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 

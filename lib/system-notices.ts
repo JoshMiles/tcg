@@ -1,4 +1,5 @@
 import { kv } from './db';
+import { sendNotice } from './bridge';
 import { notifySystem, escapeMd } from './discord';
 import { formatBytes, loadDataHealth, sizeAttention, type HealthLevel } from './data-health';
 import type { BackupRun } from './backup';
@@ -11,6 +12,7 @@ export async function reportBackup(result: BackupRun | { error: string }): Promi
   try {
     if ('error' in result) {
       await notifySystem({ title: '⚠️ Backup failed', text: escapeMd(result.error).slice(0, 400), tone: 'bad' });
+      await sendNotice({ kind: 'attention', title: 'Backup failed', text: result.error.slice(0, 200), href: '/admin/settings?tab=environment' }); // a staff notice (55.13)
     } else {
       await notifySystem({
         title: '💾 Backup saved', tone: 'good',
@@ -37,5 +39,6 @@ export async function reportDataHealth(): Promise<void> {
     if (RANK[worst] <= RANK[last]) return;
     const lines = health.seasons.flatMap(s => { const a = sizeAttention(s.name, s.collection.bytes); return a ? [a.text] : []; });
     await notifySystem({ title: worst === 'high' ? '🚨 Data health: large' : '📈 Data health: growing', text: lines.join('\n'), tone: 'bad' });
+    await sendNotice({ kind: 'attention', title: worst === 'high' ? 'Data health: large' : 'Data health: growing', text: lines.join(' ').slice(0, 200), href: '/admin/settings?tab=environment' });
   } catch { /* best effort */ }
 }

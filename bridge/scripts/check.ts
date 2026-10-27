@@ -11,7 +11,8 @@ import { Alerts, snapshotOf, type Snapshot } from '../src/alerts';
 import { BACKUPS_KEPT, csvOf, Ledger, writeBackup } from '../src/bucks';
 import { buttonUrl, ControlServer, Hotkeys, newControlKey, noHotkeys, parseButton, type ControlAction } from '../src/control';
 import { cleanFeed, cleanFeedSettings, cleanSummary, defaultFeed, shouldPlay, summaryMarkdown, trustedImage } from '../src/feed';
-import { commandWait, runJob } from '../src/jobs';
+import { commandWait, isKnownKind, runJob } from '../src/jobs';
+import { cleanNotice, cleanNoticeSwitches, defaultNotices, siteUrl } from '../src/notices';
 import { diagnosticsText } from '../src/diagnostics';
 import { defaultMixItUpPath, defaultObsPath, isMixItUpExe, isObsExe, obsRunning, startMixItUp, startObs } from '../src/launch';
 import { Logger, redact } from '../src/log';
@@ -721,7 +722,10 @@ async function main() {
   assert.equal(cleanFeed({ viewer: 'ann', card: 'Gouda Goat', stars: 4, image: 'https://evil.test/a.png' }, SITE)?.image, '', 'an untrusted image is dropped, the pull stays');
   assert.equal(cleanFeed({ viewer: 'ann' }, SITE), null, 'not a pull');
   const fed: unknown[] = [], summed: unknown[] = [];
-  const sinks = { feed: (r: unknown) => { fed.push(r); }, summary: (r: unknown) => { summed.push(r); } };
+  const noticed: unknown[] = [];
+  const sinks = { feed: (r: unknown) => { fed.push(r); }, summary: (r: unknown) => { summed.push(r); }, notice: (r: unknown) => { noticed.push(r); } };
+  assert.ok((await runJob({ id: 'jn', kind: 'notice', notice: { kind: 'deploy', title: 'x', href: '/admin' } }, undefined as never, undefined as never, undefined, undefined, sinks)).ok && noticed.length === 1, 'a notice job reaches the sink, fire and forget');
+  assert.ok(isKnownKind('notice'), 'notice is a known job kind');
   const got = await runJob({ id: 'j1', kind: 'pull-event', phase: 'reveal', feed: { viewer: 'ann', card: 'x' } }, undefined as never, undefined as never, undefined, undefined, sinks);
   assert.deepEqual([got.ok, fed.length], [true, 1], 'a reveal with a feed reaches the window');
   await runJob({ id: 'j2', kind: 'pull-event', phase: 'reveal' }, undefined as never, undefined as never, undefined, undefined, sinks);
@@ -756,6 +760,25 @@ async function main() {
   rmSync(obsDir, { recursive: true, force: true });
   const s0 = defaults();
   assert.deepEqual([s0.feed.on, s0.summary, s0.startObs], [false, false, false], 'every streamer tool is off by default');
+
+  // ── Staff notices (55.13): a switch each, and a link opens only on the paired site's own address ──
+  const SITE13 = 'https://cheesytcg.app';
+  assert.deepEqual(defaultNotices(), { attention: true, feedback: true, refusal: true, deploy: true }, 'every notice kind is on by default');
+  assert.deepEqual(cleanNoticeSwitches({ refusal: false, deploy: 'no', evil: false }), { attention: true, feedback: true, refusal: false, deploy: true }, 'only real switches are read');
+  assert.deepEqual(cleanNoticeSwitches(undefined), defaultNotices());
+  const note = { kind: 'feedback', title: 'Bug report', text: 'from ann', href: '/admin/feedback?kind=bug#status-1' };
+  assert.equal(cleanNotice(note, SITE13, defaultNotices())?.url, 'https://cheesytcg.app/admin/feedback?kind=bug#status-1', 'a notice carries a full address on the paired site');
+  assert.equal(cleanNotice(note, SITE13, { ...defaultNotices(), feedback: false }), null, 'a kind that is switched off is not shown');
+  assert.notEqual(cleanNotice({ ...note, kind: 'deploy' }, SITE13, { ...defaultNotices(), feedback: false }), null, 'the other kinds still are');
+  assert.equal(cleanNotice({ ...note, kind: 'mystery' }, SITE13, defaultNotices()), null, 'an unknown kind is dropped');
+  assert.equal(cleanNotice({ ...note, title: '  ' }, SITE13, defaultNotices()), null, 'a notice without a title is dropped');
+  assert.equal(cleanNotice('x', SITE13, defaultNotices()), null);
+  for (const bad of ['https://evil.test/admin', '//evil.test/admin', '/\\evil.test', 'javascript:alert(1)', 'admin', '', 5, null, `/${'a'.repeat(300)}`, 'https://cheesytcg.app.evil.test/x']) {
+    assert.equal(siteUrl(SITE13, bad), null, `a link must be a plain path on the site: ${String(bad)}`);
+    assert.equal(cleanNotice({ ...note, href: bad }, SITE13, defaultNotices()), null);
+  }
+  assert.equal(siteUrl('http://localhost:3000', '/admin'), 'http://localhost:3000/admin', 'a local site works too');
+  assert.deepEqual(cleanStaffAction({ action: 'backup', username: 'ignored', evil: 1 }), { action: 'backup' }, 'Back up now needs no name and passes nothing else');
 
   // ── Updates ──
   assert.equal(releaseUrl('0.3.0'), 'https://github.com/JoshMiles/tcg/releases/tag/bridge-v0.3.0');
@@ -827,7 +850,8 @@ async function main() {
   assert.equal((await store.load()).site, 'https://cheesytcg.app');
   assert.equal((await store.load()).startWithWindows, true);
   assert.deepEqual([(await store.load()).alerts, (await store.load()).startMixItUp, (await store.load()).mixItUpPath, defaults().lastSeenVersion], [true, false, '', ''], 'alerts on, starting Mix It Up off');
-  const full = { site: 'https://example.test', token: 'secret-token', pairedAs: 'PC', startWithWindows: false, obsEnabled: true, obsAddress: 'ws://localhost:4456', obsPassword: 'obs-secret', obsStartReplay: true, alerts: false, startMixItUp: true, mixItUpPath: 'C:\\Mix\\MixItUp.exe', lastSeenVersion: '0.2.0', controlKey: 'abcdefghij0123456789', hotkeys: { refresh: 'Ctrl+Alt+R', pause: '', lastBuff: 'Ctrl+Alt+B' }, feed: { on: true, minStars: 3, volume: 0.25, muted: true, onTop: true }, summary: true, startObs: true, obsPath: 'C:\\Obs\\obs64.exe' };
+  const full = { site: 'https://example.test', token: 'secret-token', pairedAs: 'PC', startWithWindows: false, obsEnabled: true, obsAddress: 'ws://localhost:4456', obsPassword: 'obs-secret', obsStartReplay: true, alerts: false, startMixItUp: true, mixItUpPath: 'C:\\Mix\\MixItUp.exe', lastSeenVersion: '0.2.0', controlKey: 'abcdefghij0123456789', hotkeys: { refresh: 'Ctrl+Alt+R', pause: '', lastBuff: 'Ctrl+Alt+B' }, feed: { on: true, minStars: 3, volume: 0.25, muted: true, onTop: true }, summary: true, startObs: true, obsPath: 'C:\\Obs\\obs64.exe', notices: { attention: true, feedback: false, refusal: false, deploy: true } };
+  assert.deepEqual((await store.load()).notices, defaultNotices(), 'every notice kind is on before anything is saved');
   await store.save(full);
   const saved = readFileSync(join(dir, 'settings.json'), 'utf8');
   assert.ok(!saved.includes('secret-token') && !saved.includes('obs-secret'));
@@ -971,6 +995,11 @@ async function main() {
     assert.equal((await tools.run({ op: 'scene', name: 'Nope' })).ok, false);
     assert.ok((await tools.run({ op: 'open-admin', name: 'Alice' })).ok && opened[0] === `${s.url}/admin/users/alice`);
     assert.equal((await tools.run({ op: 'open-admin', name: 'a/../b' })).ok, false);
+    assert.ok((await tools.run({ op: 'open', href: '/admin/packs/p1' })).ok && opened[1] === `${s.url}/admin/packs/p1`, 'a search result opens its admin page on the paired site');
+    for (const href of ['https://evil.test/admin', '//evil.test/admin', '/', '/account', '/administrator', '/admin/../x\\y', 5]) assert.equal((await tools.run({ op: 'open', href })).ok, false, `not opened: ${String(href)}`);
+    assert.equal(opened.length, 2, 'nothing else was opened');
+    assert.ok((await tools.run({ op: 'activity' })).ok && (await tools.run({ op: 'search', q: 'goat' })).ok, 'Activity and search are reads');
+    assert.ok(seen.some(l => l.includes('what=search') && l.includes('q=goat')), 'search asks the site');
     staffOn = false;
     assert.match((await tools.run({ op: 'do', action: 'trading', on: false })).text, /Staff tools are off/);
     assert.equal((await new StaffTools({ ...quiet, client }).run({ op: 'cards', q: 'g' })).ok, false, 'a read on a PC without the switch says so');

@@ -1,6 +1,7 @@
 import { kv } from './db';
 import { notify } from './trade-notify';
 import { notifyFeedback } from './discord';
+import { sendNotice } from './bridge';
 import { getActiveSeasonWithPacks, getCollection, getUserProfile } from './kv';
 import { getBuildInfo, formatVersion } from './version';
 import { listStaff } from './staff';
@@ -73,6 +74,7 @@ async function staffLogins(): Promise<string[]> {
 async function announce(item: FeedbackItem): Promise<void> {
   const about = await staffLogins().then(l => staffNamedIn(item, l).length > 0, () => true);
   await notifyFeedback(item, about);
+  await sendNotice({ kind: 'feedback', title: item.title.slice(0, 80), text: `from ${item.user}`, href: `/admin/feedback?kind=${item.kind}#status-${item.id}` }); // a staff notice (55.13)
 }
 
 /** Sets `aboutStaff` on each item (worked out now, never stored); with a reader, drops the items they may not see. */

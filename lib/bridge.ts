@@ -15,7 +15,7 @@ import { noteUptime } from './bridge-uptime';
 import {
   BRIDGE_DID_NOT_ANSWER, CONNECTED_MS, IDLE_POLL_MS, LONG_POLL_MS, PAIR_TTL_S, POLL_MS, RESULT_TTL_S, TOUCH_EVERY_MS, WAIT_MS,
   cleanHello, cleanName, cleanObs, cleanResult, hashToken, isFreshJob, newPairCode, normalizeCode, replyFromResult, type PullFeed,
-  type BridgeCommand, type BridgeCurrency, type BridgeJob, type BridgeReply, type JobKind, type ObsSnapshot,
+  type BridgeCommand, type BridgeCurrency, type BridgeJob, type BridgeReply, type JobKind, type ObsSnapshot, type StaffNotice,
 } from './bridge-core';
 
 const JOBS = 'bridge:jobs';
@@ -117,6 +117,34 @@ export async function bridgeRunCommand(commandId: string, args: string[], delayM
   } catch {
     return false;
   }
+}
+
+// ── Staff notices (ROADMAP 55.13) ──
+// A notice goes on a short list of its own for each PC whose staff switch is on, so a PC without staff tools never sees one. The list lives
+// 60 s and a notice older than the job age limit is dropped: a notice sent while the app is offline is gone.
+const noticeKey = (pcId: string) => `bridge:notices:${pcId}`;
+
+/** Queues a notice for every staff PC and does not wait. Never throws; nothing in a sandbox or when no PC has staff tools. True when queued. */
+export async function sendNotice(notice: StaffNotice): Promise<boolean> {
+  try {
+    if (await inSandbox()) return false;
+    const pcs = (await listBridges()).filter(p => p.staff);
+    const job = { id: crypto.randomUUID(), kind: 'notice', at: Date.now(), notice } satisfies BridgeJob;
+    for (const pc of pcs) { await kv.rpush(noticeKey(pc.id), job); await kv.expire(noticeKey(pc.id), 60); }
+    return pcs.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function claimNotices(pcId: string, now = Date.now()): Promise<BridgeJob[]> {
+  const jobs: BridgeJob[] = [];
+  while (jobs.length < 5) {
+    const j = await kv.lpop<BridgeJob>(noticeKey(pcId));
+    if (j === null || j === undefined) break;
+    if (isFreshJob(j, now)) jobs.push(j);
+  }
+  return jobs;
 }
 
 /** Queues any job and does not wait. Nothing is queued in a sandbox or when no bridge is paired. Never throws. True when queued. */
@@ -288,11 +316,11 @@ export async function claimJobs(now = Date.now()): Promise<BridgeJob[]> {
 }
 
 /** The long-poll: jobs as soon as there are any, else an empty list after `longPollMs`. Null when the token was revoked meanwhile. */
-export async function pollJobs(hash: string, version?: string): Promise<BridgeJob[] | null> {
+export async function pollJobs(hash: string, version?: string, noticesFor?: string): Promise<BridgeJob[] | null> {
   const end = Date.now() + tuning.longPollMs;
   for (;;) {
     if (!(await touchBridge(hash, version))) return null;
-    const jobs = await claimJobs();
+    const jobs = [...(noticesFor ? await claimNotices(noticesFor) : []), ...(await claimJobs())];
     if (jobs.length || Date.now() + tuning.idlePollMs >= end) return jobs;
     await sleep(tuning.idlePollMs);
   }

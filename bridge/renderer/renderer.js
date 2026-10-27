@@ -371,6 +371,51 @@ action('staff-extra-clear', 'staff-stream-result', () => staffDo({ action: 'stre
 action('staff-scene-go', 'staff-stream-result', async () => $('staff-scene').value ? staffAsk({ op: 'scene', name: $('staff-scene').value }) : { ok: false, text: 'OBS has no scenes yet.' });
 action('staff-trading', 'staff-stream-result', async () => { const r = await window.bridge.staffTrading(!(staffState && staffState.tradingPaused)); void loadStaff(); return r; });
 
-window.bridge.onState(s => { state = s; render(); renderStaff(); });
-window.bridge.getState().then(s => { state = s; render(); renderStaff(); });
+// ── Shortcuts and Activity (55.13) ──
+action('staff-backup', 'staff-backup-result', () => staffDo({ action: 'backup' }));
+
+const listOf = (ul, rows) => ul.replaceChildren(...rows);
+let searchTimer;
+$('staff-search').addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async () => {
+    const q = $('staff-search').value.trim();
+    if (q.length < 2) return listOf($('staff-search-results'), []);
+    const r = await staffAsk({ op: 'search', q });
+    const found = r.ok && r.data && Array.isArray(r.data.results) ? r.data.results : [];
+    listOf($('staff-search-results'), found.map(x => {
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn plain';
+      b.textContent = `${x.label} (${x.hint})`;
+      b.addEventListener('click', () => { void staffAsk({ op: 'open', href: x.href }); });
+      li.append(b);
+      return li;
+    }));
+  }, 300);
+});
+
+const activityTabOpen = () => !!state && state.staff && document.querySelector('[data-panel="activity"]').hidden === false && !document.hidden;
+async function loadActivity() {
+  if (!activityTabOpen()) return;
+  const r = await staffAsk({ op: 'activity' });
+  $('activity-result').textContent = r.ok ? (r.data.events.length ? '' : 'Nothing yet.') : r.text;
+  $('activity-result').className = 'result ' + (r.ok ? '' : 'fail');
+  if (!r.ok) return;
+  listOf($('activity-list'), r.data.events.map(e => { const li = document.createElement('li'); li.textContent = e.text; return li; }));
+}
+for (const b of document.querySelectorAll('.rail-btn')) b.addEventListener('click', () => { void loadActivity(); });
+setInterval(() => { void loadActivity(); }, 5000);
+
+for (const kind of ['attention', 'feedback', 'refusal', 'deploy']) $('notice-' + kind).addEventListener('change', e => window.bridge.setNotice(kind, e.target.checked));
+function renderNotices() {
+  $('notice-card').hidden = !(state && state.staff);
+  $('rail-activity').hidden = !(state && state.staff);
+  if (state && !state.staff && !document.querySelector('[data-panel="activity"]').hidden) showTab('status');
+  if (state && state.notices) for (const kind of Object.keys(state.notices)) if ($('notice-' + kind)) $('notice-' + kind).checked = state.notices[kind];
+}
+
+window.bridge.onState(s => { state = s; render(); renderStaff(); renderNotices(); });
+window.bridge.getState().then(s => { state = s; render(); renderStaff(); renderNotices(); });
 setInterval(render, 5000); // keeps "5 seconds ago" honest

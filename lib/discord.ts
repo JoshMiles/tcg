@@ -1,4 +1,5 @@
 import { kv, inSandbox } from './db';
+import { sendNotice } from './bridge';
 import { after } from 'next/server';
 import type { ActivityEvent } from './activity';
 import { getActiveSeasonWithPacks } from './kv';
@@ -535,6 +536,7 @@ async function recordDelivery(channel: DiscordChannel, kind: string, r: SendResu
     stored.offReason = `Switched off after ${DISCORD_LOG_CAP} failed sends in a row (last: ${r.error ?? `HTTP ${r.status}`})`.slice(0, 300);
     await saveDiscordSettings(settings);
     void notifyAdminLog({ action: 'Discord channel switched off', subject: stored.name, detail: stored.offReason });
+    void sendNotice({ kind: 'attention', title: `Discord channel "${stored.name}" switched off`, text: stored.offReason, href: '/admin/settings?tab=webhooks' }); // a staff notice (55.13)
   } catch { /* the log is best effort */ }
 }
 

@@ -51,6 +51,7 @@
         <button type="button" class="rail-btn" data-tab="status" aria-current="page"><svg class="i"><use href="#i-activity"/></svg><span>Status</span></button>
         <button type="button" class="rail-btn" data-tab="control"><svg class="i"><use href="#i-keyboard"/></svg><span>Control</span></button>
         <button type="button" id="rail-staff" class="rail-btn" data-tab="staff" hidden><svg class="i"><use href="#i-shield"/></svg><span>Staff</span></button>
+        <button type="button" id="rail-activity" class="rail-btn" data-tab="activity" hidden><svg class="i"><use href="#i-bell"/></svg><span>Activity</span></button>
         <button type="button" class="rail-btn" data-tab="settings"><svg class="i"><use href="#i-settings"/></svg><span>Settings</span></button>
         <button type="button" class="rail-btn" data-tab="about"><svg class="i"><use href="#i-info"/></svg><span>About</span></button>
         <div class="rail-foot"><span id="rail-dot" class="dot bad"></span><span id="rail-text">Not connected</span></div>
@@ -279,6 +280,28 @@
             </div>
             <p id="staff-stream-result" class="result" role="status"></p>
           </section>
+          <section class="card">
+            <h2 class="plain-title">Shortcuts</h2>
+            <p class="muted small">Find a viewer, card or pack and open its admin page in your browser.</p>
+            <div class="row">
+              <input id="staff-search" type="text" spellcheck="false" autocomplete="off" maxlength="60" placeholder="Search viewers, cards, packs">
+            </div>
+            <ul id="staff-search-results" class="links"></ul>
+            <div class="row tools">
+              <button type="button" id="staff-backup" class="btn plain">Back up now</button>
+            </div>
+            <p id="staff-backup-result" class="result" role="status"></p>
+          </section>
+        </section>
+
+        <!-- Activity (55.13): the dashboard's recent pulls, grants and trades, read only while this tab is open -->
+        <section data-panel="activity" hidden>
+          <section class="card">
+            <h2 class="plain-title">Recent activity</h2>
+            <p class="muted small">Pulls, grants and trades, newest first. Notices only reach this app while it is running: one sent while it was closed or offline is dropped, and is not shown later.</p>
+            <ul id="activity-list" class="links"></ul>
+            <p id="activity-result" class="result" role="status"></p>
+          </section>
         </section>
 
         <!-- Settings -->
@@ -288,6 +311,14 @@
             <label class="switch-row"><span><b>Start with Windows</b><small>TCG Bridge opens in the tray when you sign in.</small></span><input id="autostart" class="switch" type="checkbox"></label>
             <label class="switch-row"><span><b>Alert me when a link drops while live</b><small>A Windows notification when the site, Mix It Up or OBS drops during a stream.</small></span><input id="alerts" class="switch" type="checkbox"></label>
             <label class="switch-row"><span><b>Start Mix It Up with TCG Bridge</b><small>Opens Mix It Up when this app starts, if it is not running.</small></span><input id="mix-autostart" class="switch" type="checkbox"></label>
+          </section>
+          <section class="card" id="notice-card" hidden>
+            <h2 class="plain-title">Staff notices</h2>
+            <p class="muted small">Windows notifications from the site while this PC has staff tools on. Clicking one opens its page in your browser. A notice sent while this app is offline is dropped.</p>
+            <label class="switch-row"><span><b>Needs attention</b><small>A Discord channel switched off, a failed backup, data health.</small></span><input id="notice-attention" class="switch" type="checkbox"></label>
+            <label class="switch-row"><span><b>New reports and feedback</b><small>A viewer sends a report or feedback.</small></span><input id="notice-feedback" class="switch" type="checkbox"></label>
+            <label class="switch-row"><span><b>Paid pull refusals</b><small>At most one a minute for each reason; never for not enough Brie Bucks.</small></span><input id="notice-refusal" class="switch" type="checkbox"></label>
+            <label class="switch-row"><span><b>Deploys</b><small>A new build is live, with its changelog lines.</small></span><input id="notice-deploy" class="switch" type="checkbox"></label>
           </section>
           <section class="card">
             <h2 class="plain-title">Streamer tools</h2>

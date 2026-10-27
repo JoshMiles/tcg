@@ -3,7 +3,7 @@ import { MixItUpClient, MixItUpDown, MixItUpError, type MixItUpUser } from './mi
 import { ObsError, type ObsWatcher } from './obs';
 import type { BridgeJob, BridgeResult } from './site';
 
-export const KINDS = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh', 'run-command', 'pull-event', 'backup', 'ledger', 'summary'] as const;
+export const KINDS = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh', 'run-command', 'pull-event', 'backup', 'ledger', 'summary', 'notice'] as const;
 export const isKnownKind = (k: unknown): boolean => typeof k === 'string' && (KINDS as readonly string[]).includes(k);
 
 const LOGIN = /^[a-z0-9_]{1,25}$/;
@@ -15,7 +15,7 @@ export class Refused extends Error {}
 export interface BucksTasks { backup(job: BridgeJob): Promise<void>; ledger(): Promise<void> }
 
 /** Where the streamer tools' data goes (ROADMAP 55.11): the live pull feed and the summary window. The data is unchecked here; main.ts cleans it. */
-export interface Sinks { feed(raw: unknown): void; summary(raw: unknown): void }
+export interface Sinks { feed(raw: unknown): void; summary(raw: unknown): void; notice(raw: unknown): void }
 
 const DELAY_MAX_MS = 15_000;
 const num = (v: unknown, min: number, max: number): number => (typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : min);
@@ -32,6 +32,10 @@ export async function runJob(job: BridgeJob, mix: MixItUpClient, obs: ObsWatcher
   try {
     if (job.kind === 'summary') { // the end-of-stream summary window (55.11)
       sinks?.summary(job.summary);
+      return { id: job.id, ok: true };
+    }
+    if (job.kind === 'notice') { // a staff notice (55.13): fire and forget, shown only if its switch is on and its link is on the paired site
+      sinks?.notice(job.notice);
       return { id: job.id, ok: true };
     }
     if (job.kind === 'backup' || job.kind === 'ledger') {
