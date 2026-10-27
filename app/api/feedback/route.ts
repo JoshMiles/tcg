@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const result = await submitFeedback(viewer.session.username, parsed.value, body.device);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
     return NextResponse.json({ ok: true, id: result.item.id });
-  } catch {
-    return NextResponse.json({ error: 'Could not send that right now. Try again in a moment.' }, { status: 503 });
+  } catch (e) {
+    return serverError(e, 'feedback', 'Could not send that right now. Try again in a moment.');
   }
 }
