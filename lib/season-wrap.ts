@@ -4,6 +4,7 @@ import { getSeasonLeaderboard, type LeaderboardRow } from './leaderboard';
 import { uniqueCount } from './collection';
 import { decodeEntry } from './variants';
 import type { Card, Season } from './types';
+import { seasonPreflight, type PreflightItem } from './season-preflight';
 import type { IconName } from '@/app/components/Icon';
 
 // Season lifecycle on the server: live stats for a season, the wrap-up snapshot (final standings + awards), ending / reopening a
@@ -186,27 +187,14 @@ export interface ActivationPreview {
   /** The season that will be wrapped up when this one goes live. */
   outgoing: { id: string; name: string; viewers: number; copies: number } | null;
   /** Things worth knowing before switching. */
-  warnings: string[];
+  warnings: PreflightItem[];
 }
 
 /** What activating a season will do, and what might be wrong with it, for the confirmation dialog. */
 export async function getActivationPreview(season: Season): Promise<ActivationPreview> {
   const [seasons, packs] = await Promise.all([listSeasons(), getPacksForSeason(season)]);
-  const warnings: string[] = [];
-  const live = packs.filter(p => p.status === 'published' && p.active);
-  if (packs.length === 0) warnings.push('This season has no packs, so nothing could be drawn.');
-  else if (live.length === 0) warnings.push('None of its packs are published and active, so nothing could be drawn.');
-  for (const p of live) {
-    const cards = await getPackCards(p.id);
-    if (cards.length === 0) warnings.push(`${p.name} has no cards.`);
-    else {
-      const noArt = cards.filter(c => !c.imageUrl).length;
-      const noOdds = cards.filter(c => !(c.probability > 0)).length;
-      if (noArt > 0) warnings.push(`${p.name}: ${noArt} card${noArt === 1 ? ' has' : 's have'} no image.`);
-      if (noOdds > 0) warnings.push(`${p.name}: ${noOdds} card${noOdds === 1 ? ' has' : 's have'} 0 odds and can never be pulled.`);
-    }
-  }
-  if (season.endsAt !== undefined && season.endsAt <= Date.now()) warnings.push('Its end date has already passed, so it would be wrapped up again straight away.');
+  const cards = new Map(await Promise.all(packs.filter(p => p.status === 'published' && p.active).map(async p => [p.id, await getPackCards(p.id)] as const)));
+  const warnings = seasonPreflight(season, packs, id => cards.get(id) ?? []);
   const out = seasons.find(s => s.active && s.id !== season.id && !s.endedAt);
   let outgoing: ActivationPreview['outgoing'] = null;
   if (out) {
