@@ -82,13 +82,15 @@ export async function queuePull(username: string, o: PullOptions = {}): Promise<
   const paid = mix.enabled && !o.free && !(await inSandbox());
   let known: { left?: number; balance?: number } = {};
   let cost = mix.cost; // a paid pull shows the price stored on its reservation
+  let firstFree = false;
   if (paid) {
-    const r = await reservePaidPull(mix, username, id, undefined, o.role, chosen?.price);
+    const r = await reservePaidPull(mix, username, id, undefined, o.role, chosen?.price, !!o.test);
     if (!r.ok) {
       await note('balance', 'failed', r.message);
       return { ok: true, ignored: true, reason: r.reason, message: r.message, ...(r.balance !== undefined ? { balance: r.balance } : {}) };
     }
     cost = r.price ?? mix.cost;
+    firstFree = !!r.firstFree;
     known = { ...(r.left !== undefined ? { left: r.left } : {}), ...(r.balance !== undefined ? { balance: r.balance } : {}) };
     await note('balance', 'ok', `Mix It Up answered and ${username} can pay ${cost.toLocaleString()} ${mix.currency}`);
   } else {
@@ -111,6 +113,7 @@ export async function queuePull(username: string, o: PullOptions = {}): Promise<
   }
   await note('queued', 'ok', 'A ticket was rolled and the pull is waiting for the overlay');
   await recordActivity({ type: 'trigger', kind: 'pull', username, ...(o.reason ? { reason: o.reason } : {}), ...(o.test ? { test: true as const } : {}) });
-  const message = replyText('queued', mix.replies, { username, cost: cost.toLocaleString(), currency: mix.currency, left: known.left, balance: known.balance?.toLocaleString() });
+  // A first free pack has its own reply; blank uses the normal one, not the suggested text.
+  const message = replyText(firstFree && mix.replies.queued_first_free ? 'queued_first_free' : 'queued', mix.replies, { username, cost: cost.toLocaleString(), currency: mix.currency, left: known.left, balance: known.balance?.toLocaleString() });
   return { ok: true, message, ...known };
 }

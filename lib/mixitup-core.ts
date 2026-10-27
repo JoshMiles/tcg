@@ -46,6 +46,8 @@ export interface MixItUpSettings {
   cooldownSeconds: number;
   /** Chat pulls are refused while this many pulls wait on the overlay (ROADMAP 55.4e). 0 = off. */
   queueCap: number;
+  /** A viewer's first ever paid pull costs 0 (ROADMAP 55.4h). Off unless switched on. */
+  firstPackFree: boolean;
   /** The message sent with the deduction. See MESSAGE_VARS. */
   message: string;
   /** Which key of the balance reply holds the number. */
@@ -80,7 +82,7 @@ const NO_ROLE_LIMITS: Record<PullRole, number> = { regular: 0, subscriber: 0, vi
 
 export const DEFAULT_MIXITUP: MixItUpSettings = {
   enabled: false, connection: 'bridge', currencyId: '', balanceUrl: '', deductUrl: '', addUrl: '', viewersUrl: '', secret: '', currency: 'Brie Bucks', cost: 100, limit: 0,
-  roleLimits: { ...NO_ROLE_LIMITS }, priceByRole: {}, cooldownSeconds: 0, queueCap: 0, message: DEFAULT_MESSAGE, balanceField: 'balance', pullRules: [], testViewers: [CHANNEL_LOGIN], overlayWatchdog: false, chat: DEFAULT_CHAT, replies: {}, eventRewards: DEFAULT_EVENT_REWARDS,
+  roleLimits: { ...NO_ROLE_LIMITS }, priceByRole: {}, cooldownSeconds: 0, queueCap: 0, firstPackFree: false, message: DEFAULT_MESSAGE, balanceField: 'balance', pullRules: [], testViewers: [CHANNEL_LOGIN], overlayWatchdog: false, chat: DEFAULT_CHAT, replies: {}, eventRewards: DEFAULT_EVENT_REWARDS,
 };
 
 /** Is there somewhere to send a balance check? Bridge: a chosen currency. Addresses: the balance address. */
@@ -129,17 +131,18 @@ export function cleanHappyHourInput(raw: { minutes?: unknown; kind?: unknown; pe
 
 /**
  * What one pack costs this viewer, a whole number. The full price order (ROADMAP 55.4): pack price, else role price, else base price;
- * then a happy hour discount (55.4c, rounded UP to a whole number; free = 0); then a first free pack makes it 0. The later items add
- * their steps here. A viewer with several roles pays the lowest of their role prices. Worked out when the pull is reserved and stored on
+ * then a happy hour discount (55.4c, rounded UP to a whole number; free = 0); then a first free pack (55.4h, `firstFree`, decided by the caller) makes it 0.
+ * A viewer with several roles pays the lowest of their role prices. Worked out when the pull is reserved and stored on
  * the reservation, so a settings change or a happy hour ending while the pack waits on the overlay changes nothing. `happyHour` is passed
  * in (this stays pure); one whose `endsAt` has passed at `now` is ignored.
  */
-export function pullPrice(s: Pick<MixItUpSettings, 'cost' | 'priceByRole'>, o: { role?: PullRole | readonly PullRole[]; happyHour?: HappyHour | null; now?: number; packPrice?: number }): number {
+export function pullPrice(s: Pick<MixItUpSettings, 'cost' | 'priceByRole'>, o: { role?: PullRole | readonly PullRole[]; happyHour?: HappyHour | null; now?: number; packPrice?: number; firstFree?: boolean }): number {
   const roles: readonly PullRole[] = Array.isArray(o.role) ? o.role : o.role ? [o.role as PullRole] : [];
   const prices = roles.flatMap(r => { const p = (s.priceByRole as Record<string, number | undefined> | undefined)?.[r]; return typeof p === 'number' ? [p] : []; });
   // A pack's own price (55.4f) beats a role price, which beats the base price.
   const price = typeof o.packPrice === 'number' && o.packPrice >= 1 ? o.packPrice : prices.length ? Math.min(...prices) : s.cost;
   const h = activeHappyHour(o.happyHour, o.now ?? Date.now());
+  if (o.firstFree) return 0;
   if (!h) return price;
   return h.kind === 'free' ? 0 : Math.floor((price * (100 - h.percent) + 99) / 100);
 }
@@ -206,6 +209,7 @@ export function normalizeMixItUp(raw: unknown): MixItUpSettings {
     priceByRole: priceByRoleFrom(r),
     cooldownSeconds: num(r.cooldownSeconds, 0, 0, COOLDOWN_MAX),
     queueCap: num(r.queueCap, 0, 0, QUEUE_CAP_MAX),
+    firstPackFree: r.firstPackFree === true,
     message: text(r.message, MESSAGE_MAX, d.message) || d.message,
     balanceField: text(r.balanceField, 60, d.balanceField) || d.balanceField,
     pullRules: normalizeRules(r.pullRules),
@@ -305,6 +309,7 @@ export function pickPack<T extends { name: string }>(packs: readonly T[], typed:
 /** The replies staff can edit, with today's text as the default. To add one later, add its key and text here and its label below. */
 export const REPLY_DEFAULTS = {
   queued: 'Opening a pack for {username}',
+  queued_first_free: 'Opening your first pack for free, {username}!',
   insufficient_balance: '{username}, a pack costs {cost} {currency} and you have {balance}.',
   limit_reached: '{username}, you have used all {limit} pulls for this stream.',
   mixitup_unavailable: '{username}, the balance check did not answer, so no pack was opened. Try again in a moment.',
@@ -341,7 +346,7 @@ export function refusalMessage(reason: RefusalReason, s: Pick<MixItUpSettings, '
 }
 
 export const REPLY_LABELS: Record<ReplyKey, string> = {
-  queued: 'Pull queued', insufficient_balance: 'Not enough currency', limit_reached: 'Pull limit reached', mixitup_unavailable: 'Mix It Up did not answer', no_packs: 'No packs to open', cooldown: 'Wait between packs', queue_full: 'Pack queue full', unknown_pack: 'Pack not found',
+  queued: 'Pull queued', queued_first_free: 'First pack free', insufficient_balance: 'Not enough currency', limit_reached: 'Pull limit reached', mixitup_unavailable: 'Mix It Up did not answer', no_packs: 'No packs to open', cooldown: 'Wait between packs', queue_full: 'Pack queue full', unknown_pack: 'Pack not found',
 };
 export const REFUSAL_LABELS: Record<string, string> = {
   insufficient_balance: 'Not enough currency', limit_reached: 'Pull limit reached', mixitup_unavailable: 'Mix It Up did not answer', bad_balance: 'Balance could not be read', blocked: 'Blocked by staff', cooldown: 'Wait between packs', queue_full: 'Pack queue full', unknown_pack: 'Pack not found',

@@ -27,7 +27,7 @@ async function saveSettings(formData: FormData, tab: 'paid' | 'connection'): Pro
   const end = (kind: 'saved' | 'error', text: string): never => formData.get('returnTo') === 'setup'
     ? redirect(`/admin/mixitup/setup?step=${tab === 'paid' ? 'rules' : 'outgoing'}&${kind === 'saved' ? 'note=Saved.' : `error=${encodeURIComponent(text)}`}`)
     : back(tab, kind, text);
-  const r = cleanMixItUpInput({ ...cur, ...fields, enabled: tab === 'paid' ? formData.get('enabled') === 'on' : cur.enabled });
+  const r = cleanMixItUpInput({ ...cur, ...fields, enabled: tab === 'paid' ? formData.get('enabled') === 'on' : cur.enabled, firstPackFree: tab === 'paid' ? formData.get('firstPackFree') === 'on' : cur.firstPackFree });
   if (!r.ok) return end('error', r.message);
   if (r.settings.connection === 'bridge') { // the currency's name comes from what the bridge announced
     const c = (await readBridge()).currencies.find(x => x.id === r.settings.currencyId);
