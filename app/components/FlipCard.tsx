@@ -45,7 +45,9 @@ export function FlipCard({ children, back, compact = false, className = '', defa
     const loads = fontsNeeded(nodes).map(f => loadBackFont(f.id, f.weight, f.italic));
     if (fits) void Promise.all(loads).then(() => setFontsReady(n => n + 1));
   }, [fontKey]); // eslint-disable-line react-hooks/exhaustive-deps
-  const qrs = useMemo(() => new Map(nodes.filter(n => n.qrUrl).map(n => [n.id, qrPath(n.qrUrl!)])), [nodes]);
+  const [origin, setOrigin] = useState<string>();
+  useEffect(() => setOrigin(window.location.origin), []); // after mount, so the server render and hydration agree
+  const qrs = useMemo(() => new Map(nodes.filter(n => n.qrUrl).map(n => [n.id, qrPath(n.qrUrl!, origin)])), [nodes, origin]);
   const qrOf = (n: BackNode) => qrs.get(n.id) ?? null;
 
   function move(e: React.PointerEvent<HTMLDivElement>) {

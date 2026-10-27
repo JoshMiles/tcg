@@ -77,7 +77,7 @@ function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plat
 
   const padL = 62;
   const show = look?.show;
-  const qr = p.qrUrl && (!show || show.qr) ? qrModules(p.qrUrl) : null;
+  const qr = p.qrUrl && (!show || show.qr) ? qrModules(p.qrUrl, location.origin) : null;
   const qrSize = 132;
   const textW = r.w - padL - 40 - (qr ? qrSize + 70 : 0);
   const left = r.x + padL;
@@ -187,8 +187,8 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
       if (fit === 'cover') { ctx.beginPath(); ctx.rect(b.x, b.y, b.w, b.h); ctx.clip(); }
       draw();
     }
-  } else if (b.type === 'qr' && b.qrUrl && qrModules(b.qrUrl)) {
-    const q = qrModules(b.qrUrl)!;
+  } else if (b.type === 'qr' && b.qrUrl && qrModules(b.qrUrl, location.origin)) {
+    const q = qrModules(b.qrUrl, location.origin)!;
     const cell = b.w / (q.size + 2);
     ctx.fillStyle = b.light ?? 'rgba(255,255,255,0.88)'; roundRect(ctx, b.x, b.y, b.w, b.h, 3); ctx.fill();
     ctx.fillStyle = b.dark ?? '#1f1f24';
