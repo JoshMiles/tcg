@@ -14,7 +14,7 @@ export interface DiffItem { area: DiffArea; id: string; label: string; change: '
 
 export const SETTING_KEYS = ['scoring:settings', 'overlay:settings', 'overlay:packprops', 'overlay:presets'] as const;
 const SEASON_FIELDS = ['name', 'collectionName', 'status', 'active', 'maxConcurrentPacks', 'packIds', 'startsAt', 'endsAt', 'autoStart', 'endedAt', 'tradingFrozen'];
-const PACK_FIELDS = ['name', 'status', 'active', 'archived', 'weight', 'coverImageUrl', 'accentColor', 'holoMinStars', 'cardTime', 'cooldownTime', 'soundVolume', 'upgradesEnabled', 'variantWeights', 'upgradeCosts', 'disabledVariants'];
+const PACK_FIELDS = ['name', 'status', 'active', 'archived', 'weight', 'price', 'coverImageUrl', 'accentColor', 'holoMinStars', 'cardTime', 'cooldownTime', 'soundVolume', 'upgradesEnabled', 'variantWeights', 'upgradeCosts', 'disabledVariants'];
 const CARD_FIELDS = ['number', 'name', 'stars', 'probability', 'imageUrl', 'soundUrl', 'fullArtImageUrl', 'stillUrl', 'fullArtStillUrl', 'upgradesEnabled', 'disabledVariants'];
 
 const show = (v: unknown): string => {

@@ -27,7 +27,7 @@ export function PackPanel({ packId, pack, base, onChange, seasons, overrideCount
 
   return (
     <div>
-      <Section title="Details" dot={!pack.name.trim() ? 'problem' : changed('name', 'coverImageUrl', 'accentColor', 'tearBorderColor', 'weight', 'active')}>
+      <Section title="Details" dot={!pack.name.trim() ? 'problem' : changed('name', 'coverImageUrl', 'accentColor', 'tearBorderColor', 'weight', 'price', 'active')}>
         <Field label="Pack name" htmlFor="pw-name"><input id="pw-name" className={inputCls} value={pack.name} maxLength={80} onChange={e => onChange({ name: e.target.value }, 'name')} /></Field>
         <ArtDrop label="Cover image" value={pack.coverImageUrl} onChange={u => onChange({ coverImageUrl: u })} />
         <div className="grid grid-cols-2 gap-3">
@@ -36,6 +36,10 @@ export function PackPanel({ packId, pack, base, onChange, seasons, overrideCount
         </div>
         <Field label="Draw weight" htmlFor="pw-weight" help="Relative chance this pack is the one drawn.">
           <NumberInput id="pw-weight" value={pack.weight} min={0.01} onChange={n => onChange({ weight: n }, 'weight')} />
+        </Field>
+        <Field label="Price per paid pull" htmlFor="pw-price" help="A whole number from 1, in the Mix It Up currency. Empty = no price of its own (a role price or the base price applies). Used when a viewer asks for this pack by name with !pack.">
+          <input id="pw-price" className={inputCls} type="number" min={1} step={1} placeholder="Base price" value={pack.price ? String(pack.price) : ''}
+            onChange={e => { const n = Math.floor(Number(e.target.value)); onChange({ price: e.target.value.trim() !== '' && Number.isFinite(n) && n >= 1 ? n : 0 }, 'price'); }} />
         </Field>
         {seasons.some(s => s.share !== null) && (
           <ul className="text-xs text-gray-400 space-y-0.5">{seasons.filter(s => s.share !== null).map(s => <li key={s.id}>{s.name}: <strong className="text-gray-200">{Math.round((s.share ?? 0) * 100)}%</strong> of draws</li>)}</ul>

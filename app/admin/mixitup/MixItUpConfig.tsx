@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { PendingButton } from '@/app/components/PendingButton';
 import type { MixItUpSettings } from '@/lib/mixitup-core';
 import { Panel } from '../components/ui';
@@ -6,7 +7,7 @@ import { PaidPullFields } from './PaidPullFields';
 import { HappyHourBox, type HappyHourView } from './HappyHourBox';
 
 /** Mix It Up → Paid pulls: prices, limits and messages (ROADMAP Track 12). How the site talks to Mix It Up is on the Connection tab. */
-export function MixItUpConfig({ settings: s, happyHour }: { settings: MixItUpSettings; happyHour: HappyHourView | null }) {
+export function MixItUpConfig({ settings: s, happyHour, packs }: { settings: MixItUpSettings; happyHour: HappyHourView | null; packs: { id: string; name: string; price?: number }[] }) {
   return (
     <div className="space-y-6">
     <HappyHourBox running={happyHour} />
@@ -32,6 +33,22 @@ export function MixItUpConfig({ settings: s, happyHour }: { settings: MixItUpSet
 
       <PendingButton type="submit" className="btn btn-primary btn-sm self-start">Save paid pulls</PendingButton>
     </form>
+    <Panel title="Packs viewers can ask for" icon="list" hint={<>A viewer types <code>!pack &lt;name&gt;</code> (the whole name, or the start of it if only one pack starts that way). Prices are set on each pack&rsquo;s editor; the base price is {s.cost.toLocaleString()} {s.currency}. A pack&rsquo;s price is charged when it is asked for by name; a plain <code>!pack</code> uses the role price or the base price.</>}>
+      {packs.length === 0 ? <p className="text-sm text-gray-500">The active season has no pack with cards to open.</p> : (
+        <table className="table table-sm">
+          <thead><tr><th>Pack</th><th className="text-right">Price</th><th /></tr></thead>
+          <tbody>
+            {packs.map(p => (
+              <tr key={p.id}>
+                <td className="font-semibold text-white">{p.name}</td>
+                <td className="text-right">{p.price ? <>{p.price.toLocaleString()} {s.currency}</> : <span className="text-gray-500">{s.cost.toLocaleString()} {s.currency} (base)</span>}</td>
+                <td className="text-right"><Link href={`/admin/packs/${p.id}?view=settings`} className="link">Edit pack</Link></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Panel>
     </div>
   );
 }

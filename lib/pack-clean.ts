@@ -18,6 +18,8 @@ export interface PackInput {
   variantWeights: VariantWeights;
   upgradeCosts: UpgradeCosts;
   disabledVariants?: OptionalVariant[];
+  /** Price per paid pull of this pack (ROADMAP 55.4f). 0 or missing = no override. */
+  price?: number;
 }
 
 /** A finite number clamped into [min, max]; anything else (NaN, a missing field) becomes the fallback. */
@@ -50,6 +52,7 @@ export function defaultPackInput(name = ''): PackInput {
 export function cleanPackInput(i: PackInput): Omit<Pack, 'id' | 'createdAt' | 'status'> {
   const w = i.variantWeights ?? DEFAULT_VARIANT_WEIGHTS;
   const c = i.upgradeCosts ?? DEFAULT_UPGRADE_COSTS;
+  const price = Math.floor(num(i.price, 0, 0, 1_000_000));
   return {
     name: str(i.name, 80).trim(),
     coverImageUrl: str(i.coverImageUrl),
@@ -76,6 +79,8 @@ export function cleanPackInput(i: PackInput): Omit<Pack, 'id' | 'createdAt' | 's
       golden: int(c.golden, DEFAULT_UPGRADE_COSTS.golden),
     },
     disabledVariants: cleanDisabled(i.disabledVariants),
+    // The key is always there (undefined = none) so that `{ ...pack, ...clean }` clears a price that was removed.
+    price: price >= 1 ? price : undefined,
   };
 }
 

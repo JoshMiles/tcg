@@ -68,9 +68,10 @@ export interface DrawTicket {
 export interface QueuedDraw { packId: string; cardNumber: number; variant: Variant }
 
 /** Rolls a pull for a viewer and stores its ticket under `id`. Null when the active season has nothing to draw. */
-export async function issueDraw(id: string, username: string, paid = false, test?: { trace: string }): Promise<QueuedDraw | null> {
+export async function issueDraw(id: string, username: string, paid = false, test?: { trace: string }, onlyPackId?: string): Promise<QueuedDraw | null> {
   const active = await getActiveSeasonWithPacks();
-  const rolled = active ? rollDraw(active.packs, Math.random, await rarityBoostFor(username).catch(() => 1)) : null;
+  // `onlyPackId` (ROADMAP 55.4f, !pack <name>) opens that pack: the pack roll is then between one pack, the card and version rolls are as always.
+  const rolled = active ? rollDraw(onlyPackId ? active.packs.filter(p => p.pack.id === onlyPackId) : active.packs, Math.random, await rarityBoostFor(username).catch(() => 1)) : null;
   if (!active || !rolled) return null;
   const { pack, card, variant } = rolled;
   const ticket: DrawTicket = {

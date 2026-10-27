@@ -32,6 +32,7 @@ export async function updatePack(packId: string, formData: FormData) {
     variantWeights: up.variantWeights,
     upgradeCosts: up.upgradeCosts,
     disabledVariants: up.disabledVariants ?? existing.disabledVariants,
+    price: existing.price, // this form has no price field; the pack workspace owns it
   });
   if (!clean.name) redirect(`/admin/packs/${packId}?tab=settings&error=${encodeURIComponent('Give the pack a name.')}`);
   await savePack({ ...existing, ...clean });

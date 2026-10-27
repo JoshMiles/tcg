@@ -45,7 +45,7 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
   const go = (i: number) => `/admin/mixitup/setup?step=${STEPS[i].id}`;
   const [incoming, outgoing, obsCard] = cards;
   const bridgeMode = settings.connection === 'bridge';
-  const packFields = { username: '$username', requestId: REQUEST_ID };
+  const packFields = { username: '$username', pack: '$allargs', requestId: REQUEST_ID };
   const pack = incomingSetup(`${SITE_URL}/api/webhooks/pull`, secret, packFields);
 
   return (
@@ -80,7 +80,7 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
           <Panel title="Make the !pack command" icon="chat" hint="Mix It Up tells the site when someone types !pack. The secret is already made for you and sits in the body below.">
             <ol className="list-decimal pl-5 space-y-1 text-xs text-gray-400">
               <li>In Mix It Up make a Chat Command <strong>!pack</strong> and add a <strong>Web Request</strong> action: method POST, content type JSON.</li>
-              <li>Paste the address and the body below. <code>requestId</code> is a new number on every run, so a retried request never opens a second pack.</li>
+              <li>Paste the address and the body below. <code>$allargs</code> is what the viewer typed after !pack (<code>!pack Base</code> opens the Base pack); empty means the usual random pack. <code>requestId</code> is a new number on every run, so a retried request never opens a second pack.</li>
               <li>In the Web Request action set the response to <strong>JSON to special identifiers</strong> and map <code>message</code> to <code>reply</code>, then add a <strong>Chat Message</strong> that says <code>$reply</code> (<code>left</code> and <code>balance</code> can be mapped the same way when known).</li>
             </ol>
             <p className={help}>Or skip the steps: download the finished command and import it in Mix It Up.</p>
