@@ -9,6 +9,8 @@ export interface WikiDoc {
   title: string;
   summary: string;
   order: number;
+  /** Front matter `audience: mods`: also shown in the mod panel's guide at /mod/guide. */
+  mods: boolean;
   body: string;
 }
 
@@ -34,6 +36,7 @@ export function parseWikiFile(filename: string, raw: string): WikiDoc | null {
     title,
     summary: field(text.slice(4, end), 'summary'),
     order: Number.isFinite(order) ? order : 100,
+    mods: field(text.slice(4, end), 'audience') === 'mods',
     body: text.slice(end + 5).replace(/^\n/, ''),
   };
 }
@@ -49,6 +52,15 @@ export function loadWiki(): WikiDoc[] {
 
 export function getWikiPage(slug: string): WikiDoc | null {
   return loadWiki().find(doc => doc.slug === slug) ?? null;
+}
+
+/** The topics marked for mods. The only pages /mod/guide may show. */
+export function loadModGuide(): WikiDoc[] {
+  return loadWiki().filter(doc => doc.mods);
+}
+
+export function getModGuidePage(slug: string): WikiDoc | null {
+  return loadModGuide().find(doc => doc.slug === slug) ?? null;
 }
 
 /** Where a page lives. The overview is the index, not /admin/wiki/index. */

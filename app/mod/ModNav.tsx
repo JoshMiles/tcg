@@ -9,6 +9,7 @@ const ITEMS: { href: string; label: string; icon: IconName; exact?: boolean }[] 
   { href: '/mod/users', label: 'Viewers', icon: 'users' },
   { href: '/mod/trades', label: 'Trades', icon: 'trade' },
   { href: '/mod/feedback', label: 'Feedback', icon: 'chat' },
+  { href: '/mod/guide', label: 'Guide', icon: 'book' },
   { href: '/mod/testers', label: 'Testers', icon: 'flask' },
   { href: '/mod/changelog', label: "What's new", icon: 'sparkles' },
 ];

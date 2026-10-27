@@ -36,4 +36,13 @@ ok(wikiLink('/admin/wiki/viewers') === '/admin/wiki/viewers', 'site paths pass')
 ok(wikiLink('https://cheesytcg.app/admin') === 'https://cheesytcg.app/admin', 'https passes');
 ok(!wikiLink('javascript:alert(1)') && !wikiLink('//evil.example') && !wikiLink('http://evil.example'), 'unsafe links do not');
 
+// Mod guide: only topics marked `audience: mods` are listed or openable, and they send a mod nowhere an admin-only page is.
+const { loadModGuide, getModGuidePage } = await import('../lib/wiki');
+const guide = loadModGuide();
+ok(guide.length >= 3 && guide.every(d => d.mods && d.slug !== 'index'), 'the mod guide lists the marked topics');
+ok(loadWiki().some(d => !d.mods), 'unmarked topics exist');
+for (const doc of loadWiki()) ok(!!getModGuidePage(doc.slug) === doc.mods, `${doc.slug}: openable in the mod guide only when marked`);
+ok(getModGuidePage('moderation') === null && getModGuidePage('index') === null && getModGuidePage('nope') === null, 'unmarked slugs are not found');
+for (const doc of guide) ok(!/\]\(\/admin/.test(doc.body), `${doc.slug}: a mod guide topic must not link to admin pages`);
+
 console.log(`wiki ok (${docs.length} pages)`);

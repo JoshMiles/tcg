@@ -4,7 +4,7 @@
 
 ## Admin routes
 - `/admin`. The **widget dashboard** (see "Admin dashboard (widgets)"): stats, quick actions, top collectors, leaderboard, rarity mix, packs, card ownership, recent activity, trading, overlay status, activity pulse, variant mix, most valuable cards, cards nobody owns, stream status, shortcuts and notes, arranged by the admin. The header links to the staff wiki (`/admin/wiki`)
-- `/admin/wiki` and `/admin/wiki/[slug]`. **Staff wiki**: topics rendered from `content/wiki/*.md` (overview, viewers, cards, trading, live tools, moderation, support, environments, glossary). Sidebar item Staff wiki (shortcut `g` then `k`). Admin layout only, so mods never see it
+- `/admin/wiki` and `/admin/wiki/[slug]`. **Staff wiki**: topics rendered from `content/wiki/*.md` (overview, viewers, cards, trading, live tools, moderation, support, environments, glossary). Sidebar item Staff wiki (shortcut `g` then `k`). Admin layout only, so mods never see it here; topics with front matter `audience: mods` (restrict a viewer, reverse a trade, escalate) are also served to mods at `/mod/guide` (docs/staff.md)
 - `/admin/seasons`, season list (drafts first)
 - `/admin/seasons/new[?draft=id]`, season wizard / resume a draft
 - `/admin/seasons/[id]`, season settings + pack assignment
