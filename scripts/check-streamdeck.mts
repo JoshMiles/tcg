@@ -22,7 +22,7 @@ const press = async (body: Record<string, unknown>, withSecret = true) => {
   const res = await POST(new NextRequest('http://localhost/api/webhooks/buff', { method: 'POST', body: JSON.stringify(withSecret ? { secret, ...body } : body) }));
   return { status: res.status, ...(await res.json()) } as { status: number; ok: boolean; message: string };
 };
-const COOLDOWN_KEYS = ['buff:all:everyone', 'buff:me:bob_1', 'buff:me:cat', 'buff:me:dan_1', 'buff:me:eve_1', 'stream-pulls', 'free-pack:fay_1'].map(k => `streamdeck:cd:${k}`);
+const COOLDOWN_KEYS = ['buff:all:everyone', 'buff:me:bob_1', 'buff:me:cat', 'buff:me:dan_1', 'buff:me:eve_1', 'stream-pulls', 'happy-hour', 'free-pack:fay_1'].map(k => `streamdeck:cd:${k}`);
 const clearCooldowns = async () => { for (const k of COOLDOWN_KEYS) await kv.del(k); };
 
 // ── Definitions: the switch is off unless set, and never on for grant-achievement ──
@@ -111,6 +111,29 @@ const ev = (await kv.lrange<{ username: string; type: string; paid?: boolean }>(
 ok((await kv.llen('webhooks:queue')) === queued + 1 && ev.username === 'fay_1' && ev.type === 'pull' && !ev.paid, 'one pull is queued and never charges');
 ok(!(await press({ action: 'free-pack', target: 'viewer', username: 'fay_1' })).ok, 'free-pack honours the cooldown');
 ok(!(await press({ action: 'nope' })).ok, 'an unknown action answers nothing');
+
+// ── Happy hour (ROADMAP 55.4c) ──
+const { getHappyHour } = await import('../lib/happyhour');
+await clearCooldowns();
+r = await press({ action: 'happy-hour', amount: 30 });
+let hhNow = await getHappyHour();
+ok(r.ok && r.message === 'Happy hour: free packs for 30 minutes.' && hhNow?.kind === 'free' && hhNow.by === 'Stream Deck' && hhNow.endsAt > Date.now() + 29 * 60_000, `happy-hour with no percent is free: ${r.message}`);
+ok((await press({ action: 'happy-hour', amount: 30 })).message.includes('just pressed'), 'happy-hour honours the cooldown');
+await clearCooldowns();
+r = await press({ action: 'happy-hour', amount: '45', percent: 25 });
+hhNow = await getHappyHour();
+ok(r.ok && r.message === 'Happy hour: 25% off packs for 45 minutes.' && hhNow?.kind === 'discount' && (hhNow as { percent: number }).percent === 25, `a percent makes a discount and replaces the running one: ${r.message}`);
+await clearCooldowns();
+ok(!(await press({ action: 'happy-hour', amount: 30, percent: 100 })).ok && !(await press({ action: 'happy-hour', amount: 999 })).ok && !(await press({ action: 'happy-hour' })).ok && !(await press({ action: 'happy-hour', amount: 'x' })).ok, 'a bad percent, minutes or a missing amount is refused');
+ok((await getHappyHour())?.kind === 'discount', 'a refused press leaves the running happy hour alone');
+await clearCooldowns();
+r = await press({ action: 'happy-hour', amount: 0 });
+ok(r.ok && r.message.includes('over') && (await getHappyHour()) === null, `amount 0 ends it: ${r.message}`);
+const hhAudit = (await getUserAudit('everyone', 20)).filter(e => e.action.startsWith('Happy hour'));
+ok(hhAudit.length === 3 && hhAudit.some(e => e.action === 'Happy hour ended'), 'each start and the end wrote one audit entry');
+await clearCooldowns();
+r = await press({ action: 'happy-hour', amount: 0 });
+ok(r.ok && r.message.includes('no happy hour') && (await getUserAudit('everyone', 20)).filter(e => e.action.startsWith('Happy hour')).length === 3, 'ending when none runs says so and logs nothing');
 
 console.log('check-streamdeck: ok');
 process.exit(0);

@@ -3,10 +3,13 @@ import type { MixItUpSettings } from '@/lib/mixitup-core';
 import { Panel } from '../components/ui';
 import { saveMixItUpAction } from './mixitup-actions';
 import { PaidPullFields } from './PaidPullFields';
+import { HappyHourBox, type HappyHourView } from './HappyHourBox';
 
 /** Mix It Up → Paid pulls: prices, limits and messages (ROADMAP Track 12). How the site talks to Mix It Up is on the Connection tab. */
-export function MixItUpConfig({ settings: s }: { settings: MixItUpSettings }) {
+export function MixItUpConfig({ settings: s, happyHour }: { settings: MixItUpSettings; happyHour: HappyHourView | null }) {
   return (
+    <div className="space-y-6">
+    <HappyHourBox running={happyHour} />
     <form action={saveMixItUpAction} className="space-y-6">
       <Panel title="Pay to pull with Mix It Up" icon="coins" hint={<>When this is on, a pull from the bot checks the viewer&rsquo;s balance first and takes {s.currency} when the card is revealed. When it is off, pulls work exactly as before. Gifting packs from the dashboard never charges.</>}>
         <label className="flex items-center gap-2 text-sm text-white font-semibold">
@@ -29,5 +32,6 @@ export function MixItUpConfig({ settings: s }: { settings: MixItUpSettings }) {
 
       <PendingButton type="submit" className="btn btn-primary btn-sm self-start">Save paid pulls</PendingButton>
     </form>
+    </div>
   );
 }
