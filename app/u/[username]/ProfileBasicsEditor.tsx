@@ -120,7 +120,7 @@ export function ProfileOwnerMenu({ leaderboardHref }: { leaderboardHref: string 
         <Icon name="settings" />More<Icon name="chevronDown" className="w-3 h-3 text-gray-400" />
       </button>
       {open && (
-        <div role="menu" aria-label="Profile" className="absolute right-0 z-30 mt-2 w-52 overflow-hidden rounded-xl border border-gray-700 bg-gray-900 shadow-2xl py-1">
+        <div role="menu" aria-label="Profile" className="absolute left-0 sm:left-auto sm:right-0 z-30 mt-2 w-52 overflow-hidden rounded-xl border border-gray-700 bg-gray-900 shadow-2xl py-1">
           <Link role="menuitem" href={leaderboardHref} onClick={() => setOpen(false)} className={item}><Icon name="trophy" className="text-gray-400" />Leaderboard</Link>
           <button role="menuitem" type="button" onClick={() => { setOpen(false); if (!editing) begin(); }} className={item}><Icon name="pencil" className="text-gray-400" />Edit profile</button>
           <Link role="menuitem" href="/settings" onClick={() => setOpen(false)} className={item}><Icon name="settings" className="text-gray-400" />Settings</Link>
