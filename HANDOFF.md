@@ -10,11 +10,9 @@ Audit follow-up (Tracks 43, 47 to 52) is done except the items in ROADMAP.md tha
 - Track 47 ROADMAP cleanup committed locally on `roadmap-47-cleanup` (a5b91340): done items archived, 47.4 in Track 53, 47.8 rewritten to PR 2 to 4, new 47.10 (security L-2) and 47.11 (trial readouts).
 
 ## Left
-- Open PRs on auto-merge: #557 (47.10), #558 (49.6 site), and this ROADMAP cleanup.
 - Waiting: 43.3 and Track 53 (panel review), 47.11 (Josh, from 2026-11-02), 40.2f (field data, about 2026-11-09), 35.1 (Josh), 50.3 (design).
-- Follow-ups for Josh to decide: the admin viewer page names trade cards first-season-wins (49.2); 52.5 dropped the season look-back; collapsed admin rail footer still about 247px (52.13); QR codes point at cheesytcg.app on local builds; Top collectors widget repeats the Leaderboard (52.3); Discord feedback posts still name the reported staff member (51.6); is the empty rarity tier pre-flight rule wanted (51.12); the error spike counts only serverError() (51.13); a mod opening an admin page is redirected to /mod silently (49.6).
-- Flaky checks: check-achievements and check-recent-arrivals.
-- Cleanup: stray remote branch 51-6-staff-reports-to-admins (delete was refused as destructive; Josh can delete it); stray node process on port 4111; stale worktrees under .claude/worktrees/.
+- Flaky checks: check-achievements and check-recent-arrivals; verify sometimes fails one check on a first run and passes on a rerun.
+- Cleanup for Josh: stray remote branch 51-6-staff-reports-to-admins; stray node process on port 4111; stale worktrees under .claude/worktrees/.
 - Josh to do: Vercel Firewall log-only trial rules (docs/hosting.md), read the CSP report logs after a week.
 
 ## Key files
@@ -59,3 +57,4 @@ Audit follow-up (Tracks 43, 47 to 52) is done except the items in ROADMAP.md tha
 - 2026-10-27: 51.14 restore drill is read-only: decrypt the newest backup and compare it with live data via previewRestore, never write it into a sandbox namespace (a monthly full copy into production storage, and a partial write would leave junk) (Opus).
 - 2026-10-27: 47.10 (Opus): saves need https; stored http webhooks keep sending with a Settings warning (no silent break on deploy); at send, resolve DNS and refuse if any address is private or the lookup fails; no redirects followed. DNS rebinding between lookup and fetch is a known, documented limit.
 - 2026-10-27: Josh picked the nine follow-ups, now Track 54: fix the admin names; bring back the look-back; tighten the rail footer; QR from the current site; Rising this week instead of Top collectors; staff reports in full to the admin log channel; empty tier warns only with weight; stray 500s through serverError(); a denied note for mods.
+- 2026-10-27: 54.5 uses a daily score snapshot from the backup cron (Josh). 54.7 became a grey note, since rarity tiers have no weight (Josh). Track 54 done (#561 to #570).
