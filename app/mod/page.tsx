@@ -28,8 +28,9 @@ const LINKS: { href: string; icon: IconName; title: string; text: string }[] = [
   { href: '/mod/trades', icon: 'trade', title: 'Trades', text: 'Open offers, the log, and flagged trades.' },
 ];
 
-export default async function ModHomePage() {
+export default async function ModHomePage({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
   const staff = await staffPage('mod');
+  const { denied } = await searchParams;
   const [{ events }, active, open, staffHidden, privateProfiles] = await Promise.all([
     getActivity({ limit: 200 }), getActiveSeasonWithPacks(), listOpenTrades().catch(() => []), getAdminHidden().catch(() => new Set<string>()), getSelfHidden().catch(() => new Set<string>()),
   ]);
@@ -40,6 +41,8 @@ export default async function ModHomePage() {
 
   return (
     <div className="space-y-6">
+      {/* An admin-only page sends mods here with ?denied=1 (app/admin/layout.tsx, lib/staff-guard.ts). */}
+      {denied && <p role="status" className="rounded-lg border border-amber-500/30 bg-amber-950/20 px-3 py-2 text-sm text-amber-200 flex items-center gap-2"><Icon name="lock" className="shrink-0" />That page is for admins, so you were brought back to the mod panel.</p>}
       <PageHeader title={`Hi ${staff?.displayName ?? 'there'}`} subtitle="Keep an eye on the game and look after the community." />
       <StreamDesk />
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

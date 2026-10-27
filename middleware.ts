@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readAdminGenEdge } from '@/lib/admin-auth-edge';
 import { AUTH_COOKIE, adminCookieKey, isPasswordLoginEnabled, isValidAdminToken } from '@/lib/admin-token';
-import { homePath, roleCan, type StaffRole } from '@/lib/staff-core';
+import { roleCan, type StaffRole } from '@/lib/staff-core';
 import { STAFF_COOKIE, verifyStaffToken } from '@/lib/staff-token';
 import { ACCESS_COOKIE, verifyAccessToken } from '@/lib/access-token';
 import { gateDecision } from '@/lib/access-gate';
@@ -90,7 +90,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(dest);
   }
 
-  if (pathname.startsWith('/admin') && !roleCan(role, 'admin')) return NextResponse.redirect(new URL(homePath(role), req.url));
+  if (pathname.startsWith('/admin') && !roleCan(role, 'admin')) return NextResponse.redirect(new URL('/mod?denied=1', req.url));
   if (pathname.startsWith('/mod') && !roleCan(role, 'mod')) return NextResponse.redirect(new URL('/login', req.url));
   return NextResponse.next();
 }

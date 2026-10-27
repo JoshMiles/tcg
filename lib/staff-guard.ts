@@ -95,7 +95,7 @@ export async function requireStaff(cap: Capability = 'mod'): Promise<StaffContex
  */
 export async function staffPage(cap: Capability): Promise<StaffContext> {
   const s = await getStaff();
-  if (!s || !roleCan(s.role, cap)) redirect(s ? '/mod' : '/login?error=not-staff');
+  if (!s || !roleCan(s.role, cap)) redirect(s ? '/mod?denied=1' : '/login?error=not-staff');
   return s;
 }
 

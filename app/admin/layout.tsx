@@ -31,7 +31,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // The middleware already turned strangers away from the cookie alone; this re-checks the live staff list (a removed or demoted
   // person with an unexpired cookie stops here).
   const staff = await getStaff();
-  if (!staff || !roleCan(staff.role, 'admin')) redirect(staff ? '/mod' : '/login?error=not-staff');
+  if (!staff || !roleCan(staff.role, 'admin')) redirect(staff ? '/mod?denied=1' : '/login?error=not-staff');
   const overlayKey = await getOverlayKey().catch(() => '');
   const build = getBuildInfo();
   const siteText = adminSiteText(await getSiteLabel());
