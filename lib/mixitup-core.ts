@@ -41,6 +41,8 @@ export interface MixItUpSettings {
   roleLimits: Record<PullRole, number>;
   /** Price per pack for these roles (ROADMAP 55.4b), in the currency. 0 = free. A missing role pays `cost`. */
   priceByRole: Partial<Record<PricedRole, number>>;
+  /** Seconds a viewer waits between paid pulls (ROADMAP 55.4d). 0 = off. The broadcaster is exempt. */
+  cooldownSeconds: number;
   /** The message sent with the deduction. See MESSAGE_VARS. */
   message: string;
   /** Which key of the balance reply holds the number. */
@@ -62,6 +64,7 @@ export const PRICED_ROLES = ['subscriber', 'vip'] as const;
 export type PricedRole = (typeof PRICED_ROLES)[number];
 
 export const TEST_VIEWERS_MAX = 5;
+export const COOLDOWN_MAX = 3600;
 
 export const MESSAGE_VARS = ['username', 'amount', 'currency', 'cardName', 'variant', 'stars', 'packName', 'cardNumber', 'serial'] as const;
 export const DEFAULT_MESSAGE = '{username} opened a pack and pulled {cardName} ({variant}, {stars} stars). {amount} {currency} spent.';
@@ -71,7 +74,7 @@ const NO_ROLE_LIMITS: Record<PullRole, number> = { regular: 0, subscriber: 0, vi
 
 export const DEFAULT_MIXITUP: MixItUpSettings = {
   enabled: false, connection: 'bridge', currencyId: '', balanceUrl: '', deductUrl: '', addUrl: '', viewersUrl: '', secret: '', currency: 'Brie Bucks', cost: 100, limit: 0,
-  roleLimits: { ...NO_ROLE_LIMITS }, priceByRole: {}, message: DEFAULT_MESSAGE, balanceField: 'balance', pullRules: [], testViewers: [CHANNEL_LOGIN], overlayWatchdog: false, chat: DEFAULT_CHAT, replies: {},
+  roleLimits: { ...NO_ROLE_LIMITS }, priceByRole: {}, cooldownSeconds: 0, message: DEFAULT_MESSAGE, balanceField: 'balance', pullRules: [], testViewers: [CHANNEL_LOGIN], overlayWatchdog: false, chat: DEFAULT_CHAT, replies: {},
 };
 
 /** Is there somewhere to send a balance check? Bridge: a chosen currency. Addresses: the balance address. */
@@ -194,6 +197,7 @@ export function normalizeMixItUp(raw: unknown): MixItUpSettings {
     limit,
     roleLimits: roleLimitsFrom(r, limit),
     priceByRole: priceByRoleFrom(r),
+    cooldownSeconds: num(r.cooldownSeconds, 0, 0, COOLDOWN_MAX),
     message: text(r.message, MESSAGE_MAX, d.message) || d.message,
     balanceField: text(r.balanceField, 60, d.balanceField) || d.balanceField,
     pullRules: normalizeRules(r.pullRules),
@@ -212,6 +216,7 @@ export function cleanMixItUpInput(raw: Record<string, unknown>): { ok: true; set
     if (!t.ok) return { ok: false, message: `The ${label}: ${t.error}` };
     s[key] = t.url;
   }
+  if (typeof raw.cooldownSeconds === 'string' && raw.cooldownSeconds.trim() !== '' && !/^\d+$/.test(raw.cooldownSeconds.trim())) return { ok: false, message: `The cooldown must be a whole number of seconds, 0 to ${COOLDOWN_MAX}.` };
   const cost = Number(raw.cost);
   if (raw.cost !== undefined && (!Number.isFinite(cost) || cost < 1)) return { ok: false, message: 'The price per pack must be 1 or more.' };
   for (const role of PRICED_ROLES) {
@@ -270,7 +275,7 @@ export function streamKey(startedAtMs: number | null, now = Date.now()): string 
   return startedAtMs ? `s${startedAtMs}` : `d${new Date(now).toISOString().slice(0, 10)}`;
 }
 
-export type RefusalReason = 'insufficient_balance' | 'limit_reached' | 'mixitup_unavailable' | 'bad_balance' | 'blocked';
+export type RefusalReason = 'insufficient_balance' | 'limit_reached' | 'mixitup_unavailable' | 'bad_balance' | 'blocked' | 'cooldown';
 
 // ── Chat replies (ROADMAP 55.4a) ──
 /** The replies staff can edit, with today's text as the default. To add one later, add its key and text here and its label below. */
@@ -280,12 +285,13 @@ export const REPLY_DEFAULTS = {
   limit_reached: '{username}, you have used all {limit} pulls for this stream.',
   mixitup_unavailable: '{username}, the balance check did not answer, so no pack was opened. Try again in a moment.',
   no_packs: 'There is no active season with packs to open.',
+  cooldown: '{username}, wait {wait} seconds before your next pack.',
 } as const;
 export type ReplyKey = keyof typeof REPLY_DEFAULTS;
 export const REPLY_KEYS = Object.keys(REPLY_DEFAULTS) as ReplyKey[];
 export const REPLY_MAX = 400;
 /** The placeholders a reply can use. One with no value in the moment (no limit, no balance) is dropped. */
-export const REPLY_VARS = ['username', 'cost', 'currency', 'balance', 'limit', 'left'] as const;
+export const REPLY_VARS = ['username', 'cost', 'currency', 'balance', 'limit', 'left', 'wait'] as const;
 
 /** Fills {placeholders}; one with no value is dropped and the gap it leaves tidied. Capped at REPLY_MAX characters. */
 export function renderReply(template: string, values: Record<string, string | number | undefined>): string {
@@ -298,10 +304,10 @@ export const replyText = (key: ReplyKey, replies: Partial<Record<ReplyKey, strin
   renderReply(replies?.[key] || REPLY_DEFAULTS[key], values);
 
 /** The sentence a refusal sends back for Mix It Up to post to chat. */
-export function refusalMessage(reason: RefusalReason, s: Pick<MixItUpSettings, 'cost' | 'currency' | 'limit'> & { replies?: MixItUpSettings['replies'] }, username: string, balance?: number): string {
-  const values = { username, cost: s.cost.toLocaleString(), currency: s.currency, limit: s.limit, balance: balance?.toLocaleString() };
+export function refusalMessage(reason: RefusalReason, s: Pick<MixItUpSettings, 'cost' | 'currency' | 'limit'> & { replies?: MixItUpSettings['replies'] }, username: string, balance?: number, wait?: number): string {
+  const values = { username, cost: s.cost.toLocaleString(), currency: s.currency, limit: s.limit, balance: balance?.toLocaleString(), wait };
   switch (reason) {
-    case 'insufficient_balance': case 'limit_reached': return replyText(reason, s.replies, values);
+    case 'insufficient_balance': case 'limit_reached': case 'cooldown': return replyText(reason, s.replies, values);
     case 'bad_balance': return `${username}, the balance could not be read, so no pack was opened.`;
     case 'blocked': return `${username}, packs are switched off for you right now.`;
     default: return replyText('mixitup_unavailable', s.replies, values);
@@ -309,15 +315,15 @@ export function refusalMessage(reason: RefusalReason, s: Pick<MixItUpSettings, '
 }
 
 export const REPLY_LABELS: Record<ReplyKey, string> = {
-  queued: 'Pull queued', insufficient_balance: 'Not enough currency', limit_reached: 'Pull limit reached', mixitup_unavailable: 'Mix It Up did not answer', no_packs: 'No packs to open',
+  queued: 'Pull queued', insufficient_balance: 'Not enough currency', limit_reached: 'Pull limit reached', mixitup_unavailable: 'Mix It Up did not answer', no_packs: 'No packs to open', cooldown: 'Wait between packs',
 };
 export const REFUSAL_LABELS: Record<string, string> = {
-  insufficient_balance: 'Not enough currency', limit_reached: 'Pull limit reached', mixitup_unavailable: 'Mix It Up did not answer', bad_balance: 'Balance could not be read', blocked: 'Blocked by staff',
+  insufficient_balance: 'Not enough currency', limit_reached: 'Pull limit reached', mixitup_unavailable: 'Mix It Up did not answer', bad_balance: 'Balance could not be read', blocked: 'Blocked by staff', cooldown: 'Wait between packs',
 };
 
 /** Sample values for the live preview of the replies, from the price and limit being typed. A limit of 0 never refuses, so a sample of 3 shows. */
 export const replySample = (s: Pick<MixItUpSettings, 'cost' | 'currency' | 'limit'>) =>
-  ({ username: 'cheesyviewer', cost: s.cost.toLocaleString(), currency: s.currency, balance: Math.max(0, s.cost - 1).toLocaleString(), limit: s.limit > 0 ? s.limit : 3, left: 2 });
+  ({ username: 'cheesyviewer', cost: s.cost.toLocaleString(), currency: s.currency, balance: Math.max(0, s.cost - 1).toLocaleString(), limit: s.limit > 0 ? s.limit : 3, left: 2, wait: 12 });
 
 /** Can this balance cover every pull in flight, this one included? `owed` is the sum of their stored prices and already counts this pull. */
 export function decide(o: { balance: number; owed: number }): boolean {

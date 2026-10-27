@@ -6,6 +6,8 @@ const http = require('http');
 const PORT = Number(process.env.MOCK_KV_PORT) || 4111;
 const store = new Map();
 const timers = new Map(); // key -> pending EXPIRE timer
+const expiresAt = new Map(); // key -> when it expires (ms), for TTL
+const expireIn = (key, sec) => { clearTimeout(timers.get(key)); expiresAt.set(key, Date.now() + sec * 1000); timers.set(key, setTimeout(() => { store.delete(key); types.delete(key); timers.delete(key); expiresAt.delete(key); }, sec * 1000).unref()); };
 const types = new Map(); // key -> 'string' | 'hash' | 'list' | 'set' (the stored value alone can't tell a list from a set)
 const counts = {}; // op -> commands served, read from GET /__stats (add ?reset to zero it), so a check or a measurement can count KV commands
 function run(cmd) {
@@ -21,7 +23,7 @@ function run(cmd) {
       if (opts.includes('nx') && store.has(key)) return null;
       store.set(key, rest[0]); types.set(key, 'string');
       const ex = opts.indexOf('ex');
-      if (ex >= 0) setTimeout(() => store.delete(key), Number(rest[1 + ex + 1]) * 1000).unref();
+      if (ex >= 0) expireIn(key, Number(rest[1 + ex + 1]));
       return 'OK';
     }
     case 'del': { let n = 0; for (const k of [key, ...rest]) if (store.delete(k)) { types.delete(k); n++; } return n; }
@@ -35,10 +37,10 @@ function run(cmd) {
     case 'expire': {
       // EXPIRE key seconds: drops the key after that long (a later EXPIRE on the same key replaces the earlier one).
       if (!store.has(key)) return 0;
-      clearTimeout(timers.get(key));
-      timers.set(key, setTimeout(() => { store.delete(key); types.delete(key); timers.delete(key); }, Number(rest[0]) * 1000).unref());
+      expireIn(key, Number(rest[0]));
       return 1;
     }
+    case 'ttl': return !store.has(key) ? -2 : expiresAt.has(key) ? Math.max(0, Math.ceil((expiresAt.get(key) - Date.now()) / 1000)) : -1;
     case 'type': return types.get(key) ?? 'none';
     case 'exists': return store.has(key) ? 1 : 0;
     case 'scan': {
