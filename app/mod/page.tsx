@@ -8,6 +8,7 @@ import { getAdminHidden } from '@/lib/user-admin';
 import { getSelfHidden } from '@/lib/user-settings-store';
 import { staffPage } from '@/lib/staff-guard';
 import { PageHeader, Panel, Tile } from '../admin/components/ui';
+import { StreamDesk } from './StreamDesk';
 
 // @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
 // Remove this opt-out after verifying the segment passes validation without it.
@@ -40,6 +41,7 @@ export default async function ModHomePage() {
   return (
     <div className="space-y-6">
       <PageHeader title={`Hi ${staff?.displayName ?? 'there'}`} subtitle="Keep an eye on the game and look after the community." />
+      <StreamDesk />
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Tile label="Events, last hour" value={lastHour} sub="of the latest 200 events" icon="activity" href="/mod/activity" />
         <Tile label="Open trade offers" value={open.length} icon="trade" href="/mod/trades" />

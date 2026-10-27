@@ -1,6 +1,6 @@
 // Runtime half of the mod access test (the static half is scripts/check-staff-guards.mts, part of `npm run check`): signs in as a
 // mod and as a stranger, then checks every /admin page and every /api/admin route refuses them, apart from what a mod may use
-// (the /mod pages and GET /api/admin/activity). Exits non-zero if anything gets through.
+// (the /mod pages, GET /api/admin/activity and GET /api/admin/overlay-status). Exits non-zero if anything gets through.
 //
 // Needs the same setup as sweep-admin.mjs (seed-review, dev server, fake Twitch). Run: node scripts/sweep-mod-access.mjs
 import { BASE, loadPlaywright, loginAdminPassword, loginTwitch } from './lib/sweep.mjs';
@@ -12,9 +12,9 @@ const ADMIN_PAGES = ['/admin', '/admin/activity', '/admin/seasons', '/admin/seas
   '/admin/achievements', '/admin/buffs', '/admin/changelog', '/admin/faq', '/admin/feedback', '/admin/mixitup', '/admin/wiki', '/admin/webhooks'];
 // GET API routes and what they should answer a mod / a stranger.
 const ADMIN_API = [
-  { path: '/api/admin/overlay-status', mod: [401, 403] },
+  { path: '/api/admin/overlay-status', mod: [200] }, // read-only, for the mod stream desk
   { path: '/api/admin/palette', mod: [401, 403] },
-  { path: '/api/admin/activity?after=0', mod: [200] }, // the one admin route mods may read
+  { path: '/api/admin/activity?after=0', mod: [200] }, // a read-only admin route mods may read
 ];
 const POST_API = ['/api/admin/sandbox/ext-token'];
 
