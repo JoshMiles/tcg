@@ -65,7 +65,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </div>
             <div className="aside-stack flex items-center gap-2">
               <div className="aside-item flex items-center gap-2.5 min-w-0 flex-1" title={`${staff.displayName}, ${ROLE_LABELS[staff.role]}`}>
-                <span className="w-8 h-8 rounded-full bg-linear-to-br from-yellow-400/30 to-yellow-600/10 border border-yellow-400/30 text-yellow-200 flex items-center justify-center shrink-0" aria-hidden><Icon name="user" /></span>
+                <span className="aside-avatar w-8 h-8 rounded-full bg-linear-to-br from-yellow-400/30 to-yellow-600/10 border border-yellow-400/30 text-yellow-200 flex items-center justify-center shrink-0" aria-hidden><Icon name="user" /></span>
                 <div className="aside-label min-w-0 leading-tight">
                   <p className="text-xs font-bold text-gray-200 truncate">{staff.displayName}</p>
                   <p className="text-[10px] text-gray-500 truncate">{ROLE_LABELS[staff.role]}{staff.via === 'password' ? ' (password)' : ''}</p>
