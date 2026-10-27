@@ -26,6 +26,11 @@ export function commandSetups(commands: { name: string; enabled: boolean }[], we
   });
 }
 
+/** The address and body for one incoming webhook, as the Mix It Up Web Request action wants them (setup wizard, ROADMAP 55.1). */
+export function incomingSetup(url: string, secret: string, fields: Record<string, string>): { url: string; body: string } {
+  return { url, body: pretty({ secret, ...fields }) };
+}
+
 export interface PaidPullSetup {
   balanceUrl: string;
   deductUrl: string;

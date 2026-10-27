@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { staffPage } from '@/lib/staff-guard';
 import { Icon } from '@/app/components/Icon';
 import { PageTabs, pickTab, type PageTab } from '../components/PageTabs';
@@ -48,13 +49,14 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
   const obs = await readObs();
   const bridges = await listBridges();
   const now = Date.now();
+  const setupLabel = bridges.length > 0 || Object.values(health.seen).some(s => s.okAt) ? 'Run setup again' : 'Set up Mix It Up';
   const mergedLog = async () => [...(await getMixItUpLog()), ...(await getCommandLog())].sort((a, b) => b.at - a.at);
   /** Everything the Overview shows beyond the health row: the stream marker, both logs and the stream's extra pulls. Read only on that tab. */
   const overviewProps = async () => {
     const [log, cmdLog] = [await getMixItUpLog(), await getCommandLog()];
     const cards = statusCards({ health, settings, bridge, paired: bridges.length, obs, now, ago: timeAgo });
     return {
-      cards, now, login: CHANNEL_LOGIN, obsPaired: bridges.length > 0, setup: needsSetup(cards),
+      cards, now, login: CHANNEL_LOGIN, obsPaired: bridges.length > 0, setup: needsSetup(cards), setupLabel,
       numbers: streamNumbers(log, cmdLog, (await kv.get<number>('twitch:live:since')) || null, now),
       recent: [...log, ...cmdLog].sort((a, b) => b.at - a.at).slice(0, 5),
       streamExtra: streamBuffAmount(await getStreamBuff(), await currentStreamKey()),
@@ -85,7 +87,10 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
 
       {tab === 'overview' && <Overview {...await overviewProps()} />}
       {tab === 'connection' && (
-        <ConnectionTab settings={settings} bridge={bridge} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never' }))} />
+        <div className="space-y-6">
+          <Link href="/admin/mixitup/setup" className="btn btn-primary btn-sm"><Icon name="wrench" />{setupLabel}</Link>
+          <ConnectionTab settings={settings} bridge={bridge} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never' }))} />
+        </div>
       )}
       {tab === 'paid' && <MixItUpConfig settings={settings} />}
       {tab === 'bigpulls' && <PullRules rules={settings.pullRules} commands={bridge.commands} />}

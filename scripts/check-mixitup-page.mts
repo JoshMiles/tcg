@@ -116,5 +116,21 @@ ok(pv[1].text.includes('all 3 pulls'), 'the limit sentence uses the limit');
 ok(c.refusalPreviews({ cost: 5, currency: 'x', limit: 0 })[1].text.includes('all 3 pulls'), 'a limit of 0 previews a sample of 3');
 ok(pv.every(x => x.text.startsWith('cheesyviewer,') && x.label), 'every sentence names the sample viewer and has a label');
 
+// ── The setup wizard (55.1): which steps are done, and where it opens ──
+const wz = await import('../lib/mixitup-wizard');
+const wizCards = (over: Partial<import('../lib/mixitup-page').StatusInput> = {}) => p.statusCards(input(over));
+let d = wz.stepsDone(wizCards({ paired: 0, bridge: { at: null, version: '', currencies: [] }, obs: null }), none, false);
+ok(!d.need && !d.incoming && !d.outgoing && wz.pickStep(undefined, d) === 'need', 'a fresh install opens on the first step');
+const heard = { seen: { '/api/webhooks/pull': { okAt: now - 1_000 } }, out: {} };
+d = wz.stepsDone(wizCards({ health: heard, paired: 0, bridge: { at: null, version: '', currencies: [] }, obs: null }), heard, false);
+ok(d.need && d.incoming && !d.outgoing && wz.pickStep(undefined, d) === 'outgoing', 'once Mix It Up reached the site, reopening lands on the next step that is not done');
+ok(wz.pickStep('incoming', d) === 'incoming' && wz.pickStep('nope', d) === 'outgoing', 'any step can be revisited; an unknown step falls back');
+d = wz.stepsDone(wizCards({ health: heard }), { seen: { ...heard.seen, '/api/webhooks/stream': { okAt: now } }, out: {} }, true);
+ok(d.outgoing && d.rules && d.events && wz.pickStep(undefined, d) === 'done', 'everything done lands on Done');
+d = wz.stepsDone(wizCards({ health: { seen: { '/api/webhooks/pull': { okAt: now - 60_000, badAt: now - 1_000 } }, out: {} } }), none, false);
+ok(!d.incoming, 'a wrong secret keeps the Mix It Up to the site step open');
+const sc = (await import('../lib/mixitup-setup')).incomingSetup('https://x/api/webhooks/stream', 's3', { event: 'live' });
+ok(sc.url === 'https://x/api/webhooks/stream' && JSON.parse(sc.body).secret === 's3' && JSON.parse(sc.body).event === 'live', 'a setup card holds the address and a body with the secret');
+
 console.log('mixitup page checks passed');
 process.exit(0);
