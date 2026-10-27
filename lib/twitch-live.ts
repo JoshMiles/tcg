@@ -18,6 +18,7 @@ export interface LiveStatus {
 
 const KEY = 'twitch:live';
 const SINCE_KEY = 'twitch:live:since';   // when the current stream started (ms), set while it is seen live, deleted once its recap is handled
+const DONE_KEY = 'twitch:streams:done'; // how many streams have finished; the live one is this plus one (lib/stream-streak.ts)
 const RECAP_LOCK = 'twitch:recap:lock';
 const HINT_KEY = 'twitch:live:hint';    // { live, at } from Mix It Up (POST /api/webhooks/stream); wins over Helix while fresh
 const HINT_MS = 5 * 60_000;             // Helix lags a stream's start and end by a minute or two
@@ -97,6 +98,7 @@ export async function finishStream(now = Date.now()): Promise<StreamRecap | null
     if (!since) return null; // nobody saw the stream start: skip, and take no lock
     if (!(await kv.set(RECAP_LOCK, 1, { nx: true, ex: 60 }))) return null;
     await kv.del(SINCE_KEY);
+    await kv.incr(DONE_KEY);
     const [{ events }, active] = await Promise.all([getActivity({ limit: ACTIVITY_CAP }), getActiveSeasonWithPacks().catch(() => null)]);
     const recap = buildStreamRecap(events, since, now, { seasonId: active?.season.id, logIsFull: events.length >= ACTIVITY_CAP });
     if (!recapWorthPosting(recap)) return null;
@@ -107,6 +109,12 @@ export async function finishStream(now = Date.now()): Promise<StreamRecap | null
     console.error('[live] recap failed:', e instanceof Error ? e.message : e);
     return null;
   }
+}
+
+/** The number of the stream running now, or null when none is (no start marker). */
+export async function currentStreamNumber(): Promise<number | null> {
+  if (!(await kv.get<number>(SINCE_KEY))) return null;
+  return (Number(await kv.get<number>(DONE_KEY)) || 0) + 1;
 }
 
 /** The most recent stream recap, for the dashboard widget and the channel card's test button. */

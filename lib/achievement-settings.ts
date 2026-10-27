@@ -15,7 +15,7 @@ export interface AchievementKind {
   kind: string;
   /** The row name in the editor. The player-facing title is separate, and includes the season name. */
   label: string;
-  group: 'Set' | 'Rarity' | 'Version' | 'Edition number' | 'Trading';
+  group: 'Set' | 'Rarity' | 'Version' | 'Edition number' | 'Trading' | 'Streams';
 }
 
 export const ACHIEVEMENT_KINDS: readonly AchievementKind[] = [
@@ -29,6 +29,7 @@ export const ACHIEVEMENT_KINDS: readonly AchievementKind[] = [
   { kind: 'early-bird', label: 'Early bird', group: 'Edition number' },
   { kind: 'first-trade', label: 'First trade', group: 'Trading' },
   { kind: 'ten-trades', label: 'Ten trades', group: 'Trading' },
+  { kind: 'stream-streak', label: 'Stream streak (trial)', group: 'Streams' },
 ];
 
 const KNOWN = new Set(ACHIEVEMENT_KINDS.map(k => k.kind));

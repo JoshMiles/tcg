@@ -38,6 +38,25 @@ export interface Achievement {
 
 /** Trade goals belong to no season; they live under this pseudo-season id. */
 export const TRADING = 'trading';
+/** The stream streak belongs to no season either. */
+export const STREAMS = 'streams';
+
+// TRIAL (ROADMAP 50.10, one season): the stream streak badge. Judge by returning viewers per stream; remove it if they do not move.
+export const STREAK_N = 3;
+export interface Streak { /** The stream number last pulled on. */ last: number; /** Streams in a row up to and including `last`. */ run: number }
+
+/** The streak after a pull on stream number `stream`: the same stream changes nothing, the next one adds to the run, a skipped one starts over. */
+export function nextStreak(prev: Streak | null, stream: number): Streak {
+  if (prev && stream === prev.last) return prev;
+  return { last: stream, run: prev && stream === prev.last + 1 ? prev.run + 1 : 1 };
+}
+
+/** The stream streak goal, from the viewer's current run. */
+export function streamGoals(run: number, disabled: ReadonlySet<string>): Achievement[] {
+  const base = { seasonId: STREAMS, seasonName: 'Streams' };
+  const a: Achievement = { id: `${STREAMS}:stream-streak`, ...base, ...words('stream-streak', { ...base, need: STREAK_N }), icon: 'radio', have: Math.min(run, STREAK_N), need: STREAK_N, earned: run >= STREAK_N };
+  return disabled.has('stream-streak') ? [] : [a];
+}
 
 /** The built-in title and detail for each kind, with `{placeholders}`: the one source for what a goal says (the editor shows these). */
 export const DEFAULT_TEXT: Record<string, { title: string; detail: string }> = {
@@ -51,6 +70,7 @@ export const DEFAULT_TEXT: Record<string, { title: string; detail: string }> = {
   'early-bird': { title: 'Early bird', detail: 'Hold an edition with a low enough edition number (#{cutoff} or lower) to earn the edition bonus in {season}.' },
   'first-trade': { title: 'First trade', detail: 'Complete your first trade.' },
   'ten-trades': { title: 'Ten trades', detail: 'Complete {need} trades.' },
+  'stream-streak': { title: 'Stream streak', detail: 'Pull a pack on {need} streams in a row.' },
 };
 
 /** The built-in title and detail template for a kind (`tier-3` and `all-shiny` share one template each). */
@@ -91,7 +111,7 @@ export const CUSTOM_ICONS: IconName[] = ['award', 'trophy', 'star', 'gem', 'spar
 export const defaultIcon = (kind: string): IconName =>
   kind === 'complete' ? 'cheese' : kind === 'master' ? 'trophy' : kind.startsWith('tier-') || kind === 'five-firsts' ? 'award'
   : kind === 'all-shiny' || kind === 'all-golden' || kind === 'first-shiny' ? 'sparkles' : kind.startsWith('all-') || kind === 'first-edition' ? 'gem'
-  : kind === 'early-bird' ? 'zap' : 'trade';
+  : kind === 'early-bird' ? 'zap' : kind === 'stream-streak' ? 'radio' : 'trade';
 export const CUSTOM_RULES = {
   unique: 'Collect N different cards',
   editions: 'Reach N pulls in total (repeats count)',

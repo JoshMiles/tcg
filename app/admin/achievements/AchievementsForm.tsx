@@ -9,7 +9,7 @@ import { Icon, type IconName } from '@/app/components/Icon';
 import { Panel } from '../components/ui';
 import { ConfirmButton } from '../components/ConfirmButton';
 
-const GROUPS = ['Set', 'Rarity', 'Version', 'Edition number', 'Trading'] as const;
+const GROUPS = ['Set', 'Rarity', 'Version', 'Edition number', 'Trading', 'Streams'] as const;
 
 /** `{words}` that are not a known placeholder (they would show as typed). */
 function unknownWords(text: string, extra: string[] = []): string[] {
