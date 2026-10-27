@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Panel, fieldClass } from '../components/ui';
-import { MESSAGE_MAX, MESSAGE_VARS, PULL_ROLES, PULL_ROLE_LABELS, REPLY_DEFAULTS, REPLY_KEYS, REPLY_LABELS, REPLY_MAX, REPLY_VARS, renderReply, replySample, type MixItUpSettings } from '@/lib/mixitup-core';
+import { MESSAGE_MAX, MESSAGE_VARS, PRICED_ROLES, PULL_ROLES, PULL_ROLE_LABELS, REPLY_DEFAULTS, REPLY_KEYS, REPLY_LABELS, REPLY_MAX, REPLY_VARS, renderReply, replySample, type MixItUpSettings } from '@/lib/mixitup-core';
 import { MessageField } from './MessageField';
 
 const help = 'text-[11px] text-gray-500 leading-relaxed';
@@ -39,6 +39,15 @@ export function PaidPullFields({ settings: s }: { settings: MixItUpSettings }) {
           ))}
         </div>
         <p className={help}>Pulls per stream for each role. 0 = no limit. The paid-pull webhook can send <code>role</code> (regular, subscriber, vip, moderator or broadcaster). A missing or unknown role counts as regular, and the channel account is always the broadcaster. A gifted sub does not change these. A viewer&rsquo;s own limit, set on their user page, replaces their role. &ldquo;Per stream&rdquo; follows the live Twitch stream; when the channel is offline it is per day (UTC).</p>
+        <div className="grid grid-cols-2 gap-4 sm:max-w-md">
+          {PRICED_ROLES.map(role => (
+            <fieldset key={role} className="fieldset">
+              <legend className="fieldset-legend"><label htmlFor={`mx-price-${role}`}>{PULL_ROLE_LABELS[role]} price</label></legend>
+              <input id={`mx-price-${role}`} name={`priceByRole_${role}`} type="number" min={0} step={1} defaultValue={s.priceByRole[role] ?? ''} placeholder="Base price" className={fieldClass} />
+            </fieldset>
+          ))}
+        </div>
+        <p className={help}>What a pack costs a subscriber or a VIP, using the same <code>role</code> as the limits. Empty = the price per pack above. 0 = free (nothing is taken, but it still counts toward their limit). A viewer who is both pays the lower price. The price is fixed when the pull is queued, so changing it while a pack waits on the overlay does not change what that viewer pays.</p>
       </Panel>
 
       <Panel title="Messages" icon="chat" hint="What Mix It Up is told with each payment, and what the chat replies say. Previews use sample values.">

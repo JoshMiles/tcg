@@ -14,7 +14,7 @@ import { getStreamBuff, getUserPullLimit } from './pull-limit';
 import { effectiveLimit, streamBuffAmount } from './pull-limit-core';
 import { extraPullsFromBuffs, releaseExtraPackCredit, reserveExtraPackCredit } from './buffs';
 import {
-  hasAddRoute, hasViewersRoute, normalizeMixItUp, parseBalance, parseViewers, pullRole, refusalMessage, renderMessage, replyApplied, roleLimitOf, streamKey, decide,
+  hasAddRoute, hasViewersRoute, normalizeMixItUp, parseBalance, parseViewers, pullPrice, pullRole, refusalMessage, renderMessage, replyApplied, roleLimitOf, streamKey, decide,
   type MixItUpSettings, type RefusalReason,
 } from './mixitup-core';
 
@@ -175,9 +175,10 @@ const cntKey = (stream: string, user: string) => `mixitup:cnt:${stream}:${user}`
 const pendKey = (user: string) => `mixitup:pending:${user}`;
 const payKey = (id: string) => `mixitup:pay:${id}`;
 
+/** `amount` is the price worked out when the pull was reserved (ROADMAP 55.4b); a record from before has none. */
 interface PayRecord { username: string; amount: number; stream: string; at: number; credit?: boolean }
-/** `left` = paid pulls left this stream after this one (only with a limit); `balance` = what Mix It Up said before the price is taken. */
-export type Reservation = { ok: true; left?: number; balance?: number } | { ok: false; reason: RefusalReason; message: string; balance?: number };
+/** `left` = paid pulls left this stream after this one (only with a limit); `balance` = what Mix It Up said before the price is taken; `price` = what this pull costs (stored on the reservation). */
+export type Reservation = { ok: true; left?: number; balance?: number; price?: number } | { ok: false; reason: RefusalReason; message: string; balance?: number };
 
 /** The window "per stream" counts in: the live Twitch stream's start, else the UTC day. */
 export async function currentStreamKey(): Promise<string> {
@@ -204,10 +205,11 @@ export async function reservePaidPull(s: MixItUpSettings, username: string, payI
 
   // Their own limit replaces the role default. A this-stream bonus adds on top. 0 = no limit, and bonuses cannot change that.
   const extra = streamBuffAmount(await getStreamBuff(), stream) + await extraPullsFromBuffs(user);
+  const price = pullPrice(s, { role: pullRole(role, user) });
   const limit = effectiveLimit(roleLimitOf(s, pullRole(role, user)), await getUserPullLimit(user), Date.now(), extra).limit;
   const refuse = async (reason: RefusalReason, balance?: number, why?: string): Promise<Reservation> => {
     await logMixItUp({ username: user, what: 'refused', ok: false, detail: `${reason}${why ? `: ${why}` : ''}` });
-    return { ok: false, reason, message: refusalMessage(reason, { ...s, limit }, user, balance), ...(balance !== undefined ? { balance } : {}) };
+    return { ok: false, reason, message: refusalMessage(reason, { ...s, cost: price, limit }, user, balance), ...(balance !== undefined ? { balance } : {}) };
   };
 
   let counted = false;
@@ -221,18 +223,23 @@ export async function reservePaidPull(s: MixItUpSettings, username: string, payI
   }
   const undo = async () => { if (counted) await kv.decr(cntKey(stream, user)); };
 
-  const { balance, error } = await fetchBalance(s, user, doFetch);
-  await logMixItUp({ username: user, what: 'balance', ok: balance !== null, detail: balance !== null ? `${balance} ${s.currency}` : error ?? 'no answer' });
-  if (balance === null) { await undo(); return refuse(error?.startsWith('no number') ? 'bad_balance' : 'mixitup_unavailable', undefined, error); }
-
-  const pending = await kv.incr(pendKey(user));
-  await kv.expire(pendKey(user), 600);
-  if (!decide({ balance, cost: s.cost, pending })) {
-    await kv.decr(pendKey(user)); await undo();
-    return refuse('insufficient_balance', balance);
+  // A price of 0 needs no balance: nothing will be taken, and the pull still counts toward the limit above.
+  let balance: number | undefined;
+  if (price > 0) {
+    const got = await fetchBalance(s, user, doFetch);
+    await logMixItUp({ username: user, what: 'balance', ok: got.balance !== null, detail: got.balance !== null ? `${got.balance} ${s.currency}` : got.error ?? 'no answer' });
+    if (got.balance === null) { await undo(); return refuse(got.error?.startsWith('no number') ? 'bad_balance' : 'mixitup_unavailable', undefined, got.error); }
+    balance = got.balance;
+    // Never below this pull's own price: a claim of a reservation made before 55.4b takes off its whole price where the counter held a count.
+    const owed = Math.max(price, await kv.incrby(pendKey(user), price)); // the sum of the prices in flight, this pull included
+    await kv.expire(pendKey(user), 600);
+    if (!decide({ balance, owed })) {
+      await kv.incrby(pendKey(user), -price); await undo();
+      return refuse('insufficient_balance', balance);
+    }
   }
-  await kv.set(payKey(payId), { username: user, amount: s.cost, stream, at: Date.now() } satisfies PayRecord, { ex: PAY_TTL_S });
-  return { ok: true, balance, ...(left !== undefined ? { left } : {}) };
+  await kv.set(payKey(payId), { username: user, amount: price, stream, at: Date.now() } satisfies PayRecord, { ex: PAY_TTL_S });
+  return { ok: true, price, ...(balance !== undefined ? { balance } : {}), ...(left !== undefined ? { left } : {}) };
 }
 
 /** How many paid pulls a viewer has used in the current stream window (for the admin's user page). */
@@ -249,8 +256,10 @@ export async function claimPaidPull(payId: string, username: string): Promise<Cl
   const rec = await kv.get<PayRecord>(payKey(payId));
   if (!rec || rec.username !== username.toLowerCase()) return null;
   if ((await kv.del(payKey(payId))) !== 1) return null; // someone else claimed it first
-  await kv.decr(pendKey(rec.username)).catch(() => {});
-  return { payId, username: rec.username, amount: rec.amount, stream: rec.stream, credit: !!rec.credit };
+  // The stored price is what is charged. A reservation from before role prices has none and uses the current base price.
+  const amount = typeof rec.amount === 'number' && Number.isFinite(rec.amount) ? rec.amount : (await getMixItUpSettings()).cost;
+  await kv.incrby(pendKey(rec.username), -amount).catch(() => {});
+  return { payId, username: rec.username, amount, stream: rec.stream, credit: !!rec.credit };
 }
 
 export interface PullDetails { cardName: string; variant: string; stars: number; packName: string; cardNumber: number; serial?: number | null }
@@ -270,7 +279,7 @@ export async function chargePaidPull(s: MixItUpSettings, c: Claimed, d: PullDeta
 export async function releasePaidPull(payId: string): Promise<void> {
   const rec = await kv.get<PayRecord>(payKey(payId)).catch(() => null);
   if (!rec || (await kv.del(payKey(payId))) !== 1) return;
-  await kv.decr(pendKey(rec.username)).catch(() => {});
+  await kv.incrby(pendKey(rec.username), -(typeof rec.amount === 'number' ? rec.amount : 0)).catch(() => {});
   if (rec.credit) await releaseExtraPackCredit(rec.username);
   await releaseCount({ payId, username: rec.username, amount: rec.amount, stream: rec.stream, credit: rec.credit });
 }

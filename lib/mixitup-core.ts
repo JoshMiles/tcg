@@ -39,6 +39,8 @@ export interface MixItUpSettings {
   limit: number;
   /** Paid pulls per stream for each role. 0 = no limit. A missing role uses `limit`. */
   roleLimits: Record<PullRole, number>;
+  /** Price per pack for these roles (ROADMAP 55.4b), in the currency. 0 = free. A missing role pays `cost`. */
+  priceByRole: Partial<Record<PricedRole, number>>;
   /** The message sent with the deduction. See MESSAGE_VARS. */
   message: string;
   /** Which key of the balance reply holds the number. */
@@ -55,6 +57,10 @@ export interface MixItUpSettings {
   replies: Partial<Record<ReplyKey, string>>;
 }
 
+/** The roles that can have a price of their own. */
+export const PRICED_ROLES = ['subscriber', 'vip'] as const;
+export type PricedRole = (typeof PRICED_ROLES)[number];
+
 export const TEST_VIEWERS_MAX = 5;
 
 export const MESSAGE_VARS = ['username', 'amount', 'currency', 'cardName', 'variant', 'stars', 'packName', 'cardNumber', 'serial'] as const;
@@ -65,7 +71,7 @@ const NO_ROLE_LIMITS: Record<PullRole, number> = { regular: 0, subscriber: 0, vi
 
 export const DEFAULT_MIXITUP: MixItUpSettings = {
   enabled: false, connection: 'bridge', currencyId: '', balanceUrl: '', deductUrl: '', addUrl: '', viewersUrl: '', secret: '', currency: 'Brie Bucks', cost: 100, limit: 0,
-  roleLimits: { ...NO_ROLE_LIMITS }, message: DEFAULT_MESSAGE, balanceField: 'balance', pullRules: [], testViewers: [CHANNEL_LOGIN], overlayWatchdog: false, chat: DEFAULT_CHAT, replies: {},
+  roleLimits: { ...NO_ROLE_LIMITS }, priceByRole: {}, message: DEFAULT_MESSAGE, balanceField: 'balance', pullRules: [], testViewers: [CHANNEL_LOGIN], overlayWatchdog: false, chat: DEFAULT_CHAT, replies: {},
 };
 
 /** Is there somewhere to send a balance check? Bridge: a chosen currency. Addresses: the balance address. */
@@ -89,6 +95,18 @@ export function roleLimitOf(s: Pick<MixItUpSettings, 'limit' | 'roleLimits'>, ro
   return typeof n === 'number' && Number.isFinite(n) ? Math.min(1000, Math.max(0, Math.floor(n))) : s.limit;
 }
 
+/**
+ * What one pack costs this viewer, a whole number. The full price order (ROADMAP 55.4): pack price, else role price, else base price;
+ * then a happy hour discount; then a first free pack makes it 0. Only the role step exists so far (55.4b); the later items add their
+ * steps here. A viewer with several roles pays the lowest of their role prices. Worked out when the pull is reserved and stored on
+ * the reservation, so a settings change while the pack waits on the overlay changes nothing.
+ */
+export function pullPrice(s: Pick<MixItUpSettings, 'cost' | 'priceByRole'>, o: { role?: PullRole | readonly PullRole[] }): number {
+  const roles: readonly PullRole[] = Array.isArray(o.role) ? o.role : o.role ? [o.role as PullRole] : [];
+  const prices = roles.flatMap(r => { const p = (s.priceByRole as Record<string, number | undefined> | undefined)?.[r]; return typeof p === 'number' ? [p] : []; });
+  return prices.length ? Math.min(...prices) : s.cost;
+}
+
 const num = (v: unknown, fallback: number, min: number, max: number): number => {
   const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN;
   return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.floor(n))) : fallback;
@@ -101,6 +119,18 @@ function roleLimitsFrom(raw: Record<string, unknown>, fallback: number): Record<
   for (const role of PULL_ROLES) {
     const field = raw[`roleLimit_${role}`];
     out[role] = num(field !== undefined ? field : obj[role], fallback, 0, 1000);
+  }
+  return out;
+}
+
+/** The role prices: from the form's `priceByRole_<role>` fields, else the stored object. Blank or junk means the base price, so it is not kept. */
+function priceByRoleFrom(raw: Record<string, unknown>): Partial<Record<PricedRole, number>> {
+  const obj = (raw.priceByRole && typeof raw.priceByRole === 'object' ? raw.priceByRole : {}) as Record<string, unknown>;
+  const out: Partial<Record<PricedRole, number>> = {};
+  for (const role of PRICED_ROLES) {
+    const v = raw[`priceByRole_${role}`] !== undefined ? raw[`priceByRole_${role}`] : obj[role];
+    const n = num(v, NaN, 0, 1_000_000);
+    if (Number.isFinite(n)) out[role] = n;
   }
   return out;
 }
@@ -136,6 +166,7 @@ export function normalizeMixItUp(raw: unknown): MixItUpSettings {
     cost: num(r.cost, d.cost, 1, 1_000_000),
     limit,
     roleLimits: roleLimitsFrom(r, limit),
+    priceByRole: priceByRoleFrom(r),
     message: text(r.message, MESSAGE_MAX, d.message) || d.message,
     balanceField: text(r.balanceField, 60, d.balanceField) || d.balanceField,
     pullRules: normalizeRules(r.pullRules),
@@ -156,6 +187,10 @@ export function cleanMixItUpInput(raw: Record<string, unknown>): { ok: true; set
   }
   const cost = Number(raw.cost);
   if (raw.cost !== undefined && (!Number.isFinite(cost) || cost < 1)) return { ok: false, message: 'The price per pack must be 1 or more.' };
+  for (const role of PRICED_ROLES) {
+    const v = raw[`priceByRole_${role}`];
+    if (typeof v === 'string' && v.trim() !== '' && !/^\d+$/.test(v.trim())) return { ok: false, message: `The ${PULL_ROLE_LABELS[role].toLowerCase()} price must be a whole number, 0 or more, or empty for the base price.` };
+  }
   s.enabled = raw.enabled === true || raw.enabled === 'true' || raw.enabled === 'on';
   if (s.enabled && s.connection === 'addresses' && !s.balanceUrl) return { ok: false, message: 'Paste the balance address before switching Mix It Up on.' };
   if (s.enabled && s.connection === 'bridge' && !s.currencyId) return { ok: false, message: 'Pair TCG Bridge and choose the currency before switching Mix It Up on.' };
@@ -257,7 +292,7 @@ export const REFUSAL_LABELS: Record<string, string> = {
 export const replySample = (s: Pick<MixItUpSettings, 'cost' | 'currency' | 'limit'>) =>
   ({ username: 'cheesyviewer', cost: s.cost.toLocaleString(), currency: s.currency, balance: Math.max(0, s.cost - 1).toLocaleString(), limit: s.limit > 0 ? s.limit : 3, left: 2 });
 
-/** Can this balance cover every pull in flight, this one included (`pending` already counts it)? */
-export function decide(o: { balance: number; cost: number; pending: number }): boolean {
-  return o.balance >= o.cost * o.pending; // pending already counts this pull
+/** Can this balance cover every pull in flight, this one included? `owed` is the sum of their stored prices and already counts this pull. */
+export function decide(o: { balance: number; owed: number }): boolean {
+  return o.balance >= o.owed;
 }
