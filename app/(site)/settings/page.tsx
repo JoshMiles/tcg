@@ -11,6 +11,7 @@ import { lastAlertAt } from '@/lib/watch-index';
 import { timeAgo } from '@/lib/site-data';
 import { SettingsForm } from './SettingsForm';
 import { DeleteAccount } from './DeleteAccount';
+import { SignOutEverywhere } from './SignOutEverywhere';
 import { deletionOf } from '@/lib/feedback';
 import { CHANNEL_LOGIN } from '@/lib/site';
 import { getStaffRecord } from '@/lib/staff';
@@ -18,7 +19,7 @@ import { isSuperAdmin } from '@/lib/staff-core';
 
 export const metadata: Metadata = { title: 'Settings', robots: { index: false, follow: false } };
 
-const SECTION_LINKS = [['profile', 'Profile'], ['notifications', 'Notifications'], ['alerts', 'Saved alerts'], ['display', 'Display'], ['experimental', 'Experimental'], ['data', 'Your data'], ['delete-account-section', 'Delete account']];
+const SECTION_LINKS = [['profile', 'Profile'], ['notifications', 'Notifications'], ['alerts', 'Saved alerts'], ['display', 'Display'], ['experimental', 'Experimental'], ['data', 'Your data'], ['sign-out-everywhere', 'Sign out'], ['delete-account-section', 'Delete account']];
 
 export default async function SettingsPage() {
   const session = await getSession();
@@ -43,6 +44,7 @@ export default async function SettingsPage() {
         ))}
       </nav>
       <SettingsForm initial={settings} username={session.username} cards={cards} isStaff={isStaff} alertLine={alertLine} />
+      <SignOutEverywhere />
       <DeleteAccount username={session.username} initial={deletion ? { status: deletion.status, at: deletion.at, reply: deletion.reply } : null} />
     </div>
   );

@@ -45,7 +45,7 @@ export async function deleteViewerAccount(username: string): Promise<DeletionRep
   await deleteTesterRecord(user);
   await deleteAllDevices(user);
   await unlinkDiscord(user);
-  await kv.del(`notif:${user}`, `notif:${user}:seen`, `notif:${user}:v`, `watch:last:${user}`, `user:${user}:ach`, ...seasons.map(s => `user:${user}:scorehist:${s.id}`));
+  await kv.del(`notif:${user}`, `notif:${user}:seen`, `notif:${user}:v`, `watch:last:${user}`, `user:${user}:ach`, `user:${user}:sessgen`, ...seasons.map(s => `user:${user}:scorehist:${s.id}`));
   await setHidden(user, false);
   const feedbackDeleted = await deleteFeedbackOf(user);
   const opaqueRemoved = await removeOpaqueLinks(user);

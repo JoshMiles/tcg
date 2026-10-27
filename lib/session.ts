@@ -23,6 +23,8 @@ export interface Session {
   exp: number; // unix seconds
   /** Set for a sandbox test login: only valid while the request is in that same sandbox. */
   sandbox?: string;
+  /** The viewer's session generation when the cookie was issued (missing = 0). "Sign out everywhere" raises the stored one, which kills older cookies. */
+  gen?: number;
 }
 
 const secret = () => signingKey('session');
@@ -61,6 +63,26 @@ export function verifySession(token: string | undefined): Session | null {
   }
 }
 
+const genKey = (username: string) => `user:${username}:sessgen`;
+
+/** True when a cookie issued at `cookieGen` predates the viewer's stored generation. A missing value on either side counts as 0. */
+export function sessionRevoked(cookieGen: number | undefined, storedGen: unknown): boolean {
+  return (cookieGen ?? 0) < (Number(storedGen) || 0);
+}
+
+/** The viewer's current session generation (0 when never bumped). Stamped on a new cookie at sign-in. */
+export async function currentSessionGen(username: string): Promise<number> {
+  return Number(await kv.get(genKey(username)).catch(() => 0)) || 0;
+}
+
+/** Sign out everywhere: every cookie issued before this call stops being accepted. */
+export async function bumpSessionGen(username: string): Promise<void> {
+  await kv.incr(genKey(username));
+}
+
+/** The viewer's stored generation; one read per request. Unreadable counts as 0 (a KV hiccup must not sign everyone out). */
+const storedGen = cache(async (username: string): Promise<number> => currentSessionGen(username));
+
 /** The Twitch ID stored on a login's profile; one read per request however many callers ask. Unreadable counts as no ID (a KV hiccup must not sign everyone out). */
 const storedTwitchId = cache(async (username: string): Promise<unknown> => {
   try { return (await kv.get<{ twitchId?: unknown }>(`user:${username}:profile`))?.twitchId; } catch { return undefined; }
@@ -78,8 +100,9 @@ export async function getSession(): Promise<Session | null> {
   // A sandbox test login is useless (and ignored) outside its sandbox, so it can't be mistaken for a real viewer on production.
   if (session?.sandbox && (await currentSandboxId()) !== session.sandbox) return null;
   if (session && !session.sandbox && isTwitchId(session.twitchId)) {
-    const stored = await storedTwitchId(session.username);
+    const [stored, gen] = await Promise.all([storedTwitchId(session.username), storedGen(session.username)]);
     if (isTwitchId(stored) && stored !== session.twitchId) return null;
+    if (sessionRevoked(session.gen, gen)) return null;
   }
   return session;
 }
