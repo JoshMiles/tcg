@@ -3,22 +3,23 @@
 // answers { paused, buffs }. A buff goes through runStreamDeck (lib/streamdeck.ts), so its switch, cooldown and audit line are the same.
 import { kv } from './db';
 import { recordAudit } from './audit';
-import { bridgeQueue } from './bridge';
+import { bridgeQueue, type BridgeToken } from './bridge';
+import { getTradeSettings } from './trades';
 import { getBuffDef, getBuffDefs } from './buffs';
 import { isPullsPaused, setPullsPaused } from './pull-pause';
 import { clearQueueRefunding, skipNext } from './queue-control';
 import { LAST_BUFF, runStreamDeck } from './streamdeck';
 
 const BY = 'TCG Bridge';
-export interface BridgeActionResult { ok: boolean; message: string; paused?: boolean; buffs?: { id: string; name: string }[] }
+export interface BridgeActionResult { ok: boolean; message: string; paused?: boolean; buffs?: { id: string; name: string }[]; /** ROADMAP 55.12: this PC's staff switch, and (with it) whether trading is paused. */ staff?: boolean; tradingPaused?: boolean }
 const done = (ok: boolean, message: string, extra: Partial<BridgeActionResult> = {}): BridgeActionResult => ({ ok, message, ...extra });
 const words = async (r: Promise<{ ok: boolean; message: string }>) => { const x = await r; return done(x.ok, x.message || 'That buff is not switched on for the Stream Deck.'); };
 
-export async function runBridgeAction(body: Record<string, unknown>): Promise<BridgeActionResult> {
+export async function runBridgeAction(body: Record<string, unknown>, pc?: BridgeToken): Promise<BridgeActionResult> {
   switch (body.action) {
     case 'status': {
       const buffs = (await getBuffDefs()).filter(b => b.streamDeck && b.type !== 'grant-achievement').map(b => ({ id: b.id, name: b.name }));
-      return done(true, '', { paused: await isPullsPaused(), buffs });
+      return done(true, '', { paused: await isPullsPaused(), buffs, staff: !!pc?.staff, ...(pc?.staff ? { tradingPaused: !(await getTradeSettings()).enabled } : {}) });
     }
     case 'buff': {
       const def = typeof body.id === 'string' ? await getBuffDef(body.id) : null;

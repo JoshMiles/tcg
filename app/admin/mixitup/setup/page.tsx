@@ -98,7 +98,7 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
         <>
           {bridgeMode ? (
             <>
-              <BridgeCard version={bridge.version} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never' }))} />
+              <BridgeCard version={bridge.version} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never', staff: !!b.staff, by: b.by ?? '' }))} />
               <Card card={outgoing} />
               {outgoing.tone !== 'ok' && <AutoRefresh />}
               {bridge.currencies.length > 0 && (

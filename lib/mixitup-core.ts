@@ -194,7 +194,7 @@ export function streamKey(startedAtMs: number | null, now = Date.now()): string 
   return startedAtMs ? `s${startedAtMs}` : `d${new Date(now).toISOString().slice(0, 10)}`;
 }
 
-export type RefusalReason = 'insufficient_balance' | 'limit_reached' | 'mixitup_unavailable' | 'bad_balance';
+export type RefusalReason = 'insufficient_balance' | 'limit_reached' | 'mixitup_unavailable' | 'bad_balance' | 'blocked';
 
 /** The sentence a refusal sends back for Mix It Up to post to chat. */
 export function refusalMessage(reason: RefusalReason, s: Pick<MixItUpSettings, 'cost' | 'currency' | 'limit'>, username: string, balance?: number): string {
@@ -202,12 +202,13 @@ export function refusalMessage(reason: RefusalReason, s: Pick<MixItUpSettings, '
     case 'insufficient_balance': return `${username}, a pack costs ${s.cost.toLocaleString()} ${s.currency}${balance !== undefined ? ` and you have ${balance.toLocaleString()}` : ''}.`;
     case 'limit_reached': return `${username}, you have used all ${s.limit} pulls for this stream.`;
     case 'bad_balance': return `${username}, the balance could not be read, so no pack was opened.`;
+    case 'blocked': return `${username}, packs are switched off for you right now.`;
     default: return `${username}, the balance check did not answer, so no pack was opened. Try again in a moment.`;
   }
 }
 
 export const REFUSAL_LABELS: Record<string, string> = {
-  insufficient_balance: 'Not enough currency', limit_reached: 'Pull limit reached', mixitup_unavailable: 'Mix It Up did not answer', bad_balance: 'Balance could not be read',
+  insufficient_balance: 'Not enough currency', limit_reached: 'Pull limit reached', mixitup_unavailable: 'Mix It Up did not answer', bad_balance: 'Balance could not be read', blocked: 'Blocked by staff',
 };
 
 /** The sentences a refused pull sends back, from the price and limit being typed (the Paid pulls preview). A limit of 0 never refuses, so a sample shows. */

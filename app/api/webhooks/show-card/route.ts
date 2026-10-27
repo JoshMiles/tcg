@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { enqueueEvent, parseIncomingWebhook } from '@/lib/webhooks';
-import { recordActivity } from '@/lib/activity';
+import { parseIncomingWebhook } from '@/lib/webhooks';
 import { liveGate } from '@/lib/overlay-settings';
-import { prepareShowOff } from '@/lib/showoff-prepare';
+import { queueShowOff } from '@/lib/staff-actions';
 
 // "Show off a card" from a chat command. Body: { secret, username, card? } where `card` is whatever the viewer typed after the command
 // ("shiny gouda goat", "#12", or nothing for their best card). The reply always carries a `message` the bot can say back in chat; the
@@ -15,14 +14,5 @@ export async function POST(req: NextRequest) {
   const blocked = await liveGate('collection');
   if (blocked) return NextResponse.json({ ok: true, ignored: true, reason: blocked, message: '' });
 
-  const result = await prepareShowOff(parsed.username, parsed.body.card);
-  if (!result.ok) return NextResponse.json(result);
-
-  const { plan } = result;
-  await enqueueEvent({
-    id: crypto.randomUUID(), type: 'card', username: plan.username, queuedAt: Date.now(),
-    cardNumber: plan.cardNumber, variant: plan.variant, serial: plan.serial, serialMult: plan.serialMult, uid: plan.uid,
-  });
-  await recordActivity({ type: 'trigger', kind: 'card', username: plan.username, cardName: plan.cardName });
-  return NextResponse.json({ ok: true, message: plan.message, card: plan.cardName, variant: plan.variant, serial: plan.serial ?? null });
+  return NextResponse.json(await queueShowOff(parsed.username, parsed.body.card));
 }

@@ -278,6 +278,99 @@ setInterval(() => { void loadQueue(); }, 5000);
 action('queue-skip', 'queue-result', async () => { const r = await window.bridge.queueDo('skip'); void loadQueue(); return r; });
 action('queue-clear', 'queue-result', async () => { const r = await window.bridge.queueDo('clear'); void loadQueue(); return r; });
 
-window.bridge.onState(s => { state = s; render(); });
-window.bridge.getState().then(s => { state = s; render(); });
+// ── Staff tab (55.12): shown only when the site says this PC has staff tools; reads only while the tab is open, at most every 5 seconds ──
+let staffState = null;
+let staffUsersAt = 0;
+const staffTabOpen = () => !!state && state.staff && document.querySelector('[data-panel="staff"]').hidden === false && !document.hidden;
+const staffAsk = req => window.bridge.staff(req);
+const staffName = () => $('staff-name').value;
+const fill = (list, items) => list.replaceChildren(...items.map(text => { const o = document.createElement('option'); o.value = text; return o; }));
+
+function renderStaff() {
+  $('rail-staff').hidden = !(state && state.staff);
+  if (state && !state.staff && !document.querySelector('[data-panel="staff"]').hidden) showTab('status');
+  const s = staffState;
+  if (!s) return;
+  $('staff-extra-now').textContent = s.extra > 0 ? `Everyone gets ${s.extra} extra this stream.` : 'No extra pulls right now.';
+  $('staff-trading').textContent = s.tradingPaused ? 'Open trading' : 'Pause trading';
+  $('staff-trading-now').textContent = s.tradingPaused ? 'Trading is paused.' : 'Trading is open.';
+  const scenes = s.scenes || [];
+  if ($('staff-scene').dataset.key !== scenes.join('|')) {
+    $('staff-scene').dataset.key = scenes.join('|');
+    $('staff-scene').replaceChildren(...scenes.map(name => { const o = document.createElement('option'); o.value = name; o.textContent = name; return o; }));
+  }
+  if (!$('staff-variant').options.length && Array.isArray(s.variants)) {
+    $('staff-variant').replaceChildren(...s.variants.map(v => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.label; return o; }));
+  }
+}
+
+async function loadStaff() {
+  if (!staffTabOpen()) return;
+  const r = await staffAsk({ op: 'state' });
+  if (r.ok && r.data) { staffState = r.data; renderStaff(); }
+  if (Date.now() - staffUsersAt > 300000) { // the names to complete; the app keeps them for five minutes
+    staffUsersAt = Date.now();
+    const u = await staffAsk({ op: 'users' });
+    if (u.ok && u.data && Array.isArray(u.data.users)) fill($('staff-users'), u.data.users);
+  }
+}
+for (const b of document.querySelectorAll('.rail-btn')) b.addEventListener('click', () => { void loadStaff(); });
+setInterval(() => { void loadStaff(); }, 5000);
+
+let cardTimer;
+$('staff-card').addEventListener('input', () => {
+  clearTimeout(cardTimer);
+  cardTimer = setTimeout(async () => {
+    const q = $('staff-card').value.trim();
+    if (q.length < 2 || q.startsWith('#')) return;
+    const r = await staffAsk({ op: 'cards', q });
+    if (r.ok && r.data && Array.isArray(r.data.cards)) fill($('staff-cards'), r.data.cards.map(c => `#${c.number} ${c.name}`));
+  }, 300);
+});
+/** "#12 Gouda Goat" or "12" -> the card number, else null. */
+const cardNumber = () => { const m = /^#?(\d+)\b/.exec($('staff-card').value.trim()); return m ? Number(m[1]) : null; };
+
+/** A staff action; when no overlay is connected the site asks first, and the streamer is asked here. */
+async function staffDo(body) {
+  let r = await staffAsk({ op: 'do', ...body });
+  if (!r.ok && r.data && r.data.needsForce && window.confirm(`${r.text}\n\nQueue it anyway?`)) r = await staffAsk({ op: 'do', ...body, force: true });
+  void loadStaff();
+  return r;
+}
+const needName = () => (staffName().trim() ? null : { ok: false, text: 'Type a Twitch name first.' });
+
+action('staff-lookup', 'staff-viewer-result', async () => {
+  const r = await staffAsk({ op: 'viewer', name: staffName() });
+  const box = $('staff-viewer');
+  box.hidden = !r.ok;
+  if (!r.ok) return r;
+  const d = r.data;
+  const rows = [
+    ['Viewer', d.username + (d.blocked ? ' (blocked from pulls)' : '')],
+    ['Cards', `${d.copies} owned, ${d.unique} different`],
+    ['Rank', d.rank ? `${d.rank} of ${d.of}` : 'Not ranked'],
+    ['Brie Bucks', d.bucks === null || d.bucks === undefined ? 'Unknown (Mix It Up is not answering)' : String(d.bucks)],
+    ['Last pulls', d.pulls.length ? d.pulls.map(p => p.text).join(', ') : 'None'],
+    ['Refusals', d.refusals.length ? d.refusals.map(p => p.text).join(', ') : 'None'],
+  ];
+  box.replaceChildren(...rows.flatMap(([k, v]) => { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; return [dt, dd]; }));
+  return { ok: true, text: '' };
+});
+action('staff-admin', 'staff-viewer-result', async () => needName() || staffAsk({ op: 'open-admin', name: staffName() }));
+action('staff-gift', 'staff-viewer-result', async () => needName() || staffDo({ action: 'gift', username: staffName(), count: Number($('staff-count').value) }));
+action('staff-collection', 'staff-viewer-result', async () => needName() || staffDo({ action: 'show-collection', username: staffName() }));
+action('staff-block', 'staff-viewer-result', async () => needName() || staffDo({ action: 'block', username: staffName(), mode: $('staff-block-mode').value }));
+action('staff-unblock', 'staff-viewer-result', async () => needName() || staffDo({ action: 'unblock', username: staffName() }));
+action('staff-grant', 'staff-card-result', async () => {
+  const n = cardNumber();
+  return needName() || (n === null ? { ok: false, text: 'Pick a card from the list.' } : staffDo({ action: 'grant', username: staffName(), cardNumber: n, variant: $('staff-variant').value }));
+});
+action('staff-showcard', 'staff-card-result', async () => needName() || staffDo({ action: 'show-card', username: staffName(), card: $('staff-card').value.trim().replace(/^(#\d+)\s.*$/, '$1') }));
+action('staff-extra-set', 'staff-stream-result', () => staffDo({ action: 'stream-extra', amount: Number($('staff-extra').value) }));
+action('staff-extra-clear', 'staff-stream-result', () => staffDo({ action: 'stream-extra', amount: 0 }));
+action('staff-scene-go', 'staff-stream-result', async () => $('staff-scene').value ? staffAsk({ op: 'scene', name: $('staff-scene').value }) : { ok: false, text: 'OBS has no scenes yet.' });
+action('staff-trading', 'staff-stream-result', async () => { const r = await window.bridge.staffTrading(!(staffState && staffState.tradingPaused)); void loadStaff(); return r; });
+
+window.bridge.onState(s => { state = s; render(); renderStaff(); });
+window.bridge.getState().then(s => { state = s; render(); renderStaff(); });
 setInterval(render, 5000); // keeps "5 seconds ago" honest

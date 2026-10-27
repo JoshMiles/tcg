@@ -35,6 +35,8 @@ h1, h2 { font-family: var(--display); letter-spacing: .01em; margin: 0; }
 .body { display: grid; grid-template-columns: 176px 1fr; min-height: 0; }
 .rail { display: flex; flex-direction: column; gap: 4px; padding: 14px 10px; background: rgba(7, 11, 25, .55); border-right: 1px solid var(--line); overflow-y: auto; }
 .rail-btn { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 0; border-radius: var(--radius-field); background: none; color: var(--soft); font: 600 14px var(--body); text-align: left; cursor: pointer; }
+.rail-btn[hidden] { display: none; }
+#staff-count, #staff-extra { width: 80px; }
 .rail-btn:hover { background: var(--card); color: var(--fg); }
 .rail-btn[aria-current="page"] { background: var(--card); color: var(--primary); box-shadow: inset 3px 0 0 var(--primary); }
 .rail-foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 10px 12px 0; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); }
@@ -72,7 +74,7 @@ label { display: grid; gap: 4px; }
 label.inline, label:has(input[type="checkbox"]:not(.switch)) { display: flex; align-items: center; gap: 8px; }
 select { padding: 6px 8px; border: 1px solid var(--line-hi); border-radius: var(--radius-field); background: var(--bg); color: var(--fg); font: inherit; }
 input[type="range"] { accent-color: var(--primary); }
-input[type="text"], input[type="password"] { padding: 8px 10px; border: 1px solid var(--line-hi); border-radius: var(--radius-field); background: var(--bg); color: var(--fg); font: inherit; }
+input[type="text"], input[type="password"], input[type="number"] { padding: 8px 10px; border: 1px solid var(--line-hi); border-radius: var(--radius-field); background: var(--bg); color: var(--fg); font: inherit; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 .tools { margin-top: 12px; align-items: center; }
 .btn { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border: 1px solid var(--primary); border-radius: var(--radius-field); background: var(--primary); color: var(--primary-fg); font: 700 13px var(--body); cursor: pointer; }

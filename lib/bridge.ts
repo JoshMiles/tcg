@@ -30,7 +30,8 @@ const pairKey = (code: string) => `bridge:pair:${code}`;
 export const tuning = { waitMs: WAIT_MS, pollMs: POLL_MS, longPollMs: LONG_POLL_MS, idlePollMs: IDLE_POLL_MS };
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
-export interface BridgeToken { id: string; name: string; createdAt: number; lastSeen: number }
+/** `by` is the admin who paired this PC; `staff` is the per-PC switch for the staff tools (ROADMAP 55.12), off until an admin turns it on. */
+export interface BridgeToken { id: string; name: string; createdAt: number; lastSeen: number; by?: string; staff?: boolean }
 
 // ── The calling side: put a job on the list and wait for its result ──
 
@@ -190,10 +191,12 @@ export async function createPairCode(by: string): Promise<{ code: string; expire
 /** Swaps a code (used once: the delete is the claim) for a token. Only its hash is stored; the token is shown to the bridge once. */
 export async function pairBridge(rawCode: unknown, rawName: unknown): Promise<{ token: string; name: string } | null> {
   const code = normalizeCode(rawCode);
-  if (!code || (await kv.del(pairKey(code))) !== 1) return null;
+  if (!code) return null;
+  const made = await kv.get<{ by?: string }>(pairKey(code));
+  if ((await kv.del(pairKey(code))) !== 1) return null;
   const token = randomBytes(32).toString('base64url');
   const name = cleanName(rawName);
-  await kv.hset(TOKENS, { [hashToken(token)]: { id: randomBytes(6).toString('hex'), name, createdAt: Date.now(), lastSeen: 0 } satisfies BridgeToken });
+  await kv.hset(TOKENS, { [hashToken(token)]: { id: randomBytes(6).toString('hex'), name, createdAt: Date.now(), lastSeen: 0, ...(made?.by ? { by: made.by } : {}) } satisfies BridgeToken });
   return { token, name };
 }
 
@@ -209,6 +212,15 @@ export async function revokeBridge(id: string): Promise<string | null> {
   const hit = Object.entries(all ?? {}).find(([, t]) => t.id === id);
   if (!hit) return null;
   await kv.hdel(TOKENS, hit[0]);
+  return hit[1].name;
+}
+
+/** Switches the staff tools of one PC on or off (ROADMAP 55.12). Its name, or null when there was no such PC. */
+export async function setBridgeStaff(id: string, on: boolean): Promise<string | null> {
+  const all = await kv.hgetall<Record<string, BridgeToken>>(TOKENS).catch(() => null);
+  const hit = Object.entries(all ?? {}).find(([, t]) => t.id === id);
+  if (!hit) return null;
+  await kv.hset(TOKENS, { [hit[0]]: { ...hit[1], staff: on } });
   return hit[1].name;
 }
 
@@ -238,13 +250,22 @@ export async function readBridge(): Promise<BridgeState> {
 // ── The API routes' side ──
 
 /** First lines of every route but pair: the rate limit, then the Bearer token (its sha256 must be in the paired list). */
-export async function bridgeGuard(req: Request): Promise<{ ok: true; hash: string } | { ok: false; response: NextResponse }> {
+export async function bridgeGuard(req: Request): Promise<{ ok: true; hash: string; pc: BridgeToken } | { ok: false; response: NextResponse }> {
   const limited = await limitWebhook(req);
   if (limited) return { ok: false, response: limited };
   const token = /^Bearer (\S{1,200})$/.exec(req.headers.get('authorization') ?? '')?.[1];
   const hash = token ? hashToken(token) : '';
-  if (!hash || !(await kv.hget(TOKENS, hash))) return { ok: false, response: NextResponse.json({ error: 'Unknown token' }, { status: 401 }) };
-  return { ok: true, hash };
+  const pc = hash ? await kv.hget<BridgeToken>(TOKENS, hash) : null;
+  if (!pc) return { ok: false, response: NextResponse.json({ error: 'Unknown token' }, { status: 401 }) };
+  return { ok: true, hash, pc };
+}
+
+/** The staff routes' guard (ROADMAP 55.12): bridgeGuard, then this PC must have the staff switch on. A sandbox never has staff powers. */
+export async function bridgeStaffGuard(req: Request): Promise<{ ok: true; hash: string; pc: BridgeToken } | { ok: false; response: NextResponse }> {
+  const g = await bridgeGuard(req);
+  if (!g.ok) return g;
+  if (!g.pc.staff || (await inSandbox())) return { ok: false, response: NextResponse.json({ error: 'Staff tools are off for this PC.' }, { status: 403 }) };
+  return g;
 }
 
 /** The pair route's guard: the general limit, then 10 tries per address per 10 minutes, so a code cannot be guessed. */
