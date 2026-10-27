@@ -17,7 +17,7 @@ export const CHIP_STYLE = {
 
 const ROW_TEXT = { ok: 'text-green-300', warn: 'text-amber-300', bad: 'text-red-300', muted: 'text-gray-400' } as const;
 
-function Card({ card }: { card: StatusCard }) {
+export function Card({ card }: { card: StatusCard }) {
   const style = CHIP_STYLE[card.tone];
   return (
     <section className="card rounded-2xl p-5 space-y-3" aria-label={card.title}>
@@ -47,8 +47,8 @@ function Card({ card }: { card: StatusCard }) {
 }
 
 /** Mix It Up → Overview: three status cards, this stream's numbers, quick actions and the last five log rows. */
-export function Overview({ cards, numbers, recent, setup, streamExtra, obsPaired, login, now, testViewers, paidOn, sandbox, tests }: {
-  cards: StatusCard[]; numbers: StreamNumbers; recent: MixItUpLogEntry[]; setup: boolean; streamExtra: number; obsPaired: boolean; login: string; now: number;
+export function Overview({ cards, numbers, recent, setup, setupLabel, streamExtra, obsPaired, login, now, testViewers, paidOn, sandbox, tests }: {
+  cards: StatusCard[]; numbers: StreamNumbers; recent: MixItUpLogEntry[]; setup: boolean; setupLabel: string; streamExtra: number; obsPaired: boolean; login: string; now: number;
   testViewers: string[]; paidOn: boolean; sandbox: boolean; tests: RecentTestRow[];
 }) {
   const more = numbers.partial ? 'at least' : undefined;
@@ -57,7 +57,7 @@ export function Overview({ cards, numbers, recent, setup, streamExtra, obsPaired
       {setup && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-yellow-500/30 bg-yellow-500/5 px-5 py-4">
           <p className="text-sm text-gray-200">Something is not set up yet. The cards below say what to do.</p>
-          <Link href="/admin/mixitup?tab=connection" className="btn btn-primary btn-sm"><Icon name="wrench" />Set up Mix It Up</Link>
+          <Link href="/admin/mixitup/setup" className="btn btn-primary btn-sm"><Icon name="wrench" />{setupLabel}</Link>
         </div>
       )}
 

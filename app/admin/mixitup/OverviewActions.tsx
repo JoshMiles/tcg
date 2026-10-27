@@ -14,7 +14,7 @@ function Result({ state }: { state: ActionResult | null }) {
 }
 
 /** One button that runs an action and shows its answer under it. */
-function Quick({ title, text, icon, label, pendingLabel, run }: { title: string; text: string; icon: IconName; label: string; pendingLabel: string; run: () => Promise<ActionResult> }) {
+export function Quick({ title, text, icon, label, pendingLabel, run }: { title: string; text: string; icon: IconName; label: string; pendingLabel: string; run: () => Promise<ActionResult> }) {
   const [state, action] = useActionState<ActionResult | null, FormData>(() => run(), null);
   return (
     <form action={action} className="space-y-2">

@@ -20,15 +20,19 @@ async function saveSettings(formData: FormData, tab: 'paid' | 'connection'): Pro
   await requireAdmin();
   const cur = await getMixItUpSettings();
   const fields = Object.fromEntries([...formData.entries()].filter(([, v]) => typeof v === 'string'));
+  // The setup wizard posts the same forms with `returnTo=setup` and comes back to its own step.
+  const end = (kind: 'saved' | 'error', text: string): never => formData.get('returnTo') === 'setup'
+    ? redirect(`/admin/mixitup/setup?step=${tab === 'paid' ? 'rules' : 'outgoing'}&${kind === 'saved' ? 'note=Saved.' : `error=${encodeURIComponent(text)}`}`)
+    : back(tab, kind, text);
   const r = cleanMixItUpInput({ ...cur, ...fields, enabled: tab === 'paid' ? formData.get('enabled') === 'on' : cur.enabled });
-  if (!r.ok) return back(tab, 'error', r.message);
+  if (!r.ok) return end('error', r.message);
   if (r.settings.connection === 'bridge') { // the currency's name comes from what the bridge announced
     const c = (await readBridge()).currencies.find(x => x.id === r.settings.currencyId);
     if (c) r.settings.currency = c.name;
   }
   await saveMixItUpSettings(r.settings);
   revalidatePath('/admin/mixitup');
-  return back(tab, 'saved', 'mixitup');
+  return end('saved', 'mixitup');
 }
 
 /** Saves the Paid pulls form: the switch, price, limits and message. */
