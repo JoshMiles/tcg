@@ -1532,3 +1532,17 @@ Raised at the end of Tracks 48 to 52; Josh picked each.
 - **54.8 Stray server errors count toward the error spike (Done, #569).** `/api/twitch/*`, recent pulls and two crons count only, responses unchanged.
 - **54.9 Mods told why an admin page sent them back (Done, #570).** `/mod?denied=1` from the middleware, the admin layout and `staffPage()`.
 - **Also fixed: the profile More menu ran off the left of the screen on phones (#565).**
+
+## Track 55: Mix It Up integration (2026-10-27)
+
+Josh: connecting Mix It Up was confusing, there were too few settings, and the Stream Deck could not reward viewers. Mix It Up has no way to answer an HTTP request with JSON and its Developer API (`localhost:8911`) has no authentication, so the site reaches it through a bridge on the stream PC (the TCG Bridge app); the site never exposes 8911. `docs/admin/mixitup.md` describes everything as built. 55.4 and 55.5 stay open in `ROADMAP.md`.
+
+- **55.0 The Mix It Up bridge, site side (Done, #581; plan #580).** The site does the checks and currency changes; Mix It Up only supplies data. No browser bridge.
+- **55.1 Connection health and setup wizard (Done, #579 health, #593 wizard).** The wizard opens from the page's Connection tab.
+- **55.2 Buffs and rewards from the Stream Deck (Done, #594).**
+- **55.3 Clearer two-way messages (Done, #602).** Chat-ready `message` on every reply, optional `requestId` for retries, incoming requests on the Log tab, 5 second timeout on outgoing calls.
+- **55.6a to 55.6e TCG Bridge desktop app (Done, #582, #584, #586, #588, #589).** The app, OBS, alerts and self-tests, Mix It Up commands on big pulls, the look and a start-up updater.
+- **55.7 A better Mix It Up page (Done, #591).**
+- **55.8 to 55.11 TCG Bridge features Josh picked (Done, #595, #596, #597, #599).** Big pulls in OBS, control from the PC, chat and Brie Bucks, streamer tools. #598 lets agents bump the bridge lockfile version.
+- **55.12 and 55.13 Staff tools in TCG Bridge (Done, #600, #601).**
+- **55.14 Test pulls (Done, #592; plan #590).** A simulated chat pull end to end that leaves the leaderboard, Discord, recap and stats untouched, with Undo.

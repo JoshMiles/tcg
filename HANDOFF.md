@@ -1,8 +1,7 @@
 # HANDOFF
 
 ## Goal
-Audit follow-up (Tracks 43, 47 to 52) is done except the items in ROADMAP.md that wait on the panel review, Josh or design. This file goes once the follow-ups below are handed over.
-
+Build Track 55.4a to 55.4h (Mix It Up settings, ROADMAP.md) one at a time: a fresh Sonnet worktree agent per item, Opus reviews each PR, merges on green, then starts the next. 55.5 (#603) waits for Josh to test-import a file.
 ## Done
 - Track 45 (#480 to #483), 34.8 (#484, panel 0.0.2 submitted, under Twitch review).
 - Track 46: #485 to #490, and #499 (46.6, archives Track 46).
@@ -10,6 +9,7 @@ Audit follow-up (Tracks 43, 47 to 52) is done except the items in ROADMAP.md tha
 - Track 47 ROADMAP cleanup committed locally on `roadmap-47-cleanup` (a5b91340): done items archived, 47.4 in Track 53, 47.8 rewritten to PR 2 to 4, new 47.10 (security L-2) and 47.11 (trial readouts).
 
 ## Left
+- 55.4 progress: a (replies) next; then b, c, d, e, f, g, h. Update this line as each merges.
 - Waiting: 43.3 and Track 53 (panel review), 47.11 (Josh, from 2026-11-02), 40.2f (field data, about 2026-11-09), 35.1 (Josh), 50.3 trial readout (from 2026-11-24).
 - Flaky checks: check-achievements and check-recent-arrivals; verify sometimes fails one check on a first run and passes on a rerun.
 - Cleanup for Josh: stray remote branch 51-6-staff-reports-to-admins; stray node process on port 4111; stale worktrees under .claude/worktrees/.
@@ -60,3 +60,5 @@ Audit follow-up (Tracks 43, 47 to 52) is done except the items in ROADMAP.md tha
 - 2026-10-27: 54.5 uses a daily score snapshot from the backup cron (Josh). 54.7 became a grey note, since rarity tiers have no weight (Josh). Track 54 done (#561 to #570).
 - 2026-10-27: 50.3 swap finder design (Josh): their side spares first then any copy (marked 'only copy'); your side spares only; 'wants' = Looking for list plus saved alerts (the existing want index). 4-week trial measured by `via: 'swap'` on trades (Opus).
 - 2026-10-27: 50.3 swap finder shipped (#574); 4-week trial, readout from 2026-11-24 (Opus).
+- 2026-10-27: Josh picked all eight 55.4 settings; Opus wrote the designs (price order fixed at reserve, free packs count toward the limit, event packs never do, 10 packs per event cap, broadcaster exempt from cooldown) in ROADMAP 55.4. Track 55 done items archived (#604).
+- 2026-10-27: Josh: proceed with the 55.4 build; Opus merges each PR on green CI with comments read (docs/git-and-prs.md), one agent at a time.
