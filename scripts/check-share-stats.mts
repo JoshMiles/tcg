@@ -1,5 +1,5 @@
 // Checks the figures and the layout of the "Share my stats" image (pure). Run: npx tsx scripts/check-share-stats.mts
-import { buildStatsCard, rarestPrint, tradesInSeason, wrappedRow, type StatsCardInput } from '../lib/share-stats';
+import { buildStatsCard, pickWanted, rarestPrint, tradesInSeason, wrappedRow, type StatsCardInput } from '../lib/share-stats';
 import { statsLayout, SHARE_H, STORY_H, cardArea } from '../lib/share-image';
 
 const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED: ' + msg); };
@@ -52,4 +52,7 @@ const log = [
 ];
 eq(tradesInSeason(log, 's1', 'ben'), 2, 'completed, not reversed, this season, either side');
 eq(tradesInSeason(log, 's1', 'zed'), 0, 'no trades');
+const pool = [{ number: 1 }, { number: 5 }, { number: 9 }];
+eq(pickWanted([9, 4, 1], pool).map(c => c.number), [9, 1], 'wanted cards keep the list order and skip ones not in the season');
+eq(pickWanted([], pool), [], 'empty list');
 console.log('share stats ok');

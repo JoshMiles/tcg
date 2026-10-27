@@ -1,8 +1,9 @@
+import Link from 'next/link';
 import { ShareStudioLazy as ShareStudio } from '@/app/components/ShareStudioLazy';
 import type { BigStat, ShareCard, ShareSpec } from '@/lib/share-image';
 
 /** The owner's Share tab: choose a theme, a shape and which cards go in, preview the image, then share, save or post it. */
-export function ShareTab({ base, candidates, bigStats, link, username, discordOn, wrapped }: {
+export function ShareTab({ base, candidates, bigStats, link, username, discordOn, wrapped, wanted }: {
   base: Omit<ShareSpec, 'cards'>;
   candidates: ShareCard[];
   bigStats: BigStat[];
@@ -12,6 +13,8 @@ export function ShareTab({ base, candidates, bigStats, link, username, discordOn
   discordOn: boolean;
   /** The latest ended season they finished in, as a ready share image. Absent until a season has ended. */
   wrapped?: { seasonName: string; spec: ShareSpec } | null;
+  /** Their Looking for list as a ready share image; null when it is empty. */
+  wanted?: ShareSpec | null;
 }) {
   return (
     <div className="space-y-6">
@@ -33,6 +36,15 @@ export function ShareTab({ base, candidates, bigStats, link, username, discordOn
         <ShareStudio base={wrapped.spec} link={link} filename={`cheesy-tcg-${username}-wrapped.png`} shareText={`My ${wrapped.seasonName} wrapped on The Cheesy TCG`} discordOn={discordOn} />
       </section>
     )}
+    <section className="card rounded-2xl p-5 space-y-4" aria-label="Cards I'm looking for">
+      <div>
+        <h2 className="font-display text-xl font-bold text-white">Cards I&apos;m looking for</h2>
+        <p className="text-sm text-gray-400 mt-1">Your Looking for list as an image, so you can ask for them in Discord.</p>
+      </div>
+      {wanted
+        ? <ShareStudio base={wanted} link={link} filename={`cheesy-tcg-${username}-looking-for.png`} shareText="Cards I'm looking for on The Cheesy TCG" discordOn={discordOn} />
+        : <p className="text-sm text-gray-500">Your Looking for list is empty. Add cards in <Link href="/settings#looking-for" className="text-yellow-400 hover:text-yellow-300">Settings</Link> or from the Card Dex, then come back.</p>}
+    </section>
     </div>
   );
 }
