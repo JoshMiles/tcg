@@ -19,7 +19,9 @@ import { VARIANT_LABELS } from '@/lib/variants';
 import { getRarity } from '@/lib/rarity';
 import type { ProfileBase } from '@/lib/profile-data';
 import { SITE_URL } from '@/lib/site';
+import { duplicateGroups } from '@/lib/duplicates';
 import { CollectionGrid } from './CollectionGrid';
+import { DuplicatesView } from './DuplicatesView';
 import type { GridCard } from './CollectionGrid';
 
 const ago = (at: number) => {
@@ -39,11 +41,14 @@ const Empty = ({ icon, title, children }: { icon: Parameters<typeof Icon>[0]['na
 );
 
 /** The card grid, with the rarity tiles above it. Click a collected card for its details. */
-export function CollectionTab({ b, grid, isOwner, tradeWith, prefs, mine }: { b: ProfileBase; grid: GridCard[]; isOwner: boolean; tradeWith?: string; prefs?: { hideUncollected: boolean; compactGrids: boolean }; mine?: Record<number, number> }) {
+export function CollectionTab({ b, grid, isOwner, tradeWith, prefs, mine, dupes = false }: { dupes?: boolean; b: ProfileBase; grid: GridCard[]; isOwner: boolean; tradeWith?: string; prefs?: { hideUncollected: boolean; compactGrids: boolean }; mine?: Record<number, number> }) {
   const leaderboardHref = `/leaderboard/${b.season.id}`;
   if (b.allCards.length === 0) return <Empty icon="cards" title="No cards in this season yet">Check back once packs are added.</Empty>;
+  if (dupes) return <DuplicatesView grid={grid} isOwner={isOwner} ownerName={b.displayName} backHref={profileHref(b.lower, 'collection')} />;
+  const spare = duplicateGroups(grid).reduce((s, g) => s + g.spare, 0);
   return (
     <div className="space-y-6">
+      {spare > 0 && <Link href={`${profileHref(b.lower, 'collection')}&view=duplicates`} className="inline-flex items-center gap-1.5 text-sm text-yellow-500 hover:text-yellow-300"><Icon name="copy" />Duplicates: {spare} spare edition{spare === 1 ? '' : 's'} →</Link>}
       <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(7rem,1fr))]">
         {b.rarity.map(r => (
           <div key={r.stars} className="card rounded-xl p-3 text-center">

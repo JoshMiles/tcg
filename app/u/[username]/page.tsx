@@ -46,8 +46,8 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   };
 }
 
-export default async function ProfilePage({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ tab?: string; restored?: string; public?: string }> }) {
-  const [{ username }, { tab: tabParam, restored, public: publicParam }] = await Promise.all([params, searchParams]);
+export default async function ProfilePage({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ tab?: string; restored?: string; public?: string; view?: string }> }) {
+  const [{ username }, { tab: tabParam, restored, public: publicParam, view }] = await Promise.all([params, searchParams]);
   const lower = decodeURIComponent(username).toLowerCase();
   const realSession = await getSession();
   // "View as public" (owner only, `?public=1`): everything below sees a signed-out visitor, so it can only hide things, never add them.
@@ -99,7 +99,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
       <ProfileTabBar username={lower} active={tab} isOwner={isOwner} asPublic={asPublic} />
       {(tab === 'overview' || tab === 'collection') && <CloseToComplete b={b} />}
       {tab === 'overview' && <OverviewTab b={b} copies={copies} isOwner={isOwner} viewer={session?.username} mine={mine} />}
-      {tab === 'collection' && <CollectionTab b={b} grid={grid} isOwner={isOwner} tradeWith={session && !isOwner ? lower : undefined} prefs={prefs} mine={mine} />}
+      {tab === 'collection' && <CollectionTab dupes={view === 'duplicates'} b={b} grid={grid} isOwner={isOwner} tradeWith={session && !isOwner ? lower : undefined} prefs={prefs} mine={mine} />}
       {tab === 'stats' && (isOwner && session
         ? <OwnerStats b={b} session={session} copies={copies} restored={restored}><StatsTab b={b} /></OwnerStats>
         : <StatsTab b={b} />)}

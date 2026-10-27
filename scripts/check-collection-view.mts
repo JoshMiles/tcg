@@ -110,3 +110,13 @@ console.log('copiesForDialog ok');
   eq(v.bestPrintOf(list, 1, 'shiny'), undefined, 'none of that version');
 }
 console.log('rarestPrints ok');
+
+{
+  const d = await import('../lib/duplicates');
+  const c = (counts: Partial<typeof none>) => ({ ...none, ...counts });
+  eq(d.repeatsOf(c({ regular: 1, reverse: 1 })), [], 'one of each version is no repeat');
+  eq(d.repeatsOf(c({ regular: 3, shiny: 2 })), [{ variant: 'shiny', count: 2, spare: 1 }, { variant: 'regular', count: 3, spare: 2 }], 'rarest version first, one edition stays');
+  eq(d.duplicateGroups(cards).map(x => [x.card.number, x.spare]), [[1, 2]], 'only cards with a repeat; regular + reverse is not one');
+  eq(d.duplicateGroups([{ number: 5, counts: c({ regular: 2 }) }, { number: 2, counts: c({ regular: 2 }) }, { number: 9, counts: c({ full: 4 }) }]).map(x => x.card.number), [9, 2, 5], 'most spare first, ties by number');
+}
+console.log('duplicates ok');
