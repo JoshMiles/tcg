@@ -2,7 +2,7 @@
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '@/app/components/PendingButton';
 import { useId, useState } from 'react';
-import type { WebhookSettings, OutgoingWebhookConfig, WebhookField } from '@/lib/webhooks';
+import type { WebhookSettings, OutgoingWebhookConfig, WebhookField, WebhookFailure } from '@/lib/webhooks';
 import { saveOutgoingWebhook, regenerateWebhookSecret } from '../actions/settings';
 import { ConfirmButton } from '../components/ConfirmButton';
 
@@ -25,7 +25,7 @@ const EVENTS = [
 
 // ── Root component ────────────────────────────────────────
 
-export function WebhookConfig({ settings, base }: { settings: WebhookSettings; base: string }) {
+export function WebhookConfig({ settings, failures, base }: { settings: WebhookSettings; failures: Record<'cardPulled' | 'collectionShown', WebhookFailure | null>; base: string }) {
   const [tab, setTab] = useState<'cardPulled' | 'collectionShown'>('cardPulled');
   const event = EVENTS.find(e => e.key === tab)!;
 
@@ -98,6 +98,7 @@ export function WebhookConfig({ settings, base }: { settings: WebhookSettings; b
             key={event.key + JSON.stringify(settings.outgoing[event.key])}
             eventKey={event.key}
             config={settings.outgoing[event.key]}
+            failure={failures[event.key]}
             variables={event.variables}
           />
         </div>
@@ -198,9 +199,10 @@ function IncomingUrl({ label, description, url, secret, extraFields }: {
 
 // ── Outgoing event form ───────────────────────────────────
 
-function OutgoingEventForm({ eventKey, config, variables }: {
+function OutgoingEventForm({ eventKey, config, failure, variables }: {
   eventKey: 'cardPulled' | 'collectionShown';
   config: OutgoingWebhookConfig;
+  failure: WebhookFailure | null;
   variables: string[];
 }) {
   const urlId = useId();
@@ -240,6 +242,13 @@ function OutgoingEventForm({ eventKey, config, variables }: {
           placeholder="https://desktop.api.mixitupapp.com/api/webhook/..."
           className="input w-full"
         />
+        {/* The saved address, not what is being typed: an http one still sends, but the next save needs https. */}
+        {config.url.startsWith('http://') && (
+          <p role="alert" className="text-xs text-amber-300 mt-1.5">This address uses http. Save it again with https:// to keep it working securely.</p>
+        )}
+        {failure && (
+          <p className="text-xs text-red-300 mt-1.5">Last failed send ({new Date(failure.at).toISOString().slice(0, 16).replace('T', ' ')} UTC): {failure.error}</p>
+        )}
       </fieldset>
 
       {/* Enabled toggle */}

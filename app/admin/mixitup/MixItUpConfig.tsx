@@ -27,6 +27,10 @@ export function MixItUpConfig({ settings: s, streamExtra }: { settings: MixItUpS
             Charge for pulls
           </label>
 
+          {[s.balanceUrl, s.deductUrl, s.addUrl, s.viewersUrl].some(u => u.startsWith('http://')) && (
+            <p role="alert" className="text-xs text-amber-300">A saved address uses http. Save it again with https:// to keep it working securely.</p>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={label} htmlFor="mx-balance">Balance address</label>

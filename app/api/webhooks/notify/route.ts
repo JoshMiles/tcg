@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const settings = await getWebhookSettings();
     await fireOutgoing(settings.outgoing.collectionShown, {
       username: username ?? '',
-    });
+    }, 'collectionShown');
   }
 
   return NextResponse.json({ ok: true });

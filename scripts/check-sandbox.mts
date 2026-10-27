@@ -57,7 +57,7 @@ ok((await snapshot(prodKeys)) === before, 'PRODUCTION UNCHANGED after test tools
 let calls = 0;
 const realFetch = globalThis.fetch;
 globalThis.fetch = (async () => { calls++; return new Response('ok'); }) as typeof fetch;
-const hook = { enabled: true, url: 'https://hooks.example.com/hook', fields: [{ key: 'u', value: '{username}' }] };
+const hook = { enabled: true, url: 'https://93.184.216.34/hook', fields: [{ key: 'u', value: '{username}' }] };
 await runInSandbox(box.id, () => wh.fireOutgoing(hook, { username: 'x' }));
 ok(calls === 0, 'outgoing webhooks are not called from a sandbox');
 await wh.fireOutgoing(hook, { username: 'x' });

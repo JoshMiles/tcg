@@ -1,7 +1,8 @@
 import { kv, inSandbox } from './db';
 import type { Variant } from './types';
 import { randomBytes, timingSafeEqual } from 'crypto';
-import { checkWebhookUrl, cleanWebhookFields } from './webhook-clean';
+import { cleanWebhookFields } from './webhook-clean';
+import { sendWebhook } from './webhook-send';
 import { cleanLogin } from './staff-core';
 import { limitWebhook } from './rate-limit';
 import { noteSecretUsed } from './secret-used';
@@ -84,25 +85,34 @@ function interpolate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
 }
 
+export type OutgoingEvent = 'cardPulled' | 'collectionShown';
+export interface WebhookFailure { at: number; error: string }
+
+/** The last failed send per event, for Settings (a success does not clear it; the time shows how old it is). */
+export async function getWebhookFailures(): Promise<Record<OutgoingEvent, WebhookFailure | null>> {
+  const [cardPulled, collectionShown] = await Promise.all((['cardPulled', 'collectionShown'] as const).map(e => kv.get<WebhookFailure>(`webhooks:failure:${e}`).catch(() => null)));
+  return { cardPulled: cardPulled ?? null, collectionShown: collectionShown ?? null };
+}
+
 export async function fireOutgoing(
   config: OutgoingWebhookConfig,
   vars: Record<string, string>,
+  event?: OutgoingEvent,
 ): Promise<void> {
   if (!config.enabled || !config.url) return;
   if (await inSandbox()) return; // sandboxes never call outside services
-  // Whatever was stored, only ever call a public http(s) address (the settings form checks this too).
-  const target = checkWebhookUrl(config.url);
-  if (!target.ok || !target.url) return;
   const payload = Object.fromEntries(
     cleanWebhookFields(config.fields).map(f => [f.key, interpolate(f.value, vars)])
   );
   // Awaited, so a caller can hold it open with after() (a bare fetch is dropped when the function is frozen). Never throws.
-  await fetch(target.url, {
+  // Whatever was stored, only a public address is called, resolved first and never redirected (lib/webhook-send.ts).
+  const sent = await sendWebhook(config.url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(5000),
-  }).catch(() => {});
+  });
+  if (!sent.ok && event) await kv.set(`webhooks:failure:${event}`, { at: Date.now(), error: sent.error } satisfies WebhookFailure).catch(() => {});
 }
 
 // ── Incoming webhook auth ─────────────────────────────────
