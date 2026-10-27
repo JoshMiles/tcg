@@ -28,6 +28,8 @@ export interface PullOptions {
   chat?: boolean;
   /** What the webhook sent as `pack` (ROADMAP 55.4f): the pack a viewer asked for by name. Missing or blank = the usual choice. */
   pack?: unknown;
+  /** Why a free pull was given (ROADMAP 55.4g), such as "3 packs for 300 bits". Shown in the live activity feed. */
+  reason?: string;
 }
 
 /** Returns the JSON the webhook answers with. Throws only when the queue itself fails (after undoing what was reserved). */
@@ -108,7 +110,7 @@ export async function queuePull(username: string, o: PullOptions = {}): Promise<
     throw e;
   }
   await note('queued', 'ok', 'A ticket was rolled and the pull is waiting for the overlay');
-  await recordActivity({ type: 'trigger', kind: 'pull', username, ...(o.test ? { test: true as const } : {}) });
+  await recordActivity({ type: 'trigger', kind: 'pull', username, ...(o.reason ? { reason: o.reason } : {}), ...(o.test ? { test: true as const } : {}) });
   const message = replyText('queued', mix.replies, { username, cost: cost.toLocaleString(), currency: mix.currency, left: known.left, balance: known.balance?.toLocaleString() });
   return { ok: true, message, ...known };
 }

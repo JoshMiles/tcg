@@ -22,6 +22,7 @@ import { ConnectionTab } from './ConnectionTab';
 import { MixItUpConfig } from './MixItUpConfig';
 import { MixItUpLog } from './MixItUpLog';
 import { StreamDeckTab } from './StreamDeckTab';
+import { EventsTab } from './EventsTab';
 import { getBuffDefs } from '@/lib/buffs';
 import { getHappyHour, happyHourWhat } from '@/lib/happyhour';
 import { Overview, CHIP_STYLE } from './Overview';
@@ -48,6 +49,7 @@ const TABS: (PageTab & { hint: string })[] = [
   { id: 'chat', label: 'Chat and Brie Bucks', icon: 'database', hint: 'Chat posts when the stream starts and ends, the Brie Bucks backup and the check of charges' },
   { id: 'commands', label: 'Commands', icon: 'chat', hint: 'Chat commands such as !showoff and !stats: one webhook, replies built from variables' },
   { id: 'streamdeck', label: 'Stream Deck', icon: 'gamepad', hint: 'Buttons that apply a buff, give extra pulls or a free pack: one Mix It Up command each' },
+  { id: 'events', label: 'Events', icon: 'gift', hint: 'Free packs or a buff for gifted subs, bits, raids and channel point redeems' },
   { id: 'log', label: 'Log', icon: 'list', hint: 'The last requests to and refusals for Mix It Up' },
 ];
 
@@ -117,7 +119,8 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
       {tab === 'chat' && <ChatBucks chat={settings.chat} check={await readLedgerCheck()} when={timeAgo} />}
       {tab === 'commands' &&<CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} />}
       {tab === 'streamdeck' && <StreamDeckTab buffs={await getBuffDefs()} url={`${SITE_URL}/api/webhooks/buff`} secret={(await getWebhookSettings()).incomingSecret} />}
-      {tab === 'log' && <MixItUpLog log={await mergedLog()} filter={pickLogFilter(filter)} now={now} />}
+      {tab === 'events' && <EventsTab rewards={settings.eventRewards} buffs={await getBuffDefs()} url={`${SITE_URL}/api/webhooks/pull`} secret={(await getWebhookSettings()).incomingSecret} />}
+      {tab === 'log' &&<MixItUpLog log={await mergedLog()} filter={pickLogFilter(filter)} now={now} />}
     </div>
   );
 }

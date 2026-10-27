@@ -5,6 +5,7 @@ import { cleanLogin } from './staff-core';
 import { checkWebhookUrl } from './webhook-clean';
 import { normalizeRules, type PullRule } from './pull-rules-core';
 import { DEFAULT_CHAT, normalizeChat, type ChatSettings } from './bridge-chat-core';
+import { DEFAULT_EVENT_REWARDS, normalizeEventRewards, type EventRewards } from './event-rewards-core';
 
 /** Who a paid pull counts as. Gifted subs are not a role: a gift earns a pack and does not change these limits. */
 export const PULL_ROLES = ['regular', 'subscriber', 'vip', 'moderator', 'broadcaster'] as const;
@@ -59,6 +60,8 @@ export interface MixItUpSettings {
   chat: ChatSettings;
   /** Staff-edited chat replies (ROADMAP 55.4a), by key. A missing or blank key uses REPLY_DEFAULTS. */
   replies: Partial<Record<ReplyKey, string>>;
+  /** What Mix It Up events earn (ROADMAP 55.4g): gifted subs, bits, raids, redeems. All off unless switched on. Only the Events form changes them. */
+  eventRewards: EventRewards;
 }
 
 /** The roles that can have a price of their own. */
@@ -77,7 +80,7 @@ const NO_ROLE_LIMITS: Record<PullRole, number> = { regular: 0, subscriber: 0, vi
 
 export const DEFAULT_MIXITUP: MixItUpSettings = {
   enabled: false, connection: 'bridge', currencyId: '', balanceUrl: '', deductUrl: '', addUrl: '', viewersUrl: '', secret: '', currency: 'Brie Bucks', cost: 100, limit: 0,
-  roleLimits: { ...NO_ROLE_LIMITS }, priceByRole: {}, cooldownSeconds: 0, queueCap: 0, message: DEFAULT_MESSAGE, balanceField: 'balance', pullRules: [], testViewers: [CHANNEL_LOGIN], overlayWatchdog: false, chat: DEFAULT_CHAT, replies: {},
+  roleLimits: { ...NO_ROLE_LIMITS }, priceByRole: {}, cooldownSeconds: 0, queueCap: 0, message: DEFAULT_MESSAGE, balanceField: 'balance', pullRules: [], testViewers: [CHANNEL_LOGIN], overlayWatchdog: false, chat: DEFAULT_CHAT, replies: {}, eventRewards: DEFAULT_EVENT_REWARDS,
 };
 
 /** Is there somewhere to send a balance check? Bridge: a chosen currency. Addresses: the balance address. */
@@ -210,6 +213,7 @@ export function normalizeMixItUp(raw: unknown): MixItUpSettings {
     overlayWatchdog: r.overlayWatchdog === true,
     chat: normalizeChat(r.chat),
     replies: repliesFrom(r),
+    eventRewards: normalizeEventRewards(r.eventRewards),
   };
 }
 
