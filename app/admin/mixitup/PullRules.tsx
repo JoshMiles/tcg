@@ -2,7 +2,7 @@ import { PendingButton } from '@/app/components/PendingButton';
 import { Icon } from '@/app/components/Icon';
 import { RARITIES } from '@/lib/rarity';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
-import { RULES_MAX, SCENE_SECS_DEFAULT, SCENE_SECS_MAX, type PullRule } from '@/lib/pull-rules-core';
+import { RULES_MAX, SCENE_SECS_DEFAULT, SCENE_SECS_MAX, SHOUT_MAX, SHOUT_VARS, type PullRule } from '@/lib/pull-rules-core';
 import type { BridgeCommand } from '@/lib/bridge-core';
 import { deletePullRuleAction, savePullRulesAction, saveWatchdogAction, testPullRuleAction } from './mixitup-actions';
 
@@ -70,6 +70,10 @@ export function PullRules({ rules, commands, obs, watchdog }: { rules: PullRule[
                       </>
                     )}
                   </div>
+                </div>
+                <div>
+                  <label className={label} htmlFor={`rule-${i}-say`}>Say in chat <span className="font-normal text-gray-500">(when the card is shown; variables {SHOUT_VARS.map(v => `{${v}}`).join(' ')}; needs TCG Bridge 0.8.0 or newer)</span></label>
+                  <input id={`rule-${i}-say`} name={`rule_${i}_say`} defaultValue={r.say ?? ''} maxLength={SHOUT_MAX} placeholder="Nothing" className="input w-full" />
                 </div>
                 <fieldset className="rounded-lg border border-gray-800 p-3 space-y-3">
                   <legend className={`${label} px-1`}>In OBS <span className="font-normal text-gray-500">(needs TCG Bridge 0.6.0 or newer talking to OBS)</span></legend>

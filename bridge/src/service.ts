@@ -1,6 +1,7 @@
 // The long-poll loop and the Mix It Up watcher. Plain TypeScript, no Electron: main.ts only wires it to the tray and the window.
-import { commandWait, isKnownKind, runJob, undoLate } from './jobs';
-import { MixItUpClient } from './mixitup';
+import { csvOf, writeBackup, type Ledger } from './bucks';
+import { commandWait, isKnownKind, Refused, runJob, undoLate, type BucksTasks } from './jobs';
+import { MixItUpClient, MixItUpDown, MixItUpError } from './mixitup';
 import type { ObsConfig, ObsState, ObsWatcher } from './obs';
 import { SiteClient, SiteError, Unauthorized, type BridgeCommand, type BridgeJob, type BridgeResult } from './site';
 
@@ -34,6 +35,9 @@ export interface ServiceOptions {
   commandsMs?: number;
   backoffMs?: { min: number; max: number };
   retryMs?: number;
+  /** The Brie Bucks ledger and backup folder (ROADMAP 55.10); the checks leave them out. */
+  ledger?: Ledger;
+  backupDir?: string;
 }
 
 const JOURNAL_MAX = 50;
@@ -53,7 +57,7 @@ export class BridgeService {
   private commandIds = new Set<string>();
   private done: Promise<unknown> = Promise.resolve();
   private seen = { site: '', mix: '', obs: '' };
-  private o: Required<ServiceOptions>;
+  private o: Required<Omit<ServiceOptions, 'ledger' | 'backupDir'>> & Pick<ServiceOptions, 'ledger' | 'backupDir'>;
 
   constructor(opts: ServiceOptions) {
     this.o = { log: () => undefined, mixCheckMs: 5000, commandsMs: 300_000, backoffMs: { min: 1000, max: 30_000 }, retryMs: 300, ...opts };
@@ -172,8 +176,8 @@ export class BridgeService {
         this.changed();
         for (const job of jobs) {
           if (!job || typeof job.id !== 'string' || !isKnownKind(job.kind)) continue;
-          // A run-command may wait for the card reveal; it runs apart so balance and deduct jobs never queue behind a sound.
-          if (job.kind === 'run-command') void this.handle(job).catch(e => { if (e instanceof Unauthorized) this.revoke(); });
+          // A run-command may wait for the card reveal and a backup reads every viewer; they run apart so balance and deduct jobs never queue behind them.
+          if (job.kind === 'run-command' || job.kind === 'backup' || job.kind === 'ledger') void this.handle(job).catch(e => { if (e instanceof Unauthorized) this.revoke(); });
           else await this.handle(job);
         }
       } catch (e) {
@@ -196,7 +200,11 @@ export class BridgeService {
       if (this.abort.signal.aborted) return;
     }
     const t0 = Date.now();
-    const result = await runJob(job, this.o.mix, this.o.obs, this.commandIds);
+    const result = await runJob(job, this.o.mix, this.o.obs, this.commandIds, this.bucks);
+    const signed = job.kind === 'deduct' ? -(job.amount ?? 0) : job.kind === 'add' ? job.amount ?? 0 : 0;
+    if (this.o.ledger && signed !== 0 && job.username) {
+      this.o.ledger.add({ id: job.id, user: job.username.toLowerCase(), amount: signed, at: job.at ?? Date.now(), answer: result.ok ? 'ok' : result.error ?? 'failed' });
+    }
     const ms = Date.now() - t0;
     const entry = this.log({ kind: job.kind, username: job.username, ok: result.ok, detail: result.ok ? summary(job, result) : result.error ?? 'failed', ms });
     this.o.log(`Job ${job.kind} ${result.ok ? 'ok' : 'failed'} in ${ms} ms${result.ok ? '' : `: ${result.error ?? 'failed'}`}`);
@@ -216,10 +224,27 @@ export class BridgeService {
       this.o.log(`Job ${job.kind}: the site had given up`);
       entry.ok = false;
       entry.detail = result.ok ? (await undoLate(job, this.o.mix)) || 'Late: the site had given up, nothing to undo' : `${entry.detail} (late)`;
+      if (result.ok && signed !== 0 && job.username) this.o.ledger?.add({ id: `${job.id}:undo`, user: job.username.toLowerCase(), amount: -signed, at: job.at ?? Date.now(), answer: entry.detail });
     } else if (result.ok && job.kind === 'deduct' && job.text) {
       this.o.mix.say(job.text).catch(() => { entry.detail += ' (chat message not sent)'; this.changed(); }); // the site's own message for the pull
     }
     this.changed();
+  }
+
+  /** The Brie Bucks jobs (ROADMAP 55.10): a backup of every viewer's balance into the backup folder, and the ledger sent to the site. Undefined when the app has neither. */
+  private get bucks(): BucksTasks | undefined {
+    const { ledger, backupDir, mix, client } = this.o;
+    if (!ledger && !backupDir) return undefined;
+    const guard = async (f: () => Promise<void>) => {
+      try { await f(); } catch (e) { throw e instanceof Refused || e instanceof MixItUpError || e instanceof MixItUpDown ? e : new Refused(e instanceof Error ? e.message : 'failed'); }
+    };
+    return {
+      backup: job => guard(async () => {
+        if (!backupDir || !job.currencyId) throw new Refused('No backup folder or currency is set');
+        writeBackup(backupDir, job.phase ?? 'start', csvOf(await mix.topUsers(), job.currencyId));
+      }),
+      ledger: () => guard(async () => { await client.ledger(ledger?.all() ?? []); }),
+    };
   }
 
   /** Posts a result, retrying quickly on a network error or a 5xx (3 retries). */
@@ -244,6 +269,8 @@ function summary(job: BridgeJob, r: BridgeResult): string {
     case 'viewers': return `${r.users?.length ?? 0} viewers`;
     case 'obs-refresh': return 'refreshed the overlay in OBS';
     case 'run-command': return 'ran a Mix It Up command';
+    case 'backup': return 'saved the Brie Bucks backup';
+    case 'ledger': return 'sent the Brie Bucks ledger to the site';
     default: return 'said in chat';
   }
 }

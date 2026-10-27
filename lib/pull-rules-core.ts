@@ -26,7 +26,16 @@ export interface PullRule {
   /** A Mix It Up command id from the list TCG Bridge reported. Empty when the rule only does OBS actions. */
   commandId: string;
   obs?: PullObs;
+  /** A chat line (55.10), said when the card is revealed. Variables: SHOUT_VARS. */
+  say?: string;
 }
+
+export const SHOUT_VARS = ['viewer', 'card', 'rarity', 'edition'] as const;
+export const SHOUT_MAX = 300;
+const sayOf = (v: unknown): string => (typeof v === 'string' ? v.trim().slice(0, SHOUT_MAX) : '');
+/** The shout with its variables filled in. {edition} is "#12" (the copy number) or empty when the pull has none. */
+export const shoutText = (say: string, pull: PullFacts): string =>
+  say.replace(/\{(viewer|card|rarity|edition)\}/g, (_, k: string) => k === 'viewer' ? pull.username : k === 'card' ? pull.cardName : k === 'rarity' ? getRarity(pull.stars)?.label ?? '' : pull.serial ? `#${pull.serial}` : '').replace(/\s+/g, ' ').trim();
 
 const hasObs = (o: PullObs | undefined): o is PullObs => !!o && (!!o.clip || !!o.scene || !!o.source);
 const secsOf = (v: unknown): number => (Number.isInteger(v) && (v as number) >= 1 ? Math.min(SCENE_SECS_MAX, v as number) : SCENE_SECS_DEFAULT);
@@ -41,7 +50,7 @@ function readObs(raw: unknown, ok: (kind: 'scene' | 'source', name: string) => b
 }
 
 /** What a saved pull is, as far as the rules care. `isNew` = the first copy of this card the viewer has (new to their dex). */
-export interface PullFacts { username: string; cardName: string; stars: number; variant: Variant; isNew: boolean }
+export interface PullFacts { username: string; cardName: string; stars: number; variant: Variant; isNew: boolean; serial?: number }
 
 const ID = /^[A-Za-z0-9_-]{1,40}$/;
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -70,7 +79,8 @@ function readRule(raw: unknown): PullRule | null {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const w = (r.when && typeof r.when === 'object' ? r.when : {}) as Record<string, unknown>;
   const obs = readObs(r.obs, () => true);
-  if (typeof r.id !== 'string' || !ID.test(r.id) || typeof r.commandId !== 'string' || !(GUID.test(r.commandId) || (r.commandId === '' && obs))) return null;
+  const say = sayOf(r.say);
+  if (typeof r.id !== 'string' || !ID.test(r.id) || typeof r.commandId !== 'string' || !(GUID.test(r.commandId) || (r.commandId === '' && (obs || say)))) return null;
   const when: PullRule['when'] = {};
   if (typeof w.minRarity === 'number' && Number.isInteger(w.minRarity) && w.minRarity >= 1 && w.minRarity <= 5) when.minRarity = w.minRarity;
   if (Array.isArray(w.variants)) {
@@ -78,7 +88,7 @@ function readRule(raw: unknown): PullRule | null {
     if (v.length) when.variants = v;
   }
   if (w.newToDex === true) when.newToDex = true;
-  return { id: r.id, on: r.on === true, when, commandId: r.commandId.toLowerCase(), ...(obs ? { obs } : {}) };
+  return { id: r.id, on: r.on === true, when, commandId: r.commandId.toLowerCase(), ...(obs ? { obs } : {}), ...(say ? { say } : {}) };
 }
 
 /** Whatever is stored, as at most RULES_MAX usable rules. */
@@ -86,14 +96,15 @@ export function normalizeRules(raw: unknown): PullRule[] {
   return (Array.isArray(raw) ? raw : []).map(readRule).filter((r): r is PullRule => r !== null).slice(0, RULES_MAX);
 }
 
-/** The rules from the Big pulls form: fields `rule_<n>_id | on | min | variants | new | command | clip | scene | secs | source`, n from 0. A row with no command and no OBS action is an empty row and is skipped. */
+/** The rules from the Big pulls form: fields `rule_<n>_id | on | min | variants | new | command | clip | scene | secs | source | say`, n from 0. A row with no command and no OBS action is an empty row and is skipped. */
 export function rulesFromForm(form: { get(k: string): unknown; getAll(k: string): unknown[] }): unknown[] {
   const out: unknown[] = [];
   for (let i = 0; i < RULES_MAX + 1; i++) {
     if (form.get(`rule_${i}_id`) === null) break;
     const command = String(form.get(`rule_${i}_command`) ?? '').trim();
     const obs = { clip: form.get(`rule_${i}_clip`) === 'on', scene: String(form.get(`rule_${i}_scene`) ?? ''), sceneSecs: Number(form.get(`rule_${i}_secs`)), source: String(form.get(`rule_${i}_source`) ?? '') };
-    if (!command && !obs.clip && !obs.scene && !obs.source) continue;
+    const say = String(form.get(`rule_${i}_say`) ?? '');
+    if (!command && !obs.clip && !obs.scene && !obs.source && !say.trim()) continue;
     const min = Number(form.get(`rule_${i}_min`));
     out.push({
       id: String(form.get(`rule_${i}_id`) || '') || `r${Date.now().toString(36)}${i}`,
@@ -105,6 +116,7 @@ export function rulesFromForm(form: { get(k: string): unknown; getAll(k: string)
       },
       commandId: command,
       obs,
+      say,
     });
   }
   return out;
@@ -132,7 +144,8 @@ export function cleanRulesInput(raw: unknown[], reported: readonly string[], exi
     const obs = readObs(r.obs, (k, name) => knownObs[k].has(name));
     const o = (r.obs && typeof r.obs === 'object' ? r.obs : {}) as Record<string, unknown>;
     if ((typeof o.scene === 'string' && o.scene && !obs?.scene) || (typeof o.source === 'string' && o.source && !obs?.source)) return { ok: false, message: `${n}: that OBS scene or source is not in the list TCG Bridge reported.` };
-    if (!command && obs) { /* OBS actions only */ } else if (!command || !known.has(command)) return { ok: false, message: reported.length || command ? `${n}: that Mix It Up command is not in the list TCG Bridge reported.` : `${n}: pair TCG Bridge to choose a command.` };
+    const say = sayOf(r.say);
+    if (!command && (obs || say)) { /* OBS actions or a chat line only */ } else if (!command || !known.has(command)) return { ok: false, message: reported.length || command ? `${n}: that Mix It Up command is not in the list TCG Bridge reported.` : `${n}: pair TCG Bridge to choose a command.` };
     const when: PullRule['when'] = {};
     if (w.minRarity !== undefined && w.minRarity !== null) {
       const m = Number(w.minRarity);
@@ -144,7 +157,7 @@ export function cleanRulesInput(raw: unknown[], reported: readonly string[], exi
       when.variants = VARIANTS.filter(v => (w.variants as unknown[]).includes(v));
     }
     if (w.newToDex === true) when.newToDex = true;
-    rules.push({ id, on: r.on === true, when, commandId: command, ...(obs ? { obs } : {}) });
+    rules.push({ id, on: r.on === true, when, commandId: command, ...(obs ? { obs } : {}), ...(say ? { say } : {}) });
   }
   return { ok: true, rules };
 }

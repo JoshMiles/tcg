@@ -5,7 +5,8 @@ import { requireAdmin } from '@/lib/admin-guard';
 import { recordAudit } from '@/lib/audit';
 import { cleanMixItUpInput } from '@/lib/mixitup-core';
 import { bridgePullTest, bridgeRunCommand, listBridges, readBridge, readObs } from '@/lib/bridge';
-import { cleanRulesInput, pullArgs, rulesFromForm, SAMPLE_PULL } from '@/lib/pull-rules-core';
+import { cleanRulesInput, pullArgs, rulesFromForm, SAMPLE_PULL, shoutText } from '@/lib/pull-rules-core';
+import { normalizeChat } from '@/lib/bridge-chat-core';
 import { getMixItUpSettings, saveMixItUpSettings } from '@/lib/mixitup';
 import { runBalanceTest, runSendTest } from './test-calls';
 
@@ -68,6 +69,17 @@ export async function saveWatchdogAction(formData: FormData): Promise<void> {
   return back('bigpulls', 'note', on ? 'The overlay watchdog is on.' : 'The overlay watchdog is off.');
 }
 
+/** Saves the Chat and Brie Bucks form (ROADMAP 55.10): the start and end posts, the backup and the check. Unticked means off. */
+export async function saveChatAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const on = (k: string) => formData.get(k) === 'on';
+  const chat = normalizeChat({ startOn: on('startOn'), startText: formData.get('startText'), endOn: on('endOn'), endText: formData.get('endText'), backup: on('backup'), check: on('check') });
+  await saveMixItUpSettings({ ...(await getMixItUpSettings()), chat });
+  await recordAudit('everyone', 'Chat and Brie Bucks settings saved', `start post ${chat.startOn ? 'on' : 'off'}, end post ${chat.endOn ? 'on' : 'off'}, backup ${chat.backup ? 'on' : 'off'}, check ${chat.check ? 'on' : 'off'}`);
+  revalidatePath('/admin/mixitup');
+  return back('chat', 'note', 'Chat and Brie Bucks settings saved.');
+}
+
 /** Removes one saved rule. Other edits on the form are not saved. */
 export async function deletePullRuleAction(id: string): Promise<void> {
   await requireAdmin();
@@ -84,7 +96,7 @@ export async function testPullRuleAction(id: string): Promise<void> {
   const rule = (await getMixItUpSettings()).pullRules.find(r => r.id === id);
   if (!rule) return back('bigpulls', 'error', 'Save the rule first, then test it.');
   if (!(await listBridges()).length) return back('bigpulls', 'error', 'Pair TCG Bridge first.');
-  const queued = (rule.commandId ? await bridgeRunCommand(rule.commandId, pullArgs(SAMPLE_PULL)) : false) || (rule.obs ? await bridgePullTest(rule.obs) : false);
+  const queued = (rule.commandId ? await bridgeRunCommand(rule.commandId, pullArgs(SAMPLE_PULL)) : false) || (rule.obs || rule.say ? await bridgePullTest({ ...rule.obs, ...(rule.say ? { text: shoutText(rule.say, SAMPLE_PULL) } : {}) }) : false);
   return queued ? back('bigpulls', 'note', 'Sent to TCG Bridge with a sample pull. Nothing waits for Mix It Up: if it did not run, look at the job list in the TCG Bridge window.') : back('bigpulls', 'error', 'The command could not be queued.');
 }
 

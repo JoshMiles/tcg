@@ -24,6 +24,8 @@ import { StreamDeckTab } from './StreamDeckTab';
 import { getBuffDefs } from '@/lib/buffs';
 import { Overview, CHIP_STYLE } from './Overview';
 import { PullRules } from './PullRules';
+import { ChatBucks } from './ChatBucks';
+import { readLedgerCheck } from '@/lib/bridge-chat';
 import { recentTests } from '@/lib/mixitup-test';
 import { inSandbox } from '@/lib/db';
 
@@ -39,6 +41,7 @@ const TABS: (PageTab & { hint: string })[] = [
   { id: 'connection', label: 'Connection', icon: 'link', hint: 'TCG Bridge, the currency viewers pay with and how the site reaches Mix It Up' },
   { id: 'paid', label: 'Paid pulls', icon: 'coins', hint: 'Viewers pay Brie Bucks for packs: prices, limits and messages' },
   { id: 'bigpulls', label: 'Big pulls', icon: 'sparkles', hint: 'Run a Mix It Up command when a big card is pulled' },
+  { id: 'chat', label: 'Chat and Brie Bucks', icon: 'database', hint: 'Chat posts when the stream starts and ends, the Brie Bucks backup and the check of charges' },
   { id: 'commands', label: 'Commands', icon: 'chat', hint: 'Chat commands such as !showoff and !stats: one webhook, replies built from variables' },
   { id: 'streamdeck', label: 'Stream Deck', icon: 'gamepad', hint: 'Buttons that apply a buff, give extra pulls or a free pack: one Mix It Up command each' },
   { id: 'log', label: 'Log', icon: 'list', hint: 'The last requests to and refusals for Mix It Up' },
@@ -101,7 +104,8 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
       )}
       {tab === 'paid' && <MixItUpConfig settings={settings} />}
       {tab === 'bigpulls' && <PullRules rules={settings.pullRules} commands={bridge.commands} obs={{ scenes: obs?.scenes ?? [], sources: obs?.sources ?? [] }} watchdog={settings.overlayWatchdog} />}
-      {tab === 'commands' && <CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} />}
+      {tab === 'chat' && <ChatBucks chat={settings.chat} check={await readLedgerCheck()} when={timeAgo} />}
+      {tab === 'commands' &&<CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} />}
       {tab === 'streamdeck' && <StreamDeckTab buffs={await getBuffDefs()} url={`${SITE_URL}/api/webhooks/buff`} secret={(await getWebhookSettings()).incomingSecret} />}
       {tab === 'log' && <MixItUpLog log={await mergedLog()} filter={pickLogFilter(filter)} now={now} />}
     </div>

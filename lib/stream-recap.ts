@@ -35,6 +35,8 @@ export interface StreamRecap {
   firstEver: RecapPull[];
   rarest: RecapPull | null;
   topPuller: { username: string; packs: number } | null;
+  /** The three viewers with the most packs (chat's end-of-stream post, ROADMAP 55.10). Missing on a recap stored before it existed. */
+  topPullers?: { username: string; packs: number }[];
   tradesCompleted: number;
   /** True when the activity log (capped) no longer reaches back to the start of the stream, so the numbers are a floor. */
   partial: boolean;
@@ -87,6 +89,7 @@ export function buildStreamRecap(events: ActivityEvent[], from: number, to: numb
     firstEver: pulls.filter(p => p.serial === 1).map(asPull),
     rarest: rarest ? asPull(rarest) : null,
     topPuller,
+    topPullers: [...counts].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 3).map(([username, packs]) => ({ username, packs })),
     tradesCompleted: inWindow.filter(e => e.type === 'trade' && e.action === 'accepted').length,
     partial: !!opts.logIsFull && Number.isFinite(oldest) && oldest > from,
   };

@@ -224,6 +224,7 @@ action('test-obs', 'test-obs-result', () => window.bridge.testObs());
 action('mix-start', 'mix-start-result', () => window.bridge.startMixItUp());
 action('mix-choose', 'mix-start-result', () => window.bridge.chooseMixItUp());
 action('open-logs', 'help-result', () => window.bridge.openLogs());
+action('open-backups', 'backup-result', () => window.bridge.openBackups());
 action('copy-diagnostics', 'help-result', () => window.bridge.copyDiagnostics());
 action('check-update', 'update-result', () => window.bridge.checkUpdate());
 

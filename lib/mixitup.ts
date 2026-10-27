@@ -5,7 +5,7 @@ import { kv, inSandbox } from './db';
 import { sendWebhook } from './webhook-send';
 import { noteOutgoing, outKindOf } from './mixitup-health';
 import { bridgePullStart, bridgeRunCommand, callBridge } from './bridge';
-import { matchRule, pullArgs, type PullFacts } from './pull-rules-core';
+import { matchRule, pullArgs, shoutText, type PullFacts } from './pull-rules-core';
 import { getActiveSeason, withLock } from './kv';
 import { getLiveStatus } from './twitch-live';
 import { notifySystem } from './discord';
@@ -43,7 +43,8 @@ export async function firePullRules(pull: PullFacts, delayMs = 0, eventId?: stri
     const hit = rules.length ? matchRule(rules, pull) : null;
     if (!hit) return false;
     const command = hit.commandId ? await bridgeRunCommand(hit.commandId, pullArgs(pull), delayMs) : false;
-    const obs = hit.obs ? await bridgePullStart(hit.obs, delayMs, eventId) : false;
+    const text = hit.say ? shoutText(hit.say, pull) : ''; // the chat line waits for the reveal like the scene and clip (55.10)
+    const obs = hit.obs || text ? await bridgePullStart({ ...hit.obs, ...(text ? { text } : {}) }, delayMs, eventId) : false;
     return command || obs;
   } catch {
     return false;
@@ -51,7 +52,7 @@ export async function firePullRules(pull: PullFacts, delayMs = 0, eventId?: stri
 }
 
 // ── The request log (last 20) ──
-export interface MixItUpLogEntry { at: number; username: string; what: 'balance' | 'deduct' | 'add' | 'test' | 'revoked' | 'refused' | 'command' | 'watchdog'; ok: boolean; detail: string }
+export interface MixItUpLogEntry { at: number; username: string; what: 'balance' | 'deduct' | 'add' | 'test' | 'revoked' | 'refused' | 'command' | 'watchdog' | 'check'; ok: boolean; detail: string }
 export async function logMixItUp(e: Omit<MixItUpLogEntry, 'at'>): Promise<void> {
   try { await kv.lpush(LOG, { ...e, at: Date.now() }); await kv.ltrim(LOG, 0, 19); } catch { /* the log never breaks a pull */ }
 }

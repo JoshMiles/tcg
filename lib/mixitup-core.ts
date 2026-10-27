@@ -4,6 +4,7 @@ import { CHANNEL_LOGIN } from './site';
 import { cleanLogin } from './staff-core';
 import { checkWebhookUrl } from './webhook-clean';
 import { normalizeRules, type PullRule } from './pull-rules-core';
+import { DEFAULT_CHAT, normalizeChat, type ChatSettings } from './bridge-chat-core';
 
 /** Who a paid pull counts as. Gifted subs are not a role: a gift earns a pack and does not change these limits. */
 export const PULL_ROLES = ['regular', 'subscriber', 'vip', 'moderator', 'broadcaster'] as const;
@@ -48,6 +49,8 @@ export interface MixItUpSettings {
   testViewers: string[];
   /** While live and the overlay has gone quiet but OBS shows it, the site refreshes it through TCG Bridge (ROADMAP 55.8). Off unless switched on. */
   overlayWatchdog: boolean;
+  /** Chat posts, the Brie Bucks backup and the Brie Bucks check (ROADMAP 55.10). All off unless switched on. */
+  chat: ChatSettings;
 }
 
 export const TEST_VIEWERS_MAX = 5;
@@ -60,7 +63,7 @@ const NO_ROLE_LIMITS: Record<PullRole, number> = { regular: 0, subscriber: 0, vi
 
 export const DEFAULT_MIXITUP: MixItUpSettings = {
   enabled: false, connection: 'bridge', currencyId: '', balanceUrl: '', deductUrl: '', addUrl: '', viewersUrl: '', secret: '', currency: 'Brie Bucks', cost: 100, limit: 0,
-  roleLimits: { ...NO_ROLE_LIMITS }, message: DEFAULT_MESSAGE, balanceField: 'balance', pullRules: [], testViewers: [CHANNEL_LOGIN], overlayWatchdog: false,
+  roleLimits: { ...NO_ROLE_LIMITS }, message: DEFAULT_MESSAGE, balanceField: 'balance', pullRules: [], testViewers: [CHANNEL_LOGIN], overlayWatchdog: false, chat: DEFAULT_CHAT,
 };
 
 /** Is there somewhere to send a balance check? Bridge: a chosen currency. Addresses: the balance address. */
@@ -125,6 +128,7 @@ export function normalizeMixItUp(raw: unknown): MixItUpSettings {
     pullRules: normalizeRules(r.pullRules),
     testViewers: Array.isArray(r.testViewers) ? [...new Set(r.testViewers.flatMap(v => cleanLogin(v) ?? []))].slice(0, TEST_VIEWERS_MAX) : [...d.testViewers],
     overlayWatchdog: r.overlayWatchdog === true,
+    chat: normalizeChat(r.chat),
   };
 }
 

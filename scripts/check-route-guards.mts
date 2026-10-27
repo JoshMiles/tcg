@@ -93,6 +93,7 @@ const R: Record<string, Kind[] | { public: string }> = {
   'app/api/bridge/queue/route.ts': ['bridge'],
   'app/api/bridge/hello/route.ts': ['bridge'],
   'app/api/bridge/pair/route.ts': ['bridge'],
+  'app/api/bridge/ledger/route.ts': ['bridge'],
   'app/api/bridge/poll/route.ts': ['bridge'],
   'app/api/bridge/report/route.ts': ['bridge'],
   'app/api/bridge/result/route.ts': ['bridge'],
