@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Goal
-Audit follow-up: finish Track 47 (access hardening), then 47.8 PR 2 to 4, then Track 48 (start it as soon as PR 4 merges, Josh; 48.7 needs design with Josh first). Track 46 is done (archived in #499).
+Audit follow-up (Tracks 43, 47 to 52) is done except the items in ROADMAP.md that wait on the panel review, Josh or design. This file goes once the follow-ups below are handed over.
 
 ## Done
 - Track 45 (#480 to #483), 34.8 (#484, panel 0.0.2 submitted, under Twitch review).
@@ -10,17 +10,12 @@ Audit follow-up: finish Track 47 (access hardening), then 47.8 PR 2 to 4, then T
 - Track 47 ROADMAP cleanup committed locally on `roadmap-47-cleanup` (a5b91340): done items archived, 47.4 in Track 53, 47.8 rewritten to PR 2 to 4, new 47.10 (security L-2) and 47.11 (trial readouts).
 
 ## Left
-- Clean up worktrees after merge: agent-a83bbd65686488fd1 (47.5), agent-a08e5a069533010f0 (47.7), agent-a58eea7a3802be355 (47.9, merged), agent-ac6df3fb092cd5d75 (46.6, locked). Remove the node_modules junction first.
-- 47.8 PR 2 merged (#501, no review comments).
-- 47.8 PR 3 merged (#502, no review comments).
-- 47.8 done (#494, #501, #502, #503), archived in #504.
-- 48.1 merged (#505, review bot: no issues).
-- 48.2 merged (#506, no comments).
-- 48.3 merged (#507, review bot: no issues).
-- 48.4 (batch profile and avatar reads) built and reviewed on `48-4-batch-profiles`, verify 104/104; PR opened. Then 48.5, 48.6 (48.7 needs design with Josh first).
-- A stray node process (mock KV?) listens on port 4111 from an earlier session; stop it at cleanup.
-- Josh to do: the Vercel Firewall log-only trial rules from docs/hosting.md (#498 is merged, so they can be set up now), and read the CSP report logs after a week.
-- Stale worktrees under .claude/worktrees/ (audit-44-*, twitch-34-*, roadmap-34*, panel-version): clean at the end.
+- Open PRs on auto-merge: #557 (47.10), #558 (49.6 site), and this ROADMAP cleanup.
+- Waiting: 43.3 and Track 53 (panel review), 47.11 (Josh, from 2026-11-02), 40.2f (field data, about 2026-11-09), 35.1 (Josh), 50.3 (design).
+- Follow-ups for Josh to decide: the admin viewer page names trade cards first-season-wins (49.2); 52.5 dropped the season look-back; collapsed admin rail footer still about 247px (52.13); QR codes point at cheesytcg.app on local builds; Top collectors widget repeats the Leaderboard (52.3); Discord feedback posts still name the reported staff member (51.6); is the empty rarity tier pre-flight rule wanted (51.12); the error spike counts only serverError() (51.13); a mod opening an admin page is redirected to /mod silently (49.6).
+- Flaky checks: check-achievements and check-recent-arrivals.
+- Cleanup: stray remote branch 51-6-staff-reports-to-admins (delete was refused as destructive; Josh can delete it); stray node process on port 4111; stale worktrees under .claude/worktrees/.
+- Josh to do: Vercel Firewall log-only trial rules (docs/hosting.md), read the CSP report logs after a week.
 
 ## Key files
 - lib/staff-token.ts, app/auth/staff/route.ts, app/api/auth/logout/route.ts (47.3); lib/rate-limit.ts (47.9); lib/security-headers.ts (47.5); lib/user-admin.ts (46.6)
@@ -55,4 +50,11 @@ Audit follow-up: finish Track 47 (access hardening), then 47.8 PR 2 to 4, then T
 - 2026-10-26: 47.8 PR 3 design (Opus): `moveAccount` gets a `mode` ('aside' | 'rename') kept in the journal; rename/reclaim may replace a blank target (profile, no cards), carries the tester record, restores the hidden flags saved in `acct:aside`, strips the ' (former)' display suffix. Aside mode appends ' (former)' to displayName and makes the account private instead of a render-time `~` helper. If the new login already has cards, nothing moves automatically; /account tells the player to ask staff to merge. getSession returns null when the profile's Twitch ID differs from the cookie's (one cached read per request). Panel login binds before saving the opaque link.
 - 2026-10-26: 47.8 PR 4 runs as a Vercel cron route (existing app/api/cron/* pattern, lib/cron-auth.ts) (Josh).
 - 2026-10-26: 47.8 PR 4 design (Opus): nightly `/api/cron/accounts` (04:30 UTC, production only) looks up every stored Twitch ID on Helix (`users?id=`, 100 per call); an ID whose current login differs is a rename: move the profile to the new login (rename mode) when it is blank, else list it on Data health for a staff Merge. Capped moves per run; the rest wait a night. This also frees a reused login, so later bot pulls land on a fresh profile.
+- 2026-10-26: 48.6 (CDN-cached leaderboard trial) folds into 40.2f (Opus): there is no public leaderboard JSON to put s-maxage on (the page is server-rendered), and 40.2f step 2 already plans cross-request caching of the board with `use cache: remote`; ROADMAP says fold if covered.
+- 2026-10-26: 48.7 (Josh): build now; one hash per season `coll:<c>` (field = login), migrated automatically on first use under the collection lock with an atomic RENAME; old blob kept 30 days as `tcg_<c>:old` with a Data health delete button and a rollback script. Same per-season lock (Opus). Two PRs: A storage + writers, B single-viewer readers.
+- 2026-10-26: Josh: keep going through the ROADMAP to the end without him (he is reading); check PRs and merge them. Opus runs up to three lanes of worktree agents (core 48.7, mod panel Track 49, site UI Track 52), then Tracks 50 and 51; panel items wait for Track 53. Agents do not commit HANDOFF.md or ROADMAP.md; Opus does ROADMAP cleanup per track.
 - 2026-10-26: Track 47 cleanup keeps two loose ends as ROADMAP items rather than dropping them: 47.10 (security L-2, needs a decision) and 47.11 (CSP and firewall trial readouts, blocked on Josh from 2026-11-02) (Opus).
+- 2026-10-27: after the laptop crash, only one local run (agent servers or verify) at a time; Tracks 48 to 52 continue one agent at a time (Josh: "carry on, one at a time").
+- 2026-10-27: 51.9 backup dry run is a `--dry-run` flag on `scripts/restore-backup.mts`, not an admin button: a preview decrypts a whole backup and reads the live keys, too heavy for a request (Opus).
+- 2026-10-27: 51.14 restore drill is read-only: decrypt the newest backup and compare it with live data via previewRestore, never write it into a sandbox namespace (a monthly full copy into production storage, and a partial write would leave junk) (Opus).
+- 2026-10-27: 47.10 (Opus): saves need https; stored http webhooks keep sending with a Settings warning (no silent break on deploy); at send, resolve DNS and refuse if any address is private or the lookup fails; no redirects followed. DNS rebinding between lookup and fetch is a known, documented limit.
