@@ -49,6 +49,11 @@ export function PaidPullFields({ settings: s }: { settings: MixItUpSettings }) {
           <input id="mx-queuecap" name="queueCap" type="number" min={0} max={QUEUE_CAP_MAX} step={1} defaultValue={s.queueCap} className={fieldClass} />
           <p className={help}>A chat !pack, paid or free, is refused while this many packs are already waiting. 0 = off, up to {QUEUE_CAP_MAX}. The refusal takes no money and starts no cooldown. Free packs from the Stream Deck, gifts and the extension are never refused. It is a soft limit: two packs arriving at the same moment can both get in.</p>
         </fieldset>
+        <label className="flex items-center gap-3 sm:max-w-md cursor-pointer">
+          <input type="checkbox" name="firstPackFree" defaultChecked={s.firstPackFree} className="toggle toggle-sm toggle-primary" />
+          <span className="text-sm font-semibold text-gray-200">First pack free</span>
+        </label>
+        <p className={`${help} -mt-2`}>A viewer&rsquo;s first ever paid pull costs nothing: no balance check, no charge, but it still counts toward their limit. &ldquo;First ever&rdquo; means they have no cards in any season and have not had a free first pack before, so viewers who played before this was switched on do not get one. It applies after the role price and happy hour, only to chat !packs (not event rewards, Stream Deck packs, gifts or test pulls), and a refused pull does not use it up.</p>
         <div className="grid grid-cols-2 gap-4 sm:max-w-md">
           {PRICED_ROLES.map(role => (
             <fieldset key={role} className="fieldset">
@@ -68,7 +73,7 @@ export function PaidPullFields({ settings: s }: { settings: MixItUpSettings }) {
         </fieldset>
         <div>
           <p className="fieldset-legend">Chat replies</p>
-          <p className={`${help} mb-2`}>The answer to a !pack carries one of these as <code>message</code>, so the Mix It Up command can post it to chat. Leave a box empty to use the grey default. Placeholders: {REPLY_VARS.map(v => <code key={v} className="mr-1.5">{`{${v}}`}</code>)} (one with no value is left out). The preview uses the price and fallback limit above; with no limit the sample uses 3. A refusal because the stream is offline, pulls are paused or a viewer is blocked keeps its own wording.</p>
+          <p className={`${help} mb-2`}>The answer to a !pack carries one of these as <code>message</code>, so the Mix It Up command can post it to chat. Leave a box empty to use the grey default. Placeholders: {REPLY_VARS.map(v => <code key={v} className="mr-1.5">{`{${v}}`}</code>)} (one with no value is left out). The preview uses the price and fallback limit above; with no limit the sample uses 3. The grey text in &ldquo;First pack free&rdquo; is only a suggestion: left empty, a first free pack uses the &ldquo;Pull queued&rdquo; reply, and {'{cost}'} shows 0. A refusal because the stream is offline, pulls are paused or a viewer is blocked keeps its own wording.</p>
           <ul className="space-y-3">
             {REPLY_KEYS.map(key => (
               <li key={key}>
@@ -76,7 +81,7 @@ export function PaidPullFields({ settings: s }: { settings: MixItUpSettings }) {
                 <input id={`mx-reply-${key}`} name={`reply_${key}`} type="text" maxLength={REPLY_MAX} value={replies[key] ?? ''} placeholder={REPLY_DEFAULTS[key]}
                   onChange={e => setReplies(r => ({ ...r, [key]: e.target.value }))} className={fieldClass} />
                 <p className="mt-1 rounded-lg border border-gray-800 bg-gray-950/60 px-3 py-2 text-sm text-gray-300" aria-live="polite">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mr-2">Preview</span>{renderReply(replies[key]?.trim() || REPLY_DEFAULTS[key], sample)}
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mr-2">Preview</span>{key === 'queued_first_free' ? renderReply(replies[key]?.trim() || replies.queued?.trim() || REPLY_DEFAULTS.queued, { ...sample, cost: '0' }) : renderReply(replies[key]?.trim() || REPLY_DEFAULTS[key], sample)}
                 </p>
               </li>
             ))}
