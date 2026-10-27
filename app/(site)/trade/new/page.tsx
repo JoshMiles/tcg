@@ -18,8 +18,8 @@ import type { TradeItem } from '@/lib/trade-core';
 
 export const metadata: Metadata = { title: 'New trade offer', robots: { index: false, follow: false } };
 
-export default async function NewTradePage({ searchParams }: { searchParams: Promise<{ to?: string; counter?: string; season?: string; want?: string; print?: string; listing?: string; give?: string }> }) {
-  const { to, counter, season: seasonParam, want, print, listing, give } = await searchParams;
+export default async function NewTradePage({ searchParams }: { searchParams: Promise<{ to?: string; counter?: string; season?: string; want?: string; print?: string; listing?: string; give?: string; via?: string }> }) {
+  const { to, counter, season: seasonParam, want, print, listing, give, via } = await searchParams;
   const session = await getSession();
   if (!session) redirect(`/auth/twitch?returnTo=${encodeURIComponent('/trade/new')}`);
 
@@ -91,7 +91,7 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
         myWanted={prefs.wanted}
         maxStacks={settings.maxStacksPerSide}
         expiryHours={settings.expiryHours}
-        initial={{ kind: listing === '1' && !original ? 'listing' : 'direct', to: original?.from ?? to ?? '', give: original ? startGive : giveItems, get: startGet, counterOf: original?.id }}
+        initial={{ kind: listing === '1' && !original ? 'listing' : 'direct', to: original?.from ?? to ?? '', give: original ? startGive : giveItems, get: startGet, counterOf: original?.id, via: via === 'swap' && !original ? 'swap' : undefined }}
       />
     </>,
   );

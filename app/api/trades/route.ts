@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       give: body.give,
       get: body.get,
       note: typeof body.note === 'string' ? body.note : undefined,
+      via: body.via,
     }));
   } catch (e) {
     return serverError(e, 'trades', 'We could not make that offer just now. Please try again in a moment.');

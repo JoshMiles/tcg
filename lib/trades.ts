@@ -260,6 +260,8 @@ export interface NewTrade {
   give: unknown;
   get: unknown;
   note?: string;
+  /** Only the literal 'swap' is kept. */
+  via?: unknown;
 }
 
 /** Shared by new offers and counters: validates, escrows `give` out of the offerer's collection and stores the offer. */
@@ -332,6 +334,7 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
     createdAt: Date.now(),
     expiresAt: Date.now() + settings.expiryHours * 3_600_000,
     ...(counterOf ? { counterOf } : {}),
+    ...(input.via === 'swap' && !counterOf ? { via: 'swap' as const } : {}),
   };
   type Taken = ReturnType<typeof takeForEscrow> | { ok: false; text: string };
   const taken = await withCollectionLock(season.collectionName, () => updateCollection<Taken>(season.collectionName, [from], async cards => {
