@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureAdminGen } from '@/lib/admin-cookie';
+import { ensureAdminGen, recordEmergencyLogin } from '@/lib/admin-cookie';
 import { adminCookieKey, isPasswordLoginEnabled, signAdminCookie } from '@/lib/admin-token';
 import { safeEqual } from '@/lib/signing';
 import { adminCookieOptions } from '@/lib/auth';
@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
   const key = adminCookieKey();
   const value = key ? await signAdminCookie(key, await ensureAdminGen()) : null;
   if (!value) return NextResponse.json({ error: 'Emergency login is not configured.' }, { status: 503 });
+  await recordEmergencyLogin();
   await tellAdminLog({ action: 'Emergency password login', detail: 'Signed in with the emergency password', by: 'password' });
   const res = NextResponse.json({ ok: true });
   res.cookies.set(adminCookieOptions(value));
