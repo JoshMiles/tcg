@@ -723,11 +723,11 @@ export async function postDigest(d: WeeklyDigest): Promise<number> {
 }
 
 /** Posts the weekly admin digest (TRIAL, ROADMAP 51.10) to every channel with the admin log ticked and waits for the sends. Returns how many took it. */
-export async function postAdminDigest(text: string): Promise<number> {
+export async function postAdminDigest(text: string, title = 'Weekly admin digest (trial)'): Promise<number> {
   try {
     const settings = await getDiscordSettings();
     if (!settings.enabled) return 0;
-    const body = noticeEmbed({ color: GRAY, title: 'Weekly admin digest (trial)', text: text.split('\n').map(esc).join('\n') });
+    const body = noticeEmbed({ color: GRAY, title, text: text.split('\n').map(esc).join('\n') });
     const targets = settings.channels.filter(c => c.enabled && c.url && c.categories.admin);
     const results = await Promise.allSettled(targets.map(c => deliver(c, body, 'admin')));
     return results.filter(r => r.status === 'fulfilled' && r.value.ok).length;
