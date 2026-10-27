@@ -1,6 +1,6 @@
 import { siteClosedResponse } from '@/lib/access';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireViewer } from '@/lib/trade-api';
+import { requireViewer, serverError } from '@/lib/trade-api';
 import { captchaGate } from '@/lib/captcha-server';
 import { parseFeedbackInput } from '@/lib/feedback-core';
 import { submitFeedback } from '@/lib/feedback';

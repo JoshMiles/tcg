@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveTwitchLogin, twitchCredentials } from '@/lib/twitch-helix';
 import { limitTwitch } from '@/lib/rate-limit';
+import { recordServerError } from '@/lib/error-spike';
 
 export async function GET(req: NextRequest) {
   const limited = await limitTwitch(req);
@@ -18,6 +19,7 @@ export async function GET(req: NextRequest) {
   try {
     return NextResponse.json({ username: await resolveTwitchLogin(userId) });
   } catch {
+    recordServerError();
     return NextResponse.json({ error: 'Failed to resolve username' }, { status: 500 });
   }
 }

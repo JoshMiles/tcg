@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cronAuthorised } from '@/lib/cron-auth';
 import { runAccountCheck } from '@/lib/account-helix-check';
+import { recordServerError } from '@/lib/error-spike';
 
 export const maxDuration = 300;
 
@@ -14,6 +15,7 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Account check failed.';
     console.error('account check failed:', message);
+    recordServerError();
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

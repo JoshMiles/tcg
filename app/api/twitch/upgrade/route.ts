@@ -5,6 +5,7 @@ import { upgradeCard } from '@/lib/upgrade';
 import { VARIANTS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 import { limitTwitch } from '@/lib/rate-limit';
+import { recordServerError } from '@/lib/error-spike';
 
 const DEV_OPAQUE_ID = 'dev_mock_opaque';
 
@@ -35,6 +36,7 @@ export async function POST(req: NextRequest) {
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
     return NextResponse.json(result);
   } catch (e) {
+    recordServerError();
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Upgrade failed' }, { status: 503 });
   }
 }

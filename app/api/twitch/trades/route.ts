@@ -9,6 +9,7 @@ import { getUserSettings } from '@/lib/user-settings-store';
 import { matchingAlerts } from '@/lib/watch-core';
 import { getStaffBadges } from '@/lib/staff-badge';
 import { limitTwitch } from '@/lib/rate-limit';
+import { recordServerError } from '@/lib/error-spike';
 
 const BOARD_MAX = 30;
 const RECENT_MAX = 8;
@@ -112,6 +113,7 @@ export async function POST(req: NextRequest) {
       default: return NextResponse.json({ error: 'action must be create, accept, decline, cancel or counter' }, { status: 400 });
     }
   } catch (e) {
+    recordServerError();
     return NextResponse.json({ error: e instanceof Error ? e.message : 'That did not work' }, { status: 503 });
   }
 }
