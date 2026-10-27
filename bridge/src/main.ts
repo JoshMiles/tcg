@@ -8,7 +8,8 @@ import { Alerts, snapshotOf } from './alerts';
 import { Ledger } from './bucks';
 import { buttonUrl, ControlServer, HOTKEY_ACTION, HOTKEYS, Hotkeys, newControlKey, type ControlAction, type ControlResult, type HotkeyMap, type HotkeyName } from './control';
 import { diagnosticsText } from './diagnostics';
-import { defaultMixItUpPath, isMixItUpExe, startMixItUp } from './launch';
+import { cleanFeed, cleanFeedSettings, cleanSummary, shouldPlay, summaryMarkdown, type FeedSettings, type Summary } from './feed';
+import { defaultMixItUpPath, defaultObsPath, isMixItUpExe, isObsExe, obsRunning, startMixItUp, startObs } from './launch';
 import { Logger } from './log';
 import { MixItUpClient } from './mixitup';
 import { cleanObsAddress, ObsWatcher } from './obs';
@@ -32,6 +33,9 @@ const TRAY_TEXT: Record<TrayLevel, string> = { connected: 'connected', partly: '
 const SIX_HOURS = 6 * 60 * 60 * 1000;
 
 let win: BrowserWindow | null = null;
+let feedWin: BrowserWindow | null = null; // the live pull feed (55.11)
+let summaryWin: BrowserWindow | null = null;
+let lastSummary: Summary | null = null;
 let splash: BrowserWindow | null = null;
 let startup = new Startup(Date.now());
 let startupTimer: ReturnType<typeof setInterval> | undefined;
@@ -80,6 +84,7 @@ const appState = (): object => demoState ?? ({
   obsSettings: { enabled: settings.obsEnabled, address: settings.obsAddress, hasPassword: !!settings.obsPassword, startReplay: settings.obsStartReplay }, // never the password itself
   alerts: settings.alerts,
   mixItUp: { startWithBridge: settings.startMixItUp, path: settings.mixItUpPath || defaultMixItUpPath() },
+  tools: { feed: settings.feed, summary: settings.summary, startObs: settings.startObs, obsPath: settings.obsPath || defaultObsPath() },
   control: { error: control?.error ?? '', paused, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
   appVersion: app.getVersion(),
   update: updateText(update),
@@ -154,10 +159,11 @@ function connect(): void {
   const obs = new ObsWatcher({ site: settings.site, report: body => site.report(body) }, obsConfig());
   alerts = new Alerts();
   ledger ??= new Ledger(join(app.getPath('userData'), 'ledger.json'));
-  service = new BridgeService({ client: site, mix: new MixItUpClient(), obs, onChange: push, log, ledger, backupDir: backupDir() });
+  service = new BridgeService({ client: site, mix: new MixItUpClient(), obs, onChange: push, log, ledger, backupDir: backupDir(), sinks: { feed: showPull, summary: showSummary } });
   service.start();
   push();
   void loadStatus();
+  reportFeed();
 }
 
 async function disconnect(): Promise<void> {
@@ -179,6 +185,80 @@ async function startMixWithBridge(): Promise<void> {
   if ((await new MixItUpClient().version().catch(() => 'answers')) !== null) return; // running, or at least listening
   const r = await startMixItUp(settings.mixItUpPath);
   log(r.ok ? 'Started Mix It Up with TCG Bridge' : `Could not start Mix It Up: ${r.error}`);
+}
+
+/** Tells the site whether the feed window is open: it queues a pull's details for this app only while it is (55.11). */
+function reportFeed(): void {
+  void client?.report({ type: 'feed', on: !!feedWin }).catch(() => undefined);
+}
+
+/** A small second window with the same lock-down as the others. It loads only its own file. */
+function toolWindow(file: string, options: ConstructorParameters<typeof BrowserWindow>[0]): BrowserWindow {
+  const w = new BrowserWindow({
+    ...options, show: false, backgroundColor: '#0a0f21', icon: join(RENDERER, 'icon.png'), autoHideMenuBar: true,
+    webPreferences: { preload: join(__dirname, 'tools-preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
+  });
+  w.setMenu(null);
+  w.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  w.webContents.on('will-navigate', e => e.preventDefault());
+  w.once('ready-to-show', () => w.show());
+  void w.loadFile(join(RENDERER, file));
+  return w;
+}
+
+/** Opens or closes the feed window to match the setting. */
+function applyFeedWindow(): void {
+  if (settings.feed.on && !feedWin) {
+    feedWin = toolWindow('feed.html', { width: 340, height: 520, minWidth: 260, minHeight: 200, title: 'TCG pull feed', alwaysOnTop: settings.feed.onTop });
+    feedWin.on('closed', () => { // closed with the X: the switch goes off, and the site stops queuing pulls for it
+      feedWin = null;
+      if (!quitting && settings.feed.on) { settings = { ...settings, feed: { ...settings.feed, on: false } }; void store.save(settings); push(); }
+      reportFeed();
+    });
+    reportFeed();
+  } else if (!settings.feed.on && feedWin) {
+    feedWin.close();
+  }
+  if (settings.feed.on) feedWin?.setAlwaysOnTop(settings.feed.onTop);
+}
+
+/** One pull reveal from the site, for the feed window. Cleaned here: the image is dropped unless it is from the site or Vercel Blob. */
+function showPull(raw: unknown): void {
+  const item = cleanFeed(raw, settings.site);
+  if (!item || !feedWin || feedWin.isDestroyed()) return;
+  feedWin.webContents.send('feed-item', { item, play: shouldPlay(item.stars, settings.feed), volume: settings.feed.volume });
+}
+
+/** The end of stream summary: a Windows notification and the summary window. Only when the switch is on. */
+function showSummary(raw: unknown): void {
+  const s = cleanSummary(raw);
+  if (!s || !settings.summary) return;
+  lastSummary = s;
+  log(`Stream summary: ${s.packs} packs, ${s.pullers} viewers`);
+  if (Notification.isSupported()) {
+    const note = new Notification({ title: 'Stream summary ready', body: `${s.packs} packs opened by ${s.pullers} viewers` });
+    note.on('click', openSummary);
+    note.show();
+  }
+  openSummary();
+}
+
+function openSummary(): void {
+  if (summaryWin && !summaryWin.isDestroyed()) { summaryWin.show(); summaryWin.focus(); return sendSummary(); }
+  summaryWin = toolWindow('summary.html', { width: 460, height: 560, minWidth: 340, minHeight: 360, title: 'Stream summary' });
+  summaryWin.on('closed', () => { summaryWin = null; });
+}
+
+function sendSummary(): void {
+  if (lastSummary && summaryWin && !summaryWin.isDestroyed()) summaryWin.webContents.send('summary-data', lastSummary);
+}
+
+/** "Start OBS with TCG Bridge": only when OBS is not already running. */
+async function startObsWithBridge(): Promise<void> {
+  if (!settings.startObs) return;
+  if (await obsRunning()) return;
+  const r = await startObs(settings.obsPath);
+  log(r.ok ? 'Started OBS with TCG Bridge' : `Could not start OBS: ${r.error}`);
 }
 
 function showWindow(): void {
@@ -382,6 +462,42 @@ function setupIpc(): void {
   });
 
   // ── Diagnostics ──
+  // ── Streamer tools (55.11): the feed window, the summary, starting OBS ──
+  ipcMain.on('tools-ready', e => { // a tool window finished loading: give the summary window what it shows
+    if (summaryWin && e.sender === summaryWin.webContents) sendSummary();
+  });
+  ipcMain.handle('copy-summary', () => {
+    if (!lastSummary) return { ok: false, text: 'No summary yet' };
+    clipboard.writeText(summaryMarkdown(lastSummary, service?.state.channel ?? ''));
+    return { ok: true, text: 'Copied. Paste it into Discord.' };
+  });
+  ipcMain.handle('set-feed', async (_e, raw: Partial<FeedSettings>) => {
+    settings = { ...settings, feed: cleanFeedSettings(raw, settings.feed) };
+    await store.save(settings);
+    applyFeedWindow();
+    push();
+  });
+  ipcMain.handle('set-summary', async (_e, on: boolean) => {
+    settings = { ...settings, summary: !!on };
+    await store.save(settings);
+    push();
+  });
+  ipcMain.handle('start-obs-with-bridge', async (_e, on: boolean) => {
+    settings = { ...settings, startObs: !!on };
+    await store.save(settings);
+    push();
+  });
+  ipcMain.handle('choose-obs', async () => {
+    const options = { title: 'Choose obs64.exe', defaultPath: dirname(defaultObsPath()), properties: ['openFile' as const], filters: [{ name: 'OBS Studio', extensions: ['exe'] }] };
+    const picked = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
+    if (picked.canceled || !picked.filePaths[0]) return { ok: true, text: '' };
+    if (!isObsExe(picked.filePaths[0])) return { ok: false, text: 'That file is not called obs64.exe.' };
+    settings = { ...settings, obsPath: picked.filePaths[0] };
+    await store.save(settings);
+    push();
+    return { ok: true, text: 'Saved. "Start OBS with TCG Bridge" uses this file now.' };
+  });
+
   ipcMain.handle('open-logs', async () => {
     const error = await shell.openPath(app.getPath('logs'));
     return { ok: !error, text: error ? 'Could not open the log folder' : '' };
@@ -468,5 +584,8 @@ async function launchApp(): Promise<void> {
   setInterval(() => void loadStatus(), 30_000); // the site's pause switch can be flipped elsewhere
   setInterval(tickAlerts, 5000); // the 15 seconds of "down" are counted here
   void startMixWithBridge();
+  void startObsWithBridge();
+  applyFeedWindow();
+  setInterval(reportFeed, SIX_HOURS); // the site forgets the flag after a week
   setTimeout(() => splash?.close(), 600); // let "Starting" be read
 }

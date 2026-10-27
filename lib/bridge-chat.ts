@@ -2,11 +2,13 @@
 // parts are in bridge-chat-core.ts). Keys: `bridge:check:pending` (the stream window waiting for the app's ledger, 1 h), `bridge:check:last`.
 // lib/twitch-live.ts calls streamStarted and streamEnded through a dynamic import (this file reads the Mix It Up settings, which read the live status).
 import { kv, inSandbox } from './db';
-import { bridgeQueue, bridgeSay, readCharges } from './bridge';
+import { bridgeQueue, bridgeSay, readBridge, readCharges } from './bridge';
+import { closeUptimeStream, noteUptime, openUptimeStream } from './bridge-uptime';
+import { CONNECTED_MS } from './bridge-core';
 import { getMixItUpSettings, logMixItUp } from './mixitup';
 import { CHANNEL_NAME } from './site';
 import type { StreamRecap } from './stream-recap';
-import { cleanLedger, compareLedgers, endLine, fillChat, type AppLedgerRow } from './bridge-chat-core';
+import { cleanLedger, compareLedgers, endLine, fillChat, summaryOf, type AppLedgerRow } from './bridge-chat-core';
 
 const PENDING = 'bridge:check:pending';
 const LAST = 'bridge:check:last';
@@ -17,6 +19,9 @@ export interface LedgerCheck { at: number; from: number; to: number; site: numbe
 export async function streamStarted(): Promise<void> {
   try {
     if (await inSandbox()) return;
+    await openUptimeStream(); // the uptime history (55.11); the bridge counts as up when it polled lately
+    const seen = (await readBridge()).at;
+    await noteUptime('bridge', !!seen && Date.now() - seen <= CONNECTED_MS);
     const { chat, currencyId, connection } = await getMixItUpSettings();
     if (chat.startOn) await bridgeSay(fillChat(chat.startText, { channel: CHANNEL_NAME }));
     if (chat.backup && connection === 'bridge' && currencyId) await bridgeQueue({ kind: 'backup', phase: 'start', currencyId });
@@ -27,7 +32,9 @@ export async function streamStarted(): Promise<void> {
 export async function streamEnded(recap: StreamRecap | null, since: number, now = Date.now()): Promise<void> {
   try {
     if (await inSandbox()) return;
+    await closeUptimeStream(now);
     const { chat, currencyId, connection } = await getMixItUpSettings();
+    if (recap) await bridgeQueue({ kind: 'summary', summary: summaryOf(recap, await readCharges(), since, now) }); // the app's summary window (55.11), off in the app until switched on
     if (chat.endOn && recap) await bridgeSay(endLine(chat.endText, recap, CHANNEL_NAME));
     if (chat.backup && connection === 'bridge' && currencyId) await bridgeQueue({ kind: 'backup', phase: 'end', currencyId });
     if (chat.check && connection === 'bridge') {

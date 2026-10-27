@@ -227,6 +227,25 @@
             <label class="switch-row"><span><b>Start Mix It Up with TCG Bridge</b><small>Opens Mix It Up when this app starts, if it is not running.</small></span><input id="mix-autostart" class="switch" type="checkbox"></label>
           </section>
           <section class="card">
+            <h2 class="plain-title">Streamer tools</h2>
+            <label class="switch-row"><span><b>Live pull feed window</b><small>A second window, one line per pull as its card is revealed. Closing it turns this off.</small></span><input id="feed-on" class="switch" type="checkbox"></label>
+            <label class="switch-row"><span><b>Keep the feed on top</b><small>Stays above other windows, including OBS.</small></span><input id="feed-top" class="switch" type="checkbox"></label>
+            <label class="switch-row"><span><b>Mute the feed sound</b><small>No sound for any pull.</small></span><input id="feed-mute" class="switch" type="checkbox"></label>
+            <div class="row tools">
+              <label class="inline" for="feed-stars">Sound from</label>
+              <select id="feed-stars">
+                <option value="1">1 star</option><option value="2">2 stars</option><option value="3">3 stars</option><option value="4">4 stars</option><option value="5">5 stars</option>
+              </select>
+              <label class="inline" for="feed-volume">Volume</label>
+              <input id="feed-volume" type="range" min="0" max="100" step="5">
+            </div>
+            <label class="switch-row"><span><b>End of stream summary</b><small>A notification and a summary window when the stream ends, with a Copy for Discord button.</small></span><input id="summary-on" class="switch" type="checkbox"></label>
+            <label class="switch-row"><span><b>Start OBS with TCG Bridge</b><small>Opens OBS when this app starts, if it is not running.</small></span><input id="obs-autostart" class="switch" type="checkbox"></label>
+            <dl><dt>OBS file</dt><dd id="obs-path"></dd></dl>
+            <div class="row tools"><button type="button" id="obs-choose" class="btn plain"><svg class="i"><use href="#i-folder-open"/></svg>Choose obs64.exe...</button></div>
+            <p id="obs-choose-result" class="result" role="status"></p>
+          </section>
+          <section class="card">
             <h2 class="plain-title">Pairing</h2>
             <p id="account-text" class="muted"></p>
             <div class="row tools"><button id="unpair" type="button" class="btn plain" hidden><svg class="i"><use href="#i-unlink"/></svg>Unpair</button></div>

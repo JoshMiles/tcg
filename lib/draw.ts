@@ -53,6 +53,8 @@ export interface DrawTicket {
   cardName: string;
   stars: number;
   variant: Variant;
+  /** The card's image address, for the app's live pull feed (ROADMAP 55.11). Tickets from before it have none. */
+  imageUrl?: string;
   /** The collection entry to add (card + version, see lib/variants.ts). */
   entry: number;
   /** A Mix It Up payment was reserved under the same id (lib/mixitup.ts). */
@@ -73,7 +75,7 @@ export async function issueDraw(id: string, username: string, paid = false, test
   const { pack, card, variant } = rolled;
   const ticket: DrawTicket = {
     username: username.toLowerCase(), collectionName: active.season.collectionName, packId: pack.id, packName: pack.name,
-    cardNumber: card.number, cardName: card.name, stars: card.stars, variant, entry: encodeEntry(card.number, variant), paid,
+    cardNumber: card.number, cardName: card.name, stars: card.stars, variant, ...(card.imageUrl ? { imageUrl: card.imageUrl } : {}), entry: encodeEntry(card.number, variant), paid,
     ...(test ? { test: true, trace: test.trace } : {}),
   };
   await kv.set(ticketKey(id), ticket, { ex: TICKET_TTL_S });

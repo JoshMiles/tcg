@@ -1,7 +1,7 @@
 // The TCG site's bridge API (app/api/bridge/*). The only address this file ever fetches is the paired site.
-export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command' | 'pull-event' | 'backup' | 'ledger';
+export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command' | 'pull-event' | 'backup' | 'ledger' | 'summary';
 /** `pull-event` (ROADMAP 55.8): `phase` 'start' shows `source` for `holdMs`; 'reveal' says `text` in chat, switches to `scene` for `secs` and/or saves a clip. `backup` (55.10): `phase` is 'start' or 'end'. */
-export interface BridgeJob { id: string; kind: string; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; delayMs?: number; phase?: string; source?: string; holdMs?: number; scene?: string; secs?: number; clip?: boolean; at?: number }
+export interface BridgeJob { id: string; kind: string; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; delayMs?: number; phase?: string; source?: string; holdMs?: number; scene?: string; secs?: number; clip?: boolean; feed?: unknown; summary?: unknown; at?: number }
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeCurrency { id: string; name: string }
 export interface BridgeCommand { id: string; name: string }

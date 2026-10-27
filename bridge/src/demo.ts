@@ -63,6 +63,7 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
     startNote: '', paired: true, site: 'https://cheesytcg.app', pairedAs: 'STREAM-PC', startWithWindows: true, alerts: true,
     obsSettings: { enabled: true, address: 'ws://127.0.0.1:4455', hasPassword: true },
     mixItUp: { startWithBridge: false, path: 'C:\\Users\\streamer\\AppData\\Local\\MixItUp\\MixItUp.exe' },
+    tools: { feed: { on: false, minStars: 4, volume: 0.5, muted: false, onTop: false }, summary: false, startObs: false, obsPath: 'C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe' },
     appVersion: ctx.version, update: '', updatedTo: '',
     service: { site: 'connected', siteError: '', lastPollAt: now - 3000, mix: { found: mixFound, version: mixFound ? '1.10.0.0' : '' }, currency: 'Brie Bucks', currencyId: 'x', channel: 'Cheesygidds', jobs, tray: mixFound ? 'connected' : 'partly', obs },
     ...extra,

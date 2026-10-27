@@ -7,6 +7,7 @@ import { LogRows } from './MixItUpLog';
 import type { RecentTestRow } from '@/lib/mixitup-test';
 import { OverviewActions } from './OverviewActions';
 import { TestPulls } from './TestPulls';
+import { UPTIME_LABEL, UPTIME_PARTS, segments, type UptimeStream } from '@/lib/bridge-uptime-core';
 
 export const CHIP_STYLE = {
   ok: { badge: 'badge-success', icon: 'checkCircle' },
@@ -46,10 +47,31 @@ export function Card({ card }: { card: StatusCard }) {
   );
 }
 
+const SEGMENT = { up: 'bg-green-500/70', down: 'bg-red-500/80', unknown: 'bg-gray-700/60' } as const;
+
+/** One stream's three bars (ROADMAP 55.11): green up, red down, grey not reported, spread over the stream's length. */
+function UptimeStrip({ s, now }: { s: UptimeStream; now: number }) {
+  const mins = Math.max(1, Math.round(((s.to ?? now) - s.from) / 60_000));
+  const when = new Date(s.from).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+  return (
+    <div className="space-y-1">
+      <p className="text-xs text-gray-400">{when} UTC, {mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`}{s.to === undefined ? ' (live)' : ''}</p>
+      {UPTIME_PARTS.map(p => (
+        <div key={p} className="flex items-center gap-2">
+          <span className="w-20 shrink-0 text-[11px] text-gray-500">{UPTIME_LABEL[p]}</span>
+          <div className="flex h-3 min-w-0 flex-1 overflow-hidden rounded bg-gray-800" role="img" aria-label={`${UPTIME_LABEL[p]} during the stream`}>
+            {segments(s, p, now).map((g, i) => <div key={i} className={SEGMENT[g.state]} style={{ width: `${g.pct}%` }} />)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Mix It Up → Overview: three status cards, this stream's numbers, quick actions and the last five log rows. */
-export function Overview({ cards, numbers, recent, setup, setupLabel, streamExtra, paused, pauseChat, obsPaired, login, now, testViewers, paidOn, sandbox, tests }: {
+export function Overview({ cards, numbers, recent, setup, setupLabel, streamExtra, paused, pauseChat, obsPaired, login, now, testViewers, paidOn, sandbox, tests, uptime }: {
   cards: StatusCard[]; numbers: StreamNumbers; recent: MixItUpLogEntry[]; setup: boolean; setupLabel: string; streamExtra: number; paused: boolean; pauseChat: boolean; obsPaired: boolean; login: string; now: number;
-  testViewers: string[]; paidOn: boolean; sandbox: boolean; tests: RecentTestRow[];
+  testViewers: string[]; paidOn: boolean; sandbox: boolean; tests: RecentTestRow[]; uptime: UptimeStream[];
 }) {
   const more = numbers.partial ? 'at least' : undefined;
   return (
@@ -84,6 +106,12 @@ export function Overview({ cards, numbers, recent, setup, setupLabel, streamExtr
       <Panel title="Test pulls" icon="flask" hint="Pretend a test viewer typed !pack in chat and watch every step: the balance check, the charge, the overlay, the save and the rules. The edition is kept apart from the real collection and counts nowhere.">
         <TestPulls viewers={testViewers} paidOn={paidOn} sandbox={sandbox} recent={tests} />
       </Panel>
+
+      {uptime.length > 0 && (
+        <Panel title="Uptime" icon="activity" hint="TCG Bridge, Mix It Up and OBS during each of the last streams. Grey is a time nobody reported.">
+          <div className="space-y-4">{[...uptime].reverse().map(s => <UptimeStrip key={s.from} s={s} now={now} />)}</div>
+        </Panel>
+      )}
 
       <Panel title="Latest requests" icon="list" actions={<Link href="/admin/mixitup?tab=log" className="link link-primary text-sm font-semibold">See all</Link>}>
         <LogRows log={recent} now={now} />

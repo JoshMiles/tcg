@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'">
+  <title>Stream summary</title>
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="tools.css">
+</head>
+<body>
+  <main class="summary">
+    <h1>Stream summary</h1>
+    <p id="totals"></p>
+    <h2>Big pulls</h2>
+    <ul id="big"></ul>
+    <h2>Top pullers</h2>
+    <ol id="top"></ol>
+    <p id="bucks"></p>
+    <div class="row">
+      <button type="button" id="copy">Copy for Discord</button>
+      <span id="result" role="status"></span>
+    </div>
+  </main>
+  <script src="summary.js"></script>
+</body>
+</html>
