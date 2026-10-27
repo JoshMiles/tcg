@@ -10,6 +10,7 @@ import { feedOf, matchRule, pullArgs, shoutText, type PullFacts } from './pull-r
 import { getActiveSeason, withLock } from './kv';
 import { getLiveStatus } from './twitch-live';
 import { notifySystem } from './discord';
+import { getHappyHour } from './happyhour';
 import { getStreamBuff, getUserPullLimit } from './pull-limit';
 import { effectiveLimit, streamBuffAmount } from './pull-limit-core';
 import { extraPullsFromBuffs, releaseExtraPackCredit, reserveExtraPackCredit } from './buffs';
@@ -205,7 +206,7 @@ export async function reservePaidPull(s: MixItUpSettings, username: string, payI
 
   // Their own limit replaces the role default. A this-stream bonus adds on top. 0 = no limit, and bonuses cannot change that.
   const extra = streamBuffAmount(await getStreamBuff(), stream) + await extraPullsFromBuffs(user);
-  const price = pullPrice(s, { role: pullRole(role, user) });
+  const price = pullPrice(s, { role: pullRole(role, user), happyHour: await getHappyHour() });
   const limit = effectiveLimit(roleLimitOf(s, pullRole(role, user)), await getUserPullLimit(user), Date.now(), extra).limit;
   const refuse = async (reason: RefusalReason, balance?: number, why?: string): Promise<Reservation> => {
     await logMixItUp({ username: user, what: 'refused', ok: false, detail: `${reason}${why ? `: ${why}` : ''}` });

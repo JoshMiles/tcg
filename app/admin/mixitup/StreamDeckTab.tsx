@@ -23,6 +23,7 @@ export function StreamDeckTab({ buffs, url, secret }: { buffs: BuffDef[]; url: s
       <section className="space-y-3">
         <h2 className="font-semibold text-white">Quick actions</h2>
         <CopyCard title="Extra pulls this stream" note="Adds to everyone's pulls until the stream ends. amount 0 clears it." {...incomingSetup(url, secret, { action: 'stream-pulls', amount: '1' })} />
+        <CopyCard title="Happy hour" note="Cheaper paid pulls for a while. amount = minutes (1 to 240); add percent (1 to 99) for a discount, leave it out for free packs. amount 0 ends it." {...incomingSetup(url, secret, { action: 'happy-hour', amount: '30', percent: '50' })} />
         <CopyCard title="Free pack" note="Opens one pack that never charges. Use target viewer with a username to pick the viewer." {...incomingSetup(url, secret, { action: 'free-pack', target: 'last-pull' })} />
       </section>
     </div>

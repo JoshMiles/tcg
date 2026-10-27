@@ -22,6 +22,7 @@ import { MixItUpConfig } from './MixItUpConfig';
 import { MixItUpLog } from './MixItUpLog';
 import { StreamDeckTab } from './StreamDeckTab';
 import { getBuffDefs } from '@/lib/buffs';
+import { getHappyHour, happyHourWhat } from '@/lib/happyhour';
 import { Overview, CHIP_STYLE } from './Overview';
 import { PullRules } from './PullRules';
 import { ChatBucks } from './ChatBucks';
@@ -48,6 +49,11 @@ const TABS: (PageTab & { hint: string })[] = [
   { id: 'streamdeck', label: 'Stream Deck', icon: 'gamepad', hint: 'Buttons that apply a buff, give extra pulls or a free pack: one Mix It Up command each' },
   { id: 'log', label: 'Log', icon: 'list', hint: 'The last requests to and refusals for Mix It Up' },
 ];
+
+async function happyHourView(now: number) {
+  const h = await getHappyHour(now);
+  return h ? { what: happyHourWhat(h), minutesLeft: Math.max(1, Math.ceil((h.endsAt - now) / 60_000)), by: h.by } : null;
+}
 
 export default async function MixItUpPage({ searchParams }: { searchParams: Promise<{ tab?: string; saved?: string; error?: string; note?: string; filter?: string }> }) {
   await staffPage('admin');
@@ -105,7 +111,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
           <ConnectionTab settings={settings} bridge={bridge} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never', staff: !!b.staff, by: b.by ?? '' }))} blocks={blocks.map(b => ({ username: b.username, by: b.by, scope: b.streamKey ? 'this stream' : 'until lifted' }))} />
         </div>
       )}
-      {tab === 'paid' && <MixItUpConfig settings={settings} />}
+      {tab === 'paid' && <MixItUpConfig settings={settings} happyHour={await happyHourView(now)} />}
       {tab === 'bigpulls' && <PullRules rules={settings.pullRules} commands={bridge.commands} obs={{ scenes: obs?.scenes ?? [], sources: obs?.sources ?? [] }} watchdog={settings.overlayWatchdog} />}
       {tab === 'chat' && <ChatBucks chat={settings.chat} check={await readLedgerCheck()} when={timeAgo} />}
       {tab === 'commands' &&<CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} />}
