@@ -110,3 +110,37 @@ export function describeBackup(f: BackupFile): string {
   const parts = Object.entries(by).map(([t, n]) => `${n} ${t}`).join(', ');
   return `${f.entries.length} keys (${parts || 'none'})${f.skipped.length ? `, ${f.skipped.length} skipped` : ''}`;
 }
+
+// ---- restore preview (dry run) ----
+
+export interface PrefixCount { added: number; replaced: number; unchanged: number; notInBackup: number }
+export interface RestorePreview { added: string[]; replaced: string[]; unchanged: number; notInBackup: string[]; byPrefix: Record<string, PrefixCount> }
+
+const sortKeys = (_: string, x: unknown) => x && typeof x === 'object' && !Array.isArray(x)
+  ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) : x;
+const canon = (v: unknown) => JSON.stringify(v, sortKeys);
+/** Same type and same content; hash field order and set member order do not matter, list order does. */
+const sameEntry = (a: BackupEntry, b: BackupEntry) =>
+  a.type === b.type && (a.type === 'set'
+    ? canon(((a.value ?? []) as unknown[]).map(canon).sort()) === canon(((b.value ?? []) as unknown[]).map(canon).sort())
+    : canon(a.value ?? null) === canon(b.value ?? null));
+
+/**
+ * What restoring `backup` onto a target that currently holds `current` (both with the same key names, current already limited to
+ * the backed-up keyspace) would do: keys added, keys replaced with different content, keys already identical, and keys at the
+ * target that the backup does not have (a restore leaves those alone). Writes nothing; pure.
+ */
+export function previewRestore(backup: BackupEntry[], current: BackupEntry[]): RestorePreview {
+  const now = new Map(current.map(e => [e.key, e]));
+  const inBackup = new Set(backup.map(e => e.key));
+  const out: RestorePreview = { added: [], replaced: [], unchanged: 0, notInBackup: [], byPrefix: {} };
+  const bucket = (key: string) => (out.byPrefix[key.includes(':') ? key.slice(0, key.indexOf(':') + 1) : key] ??= { added: 0, replaced: 0, unchanged: 0, notInBackup: 0 });
+  for (const e of backup) {
+    const cur = now.get(e.key);
+    if (!cur) { out.added.push(e.key); bucket(e.key).added++; }
+    else if (!sameEntry(e, cur)) { out.replaced.push(e.key); bucket(e.key).replaced++; }
+    else { out.unchanged++; bucket(e.key).unchanged++; }
+  }
+  for (const e of current) if (!inBackup.has(e.key)) { out.notInBackup.push(e.key); bucket(e.key).notInBackup++; }
+  return out;
+}

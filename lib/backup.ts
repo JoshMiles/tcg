@@ -31,13 +31,13 @@ export interface RestoreClient {
 const SUPPORTED = new Set<string>(['string', 'hash', 'list', 'set']);
 const CONCURRENCY = 25;
 
-/** Every key that is worth keeping, with its type and value. Unsupported types are listed in `skipped`, never dropped silently. */
-export async function collectEntries(client: BackupClient, now = Date.now()): Promise<BackupFile> {
+/** Every key that is worth keeping, with its type and value. `prefix` reads a sandbox namespace (`sbx:<id>:`) and returns the keys without it. Unsupported types are listed in `skipped`, never dropped silently. */
+export async function collectEntries(client: BackupClient, now = Date.now(), prefix = ''): Promise<BackupFile> {
   const found = new Set<string>(); // SCAN may repeat a key
   let cursor: string | number = 0;
   do {
-    const [next, batch] = await client.scan(cursor, { match: '*', count: 500 });
-    for (const k of batch) if (isBackedUp(k)) found.add(k);
+    const [next, batch] = await client.scan(cursor, { match: prefix + '*', count: 500 });
+    for (const k of batch) if (k.startsWith(prefix) && isBackedUp(k.slice(prefix.length))) found.add(k);
     cursor = next;
   } while (String(cursor) !== '0');
   const keys = [...found].sort();
@@ -53,7 +53,7 @@ export async function collectEntries(client: BackupClient, now = Date.now()): Pr
         : type === 'list' ? await client.lrange(key, 0, -1)
         : type === 'set' ? await client.smembers(key)
         : await client.get(key);
-      return { entry: { key, type: type as BackupType, value } as BackupEntry };
+      return { entry: { key: key.slice(prefix.length), type: type as BackupType, value } as BackupEntry };
     }));
     for (const p of part) {
       if (p?.entry) entries.push(p.entry);
