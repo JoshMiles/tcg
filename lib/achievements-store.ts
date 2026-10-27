@@ -1,13 +1,14 @@
 import { kv } from './db';
 import { getAllCollectionUsers, getUserCards, getPackCards, getPacksForSeason, listSeasons } from './kv';
 import { countVariants, allowedVariants } from './variants';
-import { evaluateSeason, sortAchievements, tradingGoals, TRADING, type AchCard, type Achievement, type CustomGoal } from './achievements';
+import { evaluateSeason, sortAchievements, tradingGoals, streamGoals, TRADING, STREAMS, type AchCard, type Achievement, type CustomGoal } from './achievements';
 import { applyAchievementText, disabledKinds, getAchievementSettings, getCustomGoals } from './achievement-settings';
 import { completedTradeCount } from './trades';
 import { applyBuff } from './buffs';
 import { recordAudit } from './audit';
 import { loadSerialIndex } from './serials';
 import { getScoringSettings } from './scoring';
+import { getStreakRun } from './stream-streak';
 
 // The server side of achievements: works out every goal across the published seasons and remembers what has been earned
 // (KV hash `user:<u>:ach`, id -> the achievement as it was, plus when it was first seen earned) so a goal is never taken back.
@@ -77,16 +78,18 @@ export async function syncAchievements(username: string, now = Date.now()): Prom
   try {
     allSeasons = await listSeasons();
     const seasons = allSeasons.filter(s => s.status !== 'draft');
-    const [cutoff, loaded, customGoals, trades] = await Promise.all([
+    const [cutoff, loaded, customGoals, trades, streak] = await Promise.all([
       getScoringSettings().then(s => s.serialBonusCutoff).catch(() => 0),
       getAchievementSettings().catch(() => ({})),
       getCustomGoals(),
       completedTradeCount(u).catch(() => null), // one history read; a failure just skips the trade goals
+      getStreakRun(u).catch(() => 0),
     ]);
     settings = loaded;
     custom = customGoals;
     const disabled = disabledKinds(settings);
     if (trades !== null) live.push(...tradingGoals(trades, disabled, custom));
+    live.push(...streamGoals(streak, disabled));
     await Promise.all(seasons.map(async season => {
       const [owned, packs] = await Promise.all([getUserCards(season.collectionName, u), getPacksForSeason(season)]);
       if (owned.length === 0) return;
@@ -132,7 +135,7 @@ export async function syncAchievements(username: string, now = Date.now()): Prom
       const res = await applyBuff(u, buffId, {
         source: `achievement:${a.id}`,
         // Trade goals have no season: a buff that lasts "for the season" uses the active one.
-        seasonId: a.seasonId === TRADING ? allSeasons.find(s => s.active && !s.endedAt)?.id : a.seasonId,
+        seasonId: a.seasonId === TRADING || a.seasonId === STREAMS ? allSeasons.find(s => s.active && !s.endedAt)?.id : a.seasonId,
         now,
         disallowCommunity: true,
       }).catch((e: unknown) => ({ ok: false as const, reason: e instanceof Error ? e.message : 'error' }));
@@ -144,7 +147,7 @@ export async function syncAchievements(username: string, now = Date.now()): Prom
   const sorted = sortAchievements(Object.values(stored).map(a => ({ ...a, earned: true })));
   const earned = [...sorted.filter(a => a.seasonId === 'special'), ...sorted.filter(a => a.seasonId !== 'special')];
   const earnedIds = new Set(earned.map(a => a.id));
-  const activeSeasons = new Set([TRADING, ...allSeasons.filter(s => s.active && !s.endedAt).map(s => s.id)]);
+  const activeSeasons = new Set([TRADING, STREAMS, ...allSeasons.filter(s => s.active && !s.endedAt).map(s => s.id)]);
   const next = sortAchievements(live.filter(a => !earnedIds.has(a.id) && activeSeasons.has(a.seasonId) && a.have > 0));
   // Custom words are applied on the way out, so clearing an override brings the stored built-in sentence back.
   const show = <T extends Achievement>(a: T) => applyAchievementText(a, settings);

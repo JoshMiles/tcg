@@ -1,3 +1,4 @@
+import { recordStreamPull } from '@/lib/stream-streak';
 import { NextRequest, NextResponse, after } from 'next/server';
 import { inSandbox } from '@/lib/db';
 import { getCollection, saveCollection, deleteCollection, addCollectionEntryWithSerial, listSeasons, removeUserFromCollection, withCollectionLock } from '@/lib/kv';
@@ -112,6 +113,7 @@ export async function POST(req: NextRequest) {
     ...(copyId ? { copyId } : {}),
     ...(uid ? { uid } : {}),
   });
+  await recordStreamPull(username);
 
   // Sent after the response, held open by after() so the function isn't frozen before it goes out. The sandbox is decided
   // now (it is not visible inside after()). Outside a request (scripts) it just runs.

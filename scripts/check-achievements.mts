@@ -251,6 +251,26 @@ eq(danBuffs.length, 0, 'a disabled kind grants nothing new');
   ok(gus.next.some(x => x.id === 'trading:ten-trades' && x.have === 3), 'trade progress is listed as next');
   await kv.set('trades:history', []); // every trade reversed or gone
   ok((await store.syncAchievements('gus', 71000)).earned.some(x => x.id === 'trading:first-trade'), 'a trade goal stays earned when the trades are gone');
+
+  // Stream streak (trial, 50.10)
+  const ns = a.nextStreak;
+  eq(ns(null, 4), { last: 4, run: 1 }, 'first stream starts a run');
+  eq(ns({ last: 4, run: 2 }, 4), { last: 4, run: 2 }, 'same stream changes nothing');
+  eq(ns({ last: 4, run: 2 }, 5), { last: 5, run: 3 }, 'next stream extends the run');
+  eq(ns({ last: 4, run: 2 }, 6), { last: 6, run: 1 }, 'a skipped stream starts over');
+  const { recordStreamPull } = await import('../lib/stream-streak');
+  await recordStreamPull('ned'); // no stream running: nothing counts
+  ok(!(await kv.get('user:ned:streak')), 'a pull outside a stream does not count');
+  await kv.set('twitch:live:since', Date.now());
+  for (const done of [0, 1, 2]) {
+    await kv.set('twitch:streams:done', done);
+    await recordStreamPull('ned');
+    await recordStreamPull('ned');
+  }
+  eq(await kv.get('user:ned:streak'), { last: 3, run: 3 }, 'three streams in a row, two pulls each');
+  const ned = await store.syncAchievements('ned', 80000);
+  ok(ned.earned.some(x => x.id === 'streams:stream-streak'), 'the streak is earned at three');
+  ok(!(await store.syncAchievements('ola', 80000)).earned.some(x => x.id === 'streams:stream-streak'), 'and not by someone with no run');
 }
 
 console.log('achievement checks passed');
