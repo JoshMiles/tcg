@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { inSandbox } from '@/lib/db';
 import { cronAuthorised } from '@/lib/cron-auth';
 import { pickOncePerWeek } from '@/lib/print-of-week-store';
-import { digestOncePerWeek } from '@/lib/weekly-digest-store';
+import { adminDigestOncePerWeek, digestOncePerWeek } from '@/lib/weekly-digest-store';
 
 export const maxDuration = 300;
 
@@ -24,6 +24,10 @@ export async function GET(req: NextRequest) {
   // The digest links to the print picked above, so it runs second.
   try { steps.digest = await digestOncePerWeek(); }
   catch (e) { steps.digest = { status: 'error', error: e instanceof Error ? e.message : 'Digest failed.' }; console.error('weekly digest failed:', e); }
+
+  // TRIAL (ROADMAP 51.10): the staff summary for the Discord admin log, after the community digest.
+  try { steps.adminDigest = await adminDigestOncePerWeek(); }
+  catch (e) { steps.adminDigest = { status: 'error', error: e instanceof Error ? e.message : 'Admin digest failed.' }; console.error('weekly admin digest failed:', e); }
 
   return NextResponse.json({ ok: true, ms: Date.now() - started, steps });
 }

@@ -132,3 +132,32 @@ export function sampleDigest(now = Date.now()): WeeklyDigest {
     print: { name: 'Sample Card', label: 'Shiny', uid: 1023381, href: '/c/1023381', reason: 'Held by 5 collectors, traded 4 times' },
   };
 }
+
+export interface AdminDigestInput {
+  now: number;
+  /** Audit actions per staff login over the last 7 days. */
+  staffCounts: Record<string, number>;
+  bigReversals: number;
+  lastEmergencyAt: number | null;
+  backup: { lastAt: number | null; problem?: string };
+}
+
+const dayOf = (t: number) => new Date(t).toISOString().slice(0, 10);
+
+/**
+ * TRIAL (ROADMAP 51.10, four weeks from the first send): the weekly staff summary for the Discord admin log, plain lines. Failed
+ * jobs are not recorded anywhere, so the backup's age is the only job signal; the last line says so rather than imply a clean week.
+ */
+export function buildAdminDigest(i: AdminDigestInput): string {
+  const staff = Object.entries(i.staffCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  return [
+    `Staff actions, last 7 days: ${staff.length ? staff.map(([n, c]) => `${n} ${c}`).join(', ') : 'none'}`,
+    i.lastEmergencyAt === null ? 'Emergency password login: none recorded'
+      : i.now - i.lastEmergencyAt < WEEK_MS ? `Emergency password login: yes, last on ${dayOf(i.lastEmergencyAt)}`
+      : `Emergency password login: none this week (last ${dayOf(i.lastEmergencyAt)})`,
+    `Big trade reversals needing a second approval: ${i.bigReversals}`,
+    i.backup.lastAt === null ? `Backup: ${i.backup.problem ?? 'none found'}`
+      : `Backup: newest ${dayOf(i.backup.lastAt)} (${Math.floor((i.now - i.backup.lastAt) / 86_400_000)} days old)${i.backup.problem ? `, ${i.backup.problem}` : ''}`,
+    'Failed jobs are not recorded, so only the backup is checked.',
+  ].join('\n');
+}
