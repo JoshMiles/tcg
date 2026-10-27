@@ -74,4 +74,16 @@ for (const f of ['lib/staff-token.ts', 'lib/access-token.ts', 'lib/admin-token.t
   ok(!/\^\s*b\[i\]|\^=\s/.test(src) && src.includes('safeEqual'), `${f} compares through safeEqual`);
 }
 
+// ── sign out everywhere: a cookie older than the viewer's stored generation is refused ──
+ok(!session.sessionRevoked(undefined, undefined), 'no generation anywhere still works');
+ok(!session.sessionRevoked(undefined, 0) && !session.sessionRevoked(2, '2') && !session.sessionRevoked(3, 2), 'a current or newer cookie works');
+ok(session.sessionRevoked(undefined, 1) && session.sessionRevoked(1, '2'), 'an older cookie, or one with no generation, is refused after a bump');
+{
+  const g0 = await session.currentSessionGen('gen-check');
+  ok(g0 === 0, 'a viewer never bumped is at generation 0');
+  await session.bumpSessionGen('gen-check');
+  const g1 = await session.currentSessionGen('gen-check');
+  ok(g1 === 1 && session.sessionRevoked(g0, g1), 'a bump raises the generation and revokes a cookie stamped before it');
+}
+
 console.log('signing keys: all checks passed');

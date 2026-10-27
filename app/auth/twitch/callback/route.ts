@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { OAUTH_COOKIE, SESSION_COOKIE, loginConfigured, sessionCookieOptions, signSession } from '@/lib/session';
+import { OAUTH_COOKIE, SESSION_COOKIE, currentSessionGen, loginConfigured, sessionCookieOptions, signSession } from '@/lib/session';
 import { profileFromCode, safeReturnTo } from '@/lib/twitch-oauth';
 import { saveUserProfile, getUserProfile } from '@/lib/kv';
 import { bindAccount } from '@/lib/account-bind';
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     await saveUserProfile({ ...existing, displayName: profile.displayName }); // nicer capitalisation, only if never customised
   }
 
-  const token = signSession({ username: profile.login, twitchId: profile.id, displayName: profile.displayName });
+  const token = signSession({ username: profile.login, twitchId: profile.id, displayName: profile.displayName, gen: await currentSessionGen(profile.login) });
   if (!token) return fail(req, 'unavailable');
 
   const res = NextResponse.redirect(new URL(safeReturnTo(expected.returnTo), req.url));

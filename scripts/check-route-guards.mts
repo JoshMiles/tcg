@@ -44,6 +44,7 @@ type Kind = keyof typeof GUARDS | 'public';
 const R: Record<string, Kind[] | { public: string }> = {
   // the viewer's own account, trades and feedback: the signed-in session decides who they are
   'app/api/account/deletion/route.ts': ['viewer'],
+  'app/api/account/sign-out-everywhere/route.ts': ['viewer'],
   'app/api/account/discord/route.ts': ['viewer'],
   'app/api/account/export/route.ts': ['viewer'],
   'app/api/account/push/route.ts': ['viewer'],
