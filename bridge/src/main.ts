@@ -1,9 +1,11 @@
 // TCG Bridge, the Electron glue: one instance, a tray icon, a small window, auto start and updates. The logic is in the other modules.
 import { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, Menu, nativeImage, Notification, safeStorage, shell, Tray } from 'electron';
 import { autoUpdater } from 'electron-updater';
+import { mkdirSync } from 'node:fs';
 import { hostname, release, tmpdir, version as osVersion } from 'node:os';
 import { dirname, join } from 'node:path';
 import { Alerts, snapshotOf } from './alerts';
+import { Ledger } from './bucks';
 import { buttonUrl, ControlServer, HOTKEY_ACTION, HOTKEYS, Hotkeys, newControlKey, type ControlAction, type ControlResult, type HotkeyMap, type HotkeyName } from './control';
 import { diagnosticsText } from './diagnostics';
 import { defaultMixItUpPath, isMixItUpExe, startMixItUp } from './launch';
@@ -38,6 +40,7 @@ let startNote = ''; // "Couldn't check for updates", from the start-up check
 let demoState: object | null = null; // the demo window shows this instead of the real state
 let tray: Tray | null = null;
 let service: BridgeService | null = null;
+let ledger: Ledger | null = null; // every deduct and add this PC made (bucks.ts), kept across reconnects
 let client: SiteClient | null = null;
 let control: ControlServer | null = null; // the Stream Deck buttons (control.ts)
 let hotkeys: Hotkeys | null = null;
@@ -138,6 +141,9 @@ async function loadStatus(): Promise<void> {
   } catch { /* the next try is in 30 seconds */ }
 }
 
+/** Documents\TCG Bridge\backups: the Brie Bucks CSVs (ROADMAP 55.10). */
+const backupDir = () => join(app.getPath('documents'), 'TCG Bridge', 'backups');
+
 const obsConfig = () => ({ enabled: settings.obsEnabled, address: settings.obsAddress, password: settings.obsPassword, startReplay: settings.obsStartReplay });
 
 function connect(): void {
@@ -147,7 +153,8 @@ function connect(): void {
   client = site;
   const obs = new ObsWatcher({ site: settings.site, report: body => site.report(body) }, obsConfig());
   alerts = new Alerts();
-  service = new BridgeService({ client: site, mix: new MixItUpClient(), obs, onChange: push, log });
+  ledger ??= new Ledger(join(app.getPath('userData'), 'ledger.json'));
+  service = new BridgeService({ client: site, mix: new MixItUpClient(), obs, onChange: push, log, ledger, backupDir: backupDir() });
   service.start();
   push();
   void loadStatus();
@@ -378,6 +385,11 @@ function setupIpc(): void {
   ipcMain.handle('open-logs', async () => {
     const error = await shell.openPath(app.getPath('logs'));
     return { ok: !error, text: error ? 'Could not open the log folder' : '' };
+  });
+  ipcMain.handle('open-backups', async () => {
+    mkdirSync(backupDir(), { recursive: true });
+    const error = await shell.openPath(backupDir());
+    return { ok: !error, text: error ? 'Could not open the backups folder' : '' };
   });
   ipcMain.handle('copy-diagnostics', () => {
     clipboard.writeText(diagnosticsText({

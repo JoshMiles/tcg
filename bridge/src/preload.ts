@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('bridge', {
   chooseMixItUp: (): Result => ipcRenderer.invoke('choose-mix'),
   setStartMixItUp: (on: boolean): Promise<void> => ipcRenderer.invoke('start-mix-with-bridge', !!on),
   openLogs: (): Result => ipcRenderer.invoke('open-logs'),
+  openBackups: (): Result => ipcRenderer.invoke('open-backups'),
   copyDiagnostics: (): Result => ipcRenderer.invoke('copy-diagnostics'),
   checkUpdate: (): Result => ipcRenderer.invoke('check-update'),
   setPause: (on: boolean): Result => ipcRenderer.invoke('pause', !!on),

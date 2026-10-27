@@ -3,13 +3,16 @@ import { MixItUpClient, MixItUpDown, MixItUpError, type MixItUpUser } from './mi
 import { ObsError, type ObsWatcher } from './obs';
 import type { BridgeJob, BridgeResult } from './site';
 
-export const KINDS = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh', 'run-command', 'pull-event'] as const;
+export const KINDS = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh', 'run-command', 'pull-event', 'backup', 'ledger'] as const;
 export const isKnownKind = (k: unknown): boolean => typeof k === 'string' && (KINDS as readonly string[]).includes(k);
 
 const LOGIN = /^[a-z0-9_]{1,25}$/;
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-class Refused extends Error {}
+export class Refused extends Error {}
+
+/** The Brie Bucks jobs (ROADMAP 55.10); service.ts builds it from the app's backup folder and ledger. */
+export interface BucksTasks { backup(job: BridgeJob): Promise<void>; ledger(): Promise<void> }
 
 const DELAY_MAX_MS = 15_000;
 const num = (v: unknown, min: number, max: number): number => (typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : min);
@@ -22,8 +25,13 @@ export function commandWait(job: BridgeJob, now = Date.now()): number {
 }
 
 /** Runs a known job and says how it went. Never throws. */
-export async function runJob(job: BridgeJob, mix: MixItUpClient, obs: ObsWatcher, commandIds: ReadonlySet<string> = new Set()): Promise<BridgeResult> {
+export async function runJob(job: BridgeJob, mix: MixItUpClient, obs: ObsWatcher, commandIds: ReadonlySet<string> = new Set(), bucks?: BucksTasks): Promise<BridgeResult> {
   try {
+    if (job.kind === 'backup' || job.kind === 'ledger') {
+      if (!bucks) throw new Refused('Brie Bucks backups are not set up in this app');
+      await (job.kind === 'backup' ? bucks.backup(job) : bucks.ledger());
+      return { id: job.id, ok: true };
+    }
     if (job.kind === 'run-command') {
       // Only a command this app itself reported to the site, so the site (or anyone holding its token) cannot run just any command id.
       const id = typeof job.commandId === 'string' ? job.commandId.toLowerCase() : '';
@@ -39,6 +47,8 @@ export async function runJob(job: BridgeJob, mix: MixItUpClient, obs: ObsWatcher
       if (job.phase === 'start') {
         if (typeof job.source === 'string') await step(() => obs.showSource(job.source as string, num(job.holdMs, 0, 15_000)));
       } else {
+        // The chat shout goes first: it must land on the reveal, and a scene switch can take a moment.
+        if (typeof job.text === 'string' && job.text.trim()) await mix.say(job.text).catch(() => errors.push('Chat did not take the line'));
         if (typeof job.scene === 'string') await step(() => obs.switchScene(job.scene as string, num(job.secs, 1, 60)));
         if (job.clip === true) await step(() => obs.saveClip());
       }

@@ -10,6 +10,7 @@ import { clientIp, limitWebhook, rateLimit } from './rate-limit';
 import { noteOutgoing, outKindOf } from './mixitup-health';
 import type { MixItUpSettings } from './mixitup-core';
 import type { PullObs } from './pull-rules-core';
+import type { LedgerRow } from './bridge-chat-core';
 import {
   BRIDGE_DID_NOT_ANSWER, IDLE_POLL_MS, LONG_POLL_MS, PAIR_TTL_S, POLL_MS, RESULT_TTL_S, TOUCH_EVERY_MS, WAIT_MS,
   cleanHello, cleanName, cleanObs, cleanResult, hashToken, isFreshJob, newPairCode, normalizeCode, replyFromResult,
@@ -46,6 +47,7 @@ export async function callBridge(s: Pick<MixItUpSettings, 'currencyId'>, payload
   let reply: BridgeReply;
   try {
     await kv.rpush(JOBS, job);
+    if ((kind === 'deduct' || kind === 'add') && job.username && job.amount) await noteCharge({ id: job.id, user: job.username.toLowerCase(), amount: kind === 'deduct' ? -job.amount : job.amount, at: job.at });
     reply = replyFromResult(kind, await waitForResult(job.id));
   } catch (e) {
     reply = { ok: false, status: 0, body: null, error: e instanceof Error ? e.message : 'TCG Bridge call failed' };
@@ -53,6 +55,16 @@ export async function callBridge(s: Pick<MixItUpSettings, 'currencyId'>, payload
   const health = outKindOf(action);
   if (health) await noteOutgoing(health, reply.ok, reply.ok ? 'via TCG Bridge' : reply.error ?? 'failed');
   return reply;
+}
+
+// The site's own record of every charge and refund it sent (ROADMAP 55.10), for the Brie Bucks check. The Mix It Up log keeps only 20.
+const CHARGES = 'bridge:charges';
+const CHARGES_MAX = 2000;
+async function noteCharge(row: LedgerRow): Promise<void> {
+  try { await kv.rpush(CHARGES, row); await kv.ltrim(CHARGES, -CHARGES_MAX, -1); } catch { /* the check is a nicety */ }
+}
+export async function readCharges(): Promise<LedgerRow[]> {
+  try { return (await kv.lrange<LedgerRow>(CHARGES, 0, -1)) ?? []; } catch { return []; }
 }
 
 async function waitForResult(id: string) {
@@ -81,7 +93,7 @@ export async function refreshOverlayInObs(): Promise<{ ok: boolean; error?: stri
   }
 }
 
-/** Posts a line in chat through the bridge and does not wait. Not wired into any flow yet. Never throws; a sandbox sends nothing. */
+/** Posts a line in chat through the bridge and does not wait (the start and end posts of 55.10 use it). Never throws; a sandbox sends nothing. */
 export async function bridgeSay(text: string): Promise<void> {
   try {
     if (await inSandbox()) return;
@@ -121,10 +133,12 @@ export async function bridgeQueue(job: Omit<BridgeJob, 'id' | 'at'>): Promise<bo
 // and the scene switch and the clip wait for the overlay's reveal report (`pullevent:<id>` is what the report looks up and claims).
 const pullEventKey = (id: string) => `bridge:pullevent:${id}`;
 const PULL_EVENT_TTL_S = 120;
-const revealPart = (o: PullObs): Partial<BridgeJob> => ({ ...(o.scene ? { scene: o.scene, secs: o.sceneSecs } : {}), ...(o.clip ? { clip: true } : {}) });
+/** A pull's OBS actions plus the chat line (55.10), the line already rendered. */
+export type PullBridge = PullObs & { text?: string };
+const revealPart = (o: PullBridge): Partial<BridgeJob> => ({ ...(o.scene ? { scene: o.scene, secs: o.sceneSecs } : {}), ...(o.clip ? { clip: true } : {}), ...(o.text ? { text: o.text } : {}) });
 
 /** The start of a pull's OBS actions. `holdMs` is how long until the reveal. True when anything was queued or kept for the reveal. */
-export async function bridgePullStart(o: PullObs, holdMs: number, eventId?: string): Promise<boolean> {
+export async function bridgePullStart(o: PullBridge,holdMs: number, eventId?: string): Promise<boolean> {
   try {
     if ((await inSandbox()) || !(await listBridges()).length) return false;
     const later = Object.keys(revealPart(o)).length > 0 && !!eventId;
@@ -148,7 +162,7 @@ export async function bridgePullReveal(eventId: string): Promise<boolean> {
 }
 
 /** The rule's Test button: the OBS actions now, with a 3 s source and no overlay. */
-export async function bridgePullTest(o: PullObs): Promise<boolean> {
+export async function bridgePullTest(o: PullBridge): Promise<boolean> {
   const a = o.source ? await bridgeQueue({ kind: 'pull-event', phase: 'start', source: o.source, holdMs: 3000 }) : false;
   const b = Object.keys(revealPart(o)).length ? await bridgeQueue({ kind: 'pull-event', phase: 'reveal', ...revealPart(o) }) : false;
   return a || b;

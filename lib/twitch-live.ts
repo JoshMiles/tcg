@@ -86,9 +86,13 @@ export async function setLiveFromBridge(live: boolean): Promise<boolean> {
 /** Stores a status, keeps the stream-start marker, posts the recap when offline and tells the System channel about a change. */
 async function applyStatus(status: LiveStatus, cached: LiveStatus | null): Promise<void> {
   await kv.set(KEY, status, { ex: 300 }).catch(() => {});
-  if (status.live && status.startedAt) await kv.set(SINCE_KEY, Date.parse(status.startedAt) || Date.now(), { ex: 172_800 }).catch(() => {});
-  else if (status.live) await kv.set(SINCE_KEY, Date.now(), { ex: 172_800, nx: true }).catch(() => {}); // a hint with no start time keeps the one recorded
-  else await finishStream();
+  if (status.live) {
+    const since = status.startedAt ? Date.parse(status.startedAt) || Date.now() : Date.now();
+    // NX: only the first sighting of a new stream wins it, so the start post and backup (55.10) go out once. A start time from Twitch still overwrites; a hint with none keeps the one recorded.
+    const first = await kv.set(SINCE_KEY, since, { ex: 172_800, nx: true }).catch(() => null);
+    if (first) await import('./bridge-chat').then(m => m.streamStarted()).catch(() => {});
+    else if (status.startedAt) await kv.set(SINCE_KEY, since, { ex: 172_800 }).catch(() => {});
+  } else await finishStream();
   if (cached && cached.live !== status.live) {
     void notifySystem({ title: status.live ? '🔴 The stream went live' : '⚫ The stream went offline', ...(status.live && status.title ? { text: escapeMd(status.title.slice(0, 200)) } : {}), tone: 'info' });
   }
@@ -109,7 +113,9 @@ export async function finishStream(now = Date.now()): Promise<StreamRecap | null
     await kv.incr(DONE_KEY);
     const [{ events }, active] = await Promise.all([getActivity({ limit: ACTIVITY_CAP }), getActiveSeasonWithPacks().catch(() => null)]);
     const recap = buildStreamRecap(events, since, now, { seasonId: active?.season.id, logIsFull: events.length >= ACTIVITY_CAP });
-    if (!recapWorthPosting(recap)) return null;
+    const worth = recapWorthPosting(recap);
+    await import('./bridge-chat').then(m => m.streamEnded(worth ? recap : null, since)).catch(() => {}); // chat post, backup, Brie Bucks check (55.10)
+    if (!worth) return null;
     await kv.set(RECAP_KEY, recap);
     await notifyRecap(recap);
     return recap;

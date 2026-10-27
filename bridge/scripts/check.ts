@@ -8,6 +8,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Alerts, snapshotOf, type Snapshot } from '../src/alerts';
+import { BACKUPS_KEPT, csvOf, Ledger, writeBackup } from '../src/bucks';
 import { buttonUrl, ControlServer, Hotkeys, newControlKey, noHotkeys, parseButton, type ControlAction } from '../src/control';
 import { commandWait } from '../src/jobs';
 import { diagnosticsText } from '../src/diagnostics';
@@ -81,6 +82,7 @@ function fakeMixItUp() {
       ran.push({ id: c.ID, args: json });
       return send(res, 200, { ID: c.ID, Name: c.Name, IsEnabled: c.IsEnabled });
     }
+    if (url.startsWith('/api/users/top') && req.method === 'GET') return send(res, 200, [...users.values()].map(asUser));
     const t = /^\/api\/users\/twitch\/([^/]+)$/.exec(url);
     if (t && req.method === 'GET') {
       const u = users.get(decodeURIComponent(t[1]));
@@ -110,6 +112,7 @@ function fakeSite() {
     hellos: [] as { version: string; currencies: { id: string; name: string }[]; commands?: { id: string; name: string }[] }[],
     results: [] as BridgeResult[],
     reports: [] as Record<string, unknown>[],
+    ledgers: [] as { id: string; user: string; amount: number; answer: string }[][],
     resultAttempts: 0,
     polls: 0,
     pollMode: 'ok' as 'ok' | '401' | '500',
@@ -120,6 +123,7 @@ function fakeSite() {
     if (req.url === '/api/bridge/pair') return json.code === 'ABCD-EFGH' ? send(res, 200, { token: TOKEN }) : send(res, 401, { error: 'That code is wrong or has expired.' });
     if (req.headers.authorization !== `Bearer ${TOKEN}`) return send(res, 401, { error: 'Unknown token' });
     if (req.url === '/api/bridge/hello') { s.hellos.push(json); return send(res, 200, { ok: true, channel: 'Cheesygidds', currencyId: CUR }); }
+    if (req.url === '/api/bridge/ledger') { s.ledgers.push(json.entries); return send(res, 200, { ok: true, compared: true }); }
     if (req.url === '/api/bridge/report') { s.reports.push(json); return send(res, 200, { ok: true }); }
     if (req.url === '/api/bridge/poll') {
       s.polls++;
@@ -525,6 +529,52 @@ async function main() {
     await svc2.stop();
     await new Promise<void>(r => siSrv2.server.close(() => r()));
     mi.commands.pop();
+  }
+
+  // Brie Bucks backup and ledger (55.10)
+  {
+    const dir = mkdtempSync(join(tmpdir(), 'tcg-bridge-bucks-'));
+    // the CSV: only viewers who own some, quoted cells, and the backups folder keeps the newest 30
+    const users = (await mix.topUsers()).concat([{ id: 'z', twitchId: '9', username: 'a,"b"', amounts: [{ id: CUR, name: 'Brie Bucks', amount: 5 }] }, { id: 'y', twitchId: '8', username: 'broke', amounts: [{ id: CUR, name: 'Brie Bucks', amount: 0 }] }] as Awaited<ReturnType<MixItUpClient['topUsers']>>);
+    assert.equal(csvOf(users, CUR), `username,twitch_id,amount\r\nalice,77,${mi.users.get('alice')!.amount}\r\n"a,""b""",9,5\r\n`);
+    for (let i = 0; i < 35; i++) writeBackup(join(dir, 'backups'), i % 2 ? 'end' : 'start', 'x', Date.UTC(2026, 0, 1, 0, i));
+    const kept = readdirSync(join(dir, 'backups')).sort();
+    assert.equal(kept.length, BACKUPS_KEPT);
+    assert.equal(kept[0], 'brie-bucks-20260101-000500-end.csv', 'the oldest five are gone');
+    // the ledger survives a restart and is capped
+    const file = join(dir, 'ledger.json');
+    const l1 = new Ledger(file);
+    l1.add({ id: 'a', user: 'alice', amount: -100, at: 1, answer: 'ok' });
+    assert.deepEqual(new Ledger(file).all().map(r => r.id), ['a']);
+
+    const si3 = fakeSite();
+    const siSrv3 = await listen(si3.handler);
+    const client3 = new SiteClient(siSrv3.url, TOKEN, '0.8.0');
+    const obs3 = new ObsWatcher({ site: siSrv3.url, report: b => client3.report(b), backoffMs: { min: 10, max: 40 }, debounceMs: 30, reportMs: 20, heartbeatMs: 200, clipAfterMs: 30 }, obsOff);
+    const svc3 = new BridgeService({ client: client3, mix, obs: obs3, onChange: () => undefined, mixCheckMs: 20, backoffMs: { min: 10, max: 40 }, retryMs: 5, ledger: l1, backupDir: join(dir, 'backups2') });
+    svc3.start();
+    const res3 = async (j: BridgeJob) => { si3.s.jobs.push(j); await waitFor(`result of ${j.kind}`, () => si3.s.results.some(r => r.id === j.id)); return si3.s.results.find(r => r.id === j.id)!; };
+    const charge = job('deduct', { username: 'Alice', amount: 4 });
+    assert.equal((await res3(charge)).ok, true);
+    const refused = job('deduct', { username: 'alice', amount: 1000 });
+    assert.equal((await res3(refused)).ok, false);
+    const give = job('add', { username: 'alice', amount: 2 });
+    await res3(give);
+    assert.deepEqual(l1.all().slice(1).map(r => [r.id, r.user, r.amount, r.answer === 'ok']), [[charge.id, 'alice', -4, true], [refused.id, 'alice', -1000, false], [give.id, 'alice', 2, true]], 'every adjust is in the ledger, with the answer');
+    assert.equal((await res3(job('balance', { username: 'alice' }))).ok, true);
+    assert.equal(l1.all().length, 4, 'a balance check is not an adjust');
+
+    assert.equal((await res3(job('backup', { phase: 'start' }))).ok, true);
+    const made = readdirSync(join(dir, 'backups2'));
+    assert.equal(made.length, 1);
+    assert.match(readFileSync(join(dir, 'backups2', made[0]), 'utf8'), /^username,twitch_id,amount\r\nalice,77,\d+/);
+    assert.equal((await res3(job('backup', { phase: 'start', currencyId: undefined }))).ok, false, 'no currency, no backup');
+
+    assert.equal((await res3(job('ledger'))).ok, true);
+    assert.deepEqual(si3.s.ledgers[0].map(r => r.id), l1.all().map(r => r.id), 'the whole ledger goes to the site');
+    await svc3.stop();
+    await new Promise<void>(r => siSrv3.server.close(() => r()));
+    rmSync(dir, { recursive: true, force: true });
   }
 
   await obsChecks();

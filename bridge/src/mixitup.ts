@@ -17,13 +17,13 @@ export class MixItUpClient {
 
   constructor(private base: string = MIXITUP_URL, private timeoutMs = 4000) {}
 
-  private async req(method: string, path: string, body?: unknown): Promise<{ status: number; text: string }> {
+  private async req(method: string, path: string, body?: unknown, timeoutMs = this.timeoutMs): Promise<{ status: number; text: string }> {
     try {
       const res = await fetch(this.base + path, {
         method,
         headers: body === undefined ? {} : { 'content-type': 'application/json' },
         body: body === undefined ? undefined : JSON.stringify(body),
-        signal: AbortSignal.timeout(this.timeoutMs),
+        signal: AbortSignal.timeout(timeoutMs),
       });
       return { status: res.status, text: await res.text() };
     } catch (e) {
@@ -32,8 +32,8 @@ export class MixItUpClient {
     }
   }
 
-  private async ok(method: string, path: string, body?: unknown): Promise<unknown> {
-    const r = await this.req(method, path, body);
+  private async ok(method: string, path: string, body?: unknown, timeoutMs?: number): Promise<unknown> {
+    const r = await this.req(method, path, body, timeoutMs);
     if (r.status < 200 || r.status >= 300) {
       let message = `Mix It Up answered ${r.status}`;
       try { message = str((JSON.parse(r.text) as Json).Message) || message; } catch { /* not JSON */ }
@@ -101,6 +101,12 @@ export class MixItUpClient {
    *  viewer cannot cover is a 403 from Mix It Up. */
   async adjust(userId: string, currencyId: string, amount: number): Promise<void> {
     await this.ok('PUT', `/api/users/${encodeURIComponent(userId)}/currency/${encodeURIComponent(currencyId)}/adjust`, { Amount: amount });
+  }
+
+  /** GET /api/users/top?count=N (UserV1Controller): the users with the most viewing time, each with every currency amount. There is no list-all route, so a count above the viewer base is everyone, but the bots Mix It Up leaves out. The Brie Bucks backup uses it. */
+  async topUsers(count = 100_000): Promise<MixItUpUser[]> {
+    const list = (await this.ok('GET', `/api/users/top?count=${count}`, undefined, 60_000)) as Json[];
+    return (Array.isArray(list) ? list : []).map(u => this.user(u));
   }
 
   /** GET /api/chat/users: User[] across platforms; keeps the Twitch ones (TwitchID set), lowercased. */

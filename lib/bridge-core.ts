@@ -3,9 +3,10 @@
 import { createHash, randomInt } from 'crypto';
 import { VIEWERS_MAX } from './mixitup-core';
 
-export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command' | 'pull-event';
-/** `pull-event` (ROADMAP 55.8): `phase` 'start' shows `source` for `holdMs`; 'reveal' switches to `scene` for `secs` and/or saves a clip. Names are ones the app reported. */
-export interface BridgeJob { id: string; kind: JobKind; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; delayMs?: number; phase?: 'start' | 'reveal'; source?: string; holdMs?: number; scene?: string; secs?: number; clip?: boolean; at: number }
+export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command' | 'pull-event' | 'backup' | 'ledger';
+/** `pull-event` (ROADMAP 55.8): `phase` 'start' shows `source` for `holdMs`; 'reveal' switches to `scene` for `secs` and/or saves a clip (and says `text` in chat, 55.10). Names are ones the app reported.
+ *  `backup` (55.10): `phase` 'start' or 'end' saves every viewer's Brie Bucks to a CSV. `ledger`: the app posts its ledger to /api/bridge/ledger. */
+export interface BridgeJob { id: string; kind: JobKind; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; delayMs?: number; phase?: 'start' | 'reveal' | 'end'; source?: string; holdMs?: number; scene?: string; secs?: number; clip?: boolean; at: number }
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeReply { ok: boolean; status: number; body: unknown; error?: string }
 export interface BridgeCurrency { id: string; name: string }
@@ -24,7 +25,7 @@ export const TOUCH_EVERY_MS = 10_000;
 export const CONNECTED_MS = 60_000;
 export const BRIDGE_DID_NOT_ANSWER = 'TCG Bridge did not answer';
 
-const KINDS: readonly string[] = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh', 'run-command', 'pull-event'];
+const KINDS: readonly string[] = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh', 'run-command', 'pull-event', 'backup', 'ledger'];
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 

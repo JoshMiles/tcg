@@ -1,6 +1,6 @@
 // The TCG site's bridge API (app/api/bridge/*). The only address this file ever fetches is the paired site.
-export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command' | 'pull-event';
-/** `pull-event` (ROADMAP 55.8): `phase` 'start' shows `source` for `holdMs`; 'reveal' switches to `scene` for `secs` and/or saves a clip. */
+export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command' | 'pull-event' | 'backup' | 'ledger';
+/** `pull-event` (ROADMAP 55.8): `phase` 'start' shows `source` for `holdMs`; 'reveal' says `text` in chat, switches to `scene` for `secs` and/or saves a clip. `backup` (55.10): `phase` is 'start' or 'end'. */
 export interface BridgeJob { id: string; kind: string; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; delayMs?: number; phase?: string; source?: string; holdMs?: number; scene?: string; secs?: number; clip?: boolean; at?: number }
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeCurrency { id: string; name: string }
@@ -75,6 +75,12 @@ export class SiteClient {
     const r = await this.call('/api/bridge/action', body, AbortSignal.timeout(15_000));
     if (r.status !== 200) throw new SiteError(r.status, `The site answered ${r.status}`);
     return { ok: r.json.ok === true, message: typeof r.json.message === 'string' ? r.json.message : '', ...(typeof r.json.paused === 'boolean' ? { paused: r.json.paused } : {}), ...(Array.isArray(r.json.buffs) ? { buffs: (r.json.buffs as SiteAction['buffs'])!.filter(b => typeof b?.id === 'string' && typeof b?.name === 'string') } : {}) };
+  }
+
+  /** The ledger of adjusts (ROADMAP 55.10), for the site to set against its own record. */
+  async ledger(entries: unknown[]): Promise<void> {
+    const r = await this.call('/api/bridge/ledger', { entries }, AbortSignal.timeout(20_000));
+    if (r.status !== 200) throw new SiteError(r.status, `ledger: the site answered ${r.status}`);
   }
 
   /** The overlay queue, the next pull first. */
