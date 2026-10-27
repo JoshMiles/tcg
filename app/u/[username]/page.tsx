@@ -16,6 +16,7 @@ import { staffPanelLink } from '@/lib/staff-guard';
 import { ProfileHeader } from './ProfileHeader';
 import { ProfileTabBar } from './ProfileTabBar';
 import { OverviewTab } from './OverviewTab';
+import { CloseToComplete } from './CloseToComplete';
 import { ShareTab } from './ShareTab';
 import { OwnerStats } from './OwnerStats';
 import { sweepTrades } from '@/lib/trades';
@@ -96,6 +97,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
         </p>
       )}
       <ProfileTabBar username={lower} active={tab} isOwner={isOwner} asPublic={asPublic} />
+      {(tab === 'overview' || tab === 'collection') && <CloseToComplete b={b} />}
       {tab === 'overview' && <OverviewTab b={b} copies={copies} isOwner={isOwner} viewer={session?.username} mine={mine} />}
       {tab === 'collection' && <CollectionTab b={b} grid={grid} isOwner={isOwner} tradeWith={session && !isOwner ? lower : undefined} prefs={prefs} mine={mine} />}
       {tab === 'stats' && (isOwner && session
