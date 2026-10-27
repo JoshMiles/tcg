@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src https: http://localhost:* http://127.0.0.1:*; font-src 'self'">
+  <title>TCG pull feed</title>
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="tools.css">
+</head>
+<body>
+  <p id="empty" class="empty">Waiting for the next pull...</p>
+  <ul id="list" class="feed" aria-live="polite"></ul>
+  <script src="feed.js"></script>
+</body>
+</html>

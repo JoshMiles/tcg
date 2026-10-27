@@ -4,8 +4,8 @@
 import { kv, inSandbox } from './db';
 import { sendWebhook } from './webhook-send';
 import { noteOutgoing, outKindOf } from './mixitup-health';
-import { bridgePullStart, bridgeRunCommand, callBridge } from './bridge';
-import { matchRule, pullArgs, shoutText, type PullFacts } from './pull-rules-core';
+import { bridgePullStart, bridgeRunCommand, callBridge, feedOn } from './bridge';
+import { feedOf, matchRule, pullArgs, shoutText, type PullFacts } from './pull-rules-core';
 import { getActiveSeason, withLock } from './kv';
 import { getLiveStatus } from './twitch-live';
 import { notifySystem } from './discord';
@@ -41,10 +41,11 @@ export async function firePullRules(pull: PullFacts, delayMs = 0, eventId?: stri
     if (await inSandbox()) return false;
     const rules = (await getMixItUpSettings()).pullRules;
     const hit = rules.length ? matchRule(rules, pull) : null;
-    if (!hit) return false;
-    const command = hit.commandId ? await bridgeRunCommand(hit.commandId, pullArgs(pull), delayMs) : false;
-    const text = hit.say ? shoutText(hit.say, pull) : ''; // the chat line waits for the reveal like the scene and clip (55.10)
-    const obs = hit.obs || text ? await bridgePullStart({ ...hit.obs, ...(text ? { text } : {}) }, delayMs, eventId) : false;
+    const feed = eventId && (await feedOn()) ? feedOf(pull) : undefined; // the app's live pull feed (55.11) wants every reveal, rule or not
+    if (!hit && !feed) return false;
+    const command = hit?.commandId ? await bridgeRunCommand(hit.commandId, pullArgs(pull), delayMs) : false;
+    const text = hit?.say ? shoutText(hit.say, pull) : ''; // the chat line waits for the reveal like the scene and clip (55.10)
+    const obs = hit?.obs || text || feed ? await bridgePullStart({ ...hit?.obs, ...(text ? { text } : {}), ...(feed ? { feed } : {}) }, delayMs, eventId) : false;
     return command || obs;
   } catch {
     return false;

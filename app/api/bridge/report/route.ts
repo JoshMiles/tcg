@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { bridgeGuard, storeObs } from '@/lib/bridge';
+import { bridgeGuard, setFeedOn, storeObs } from '@/lib/bridge';
+import { noteUptime } from '@/lib/bridge-uptime';
 import { setLiveFromBridge } from '@/lib/twitch-live';
 import { cleanObs } from '@/lib/bridge-core';
 import { overlayWatchdog } from '@/lib/overlay-watchdog';
@@ -18,8 +19,17 @@ export async function POST(req: Request) {
   }
   if (body?.type === 'obs' && (await storeObs(body))) {
     const snap = cleanObs(body);
-    if (snap) await overlayWatchdog(snap); // the overlay watchdog (55.8) rides on this report; it never throws
+    if (snap) { await noteUptime('obs', snap.connected); await overlayWatchdog(snap); } // the uptime history (55.11) and the overlay watchdog (55.8) ride on this report; neither throws
     return NextResponse.json({ ok: true });
   }
-  return NextResponse.json({ error: 'Send { type: "stream", live } or { type: "obs", connected, scene, overlay }.' }, { status: 400 });
+  // The app's own state (55.11): whether Mix It Up answers it (for the uptime history) and whether its live pull feed window is open.
+  if (body?.type === 'mix' && typeof body.found === 'boolean') {
+    await noteUptime('mix', body.found);
+    return NextResponse.json({ ok: true });
+  }
+  if (body?.type === 'feed' && typeof body.on === 'boolean') {
+    await setFeedOn(body.on);
+    return NextResponse.json({ ok: true });
+  }
+  return NextResponse.json({ error: 'Send { type: "stream", live }, { type: "obs", connected, scene, overlay }, { type: "mix", found } or { type: "feed", on }.' }, { status: 400 });
 }

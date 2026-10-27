@@ -10,9 +10,10 @@ import { join } from 'node:path';
 import { Alerts, snapshotOf, type Snapshot } from '../src/alerts';
 import { BACKUPS_KEPT, csvOf, Ledger, writeBackup } from '../src/bucks';
 import { buttonUrl, ControlServer, Hotkeys, newControlKey, noHotkeys, parseButton, type ControlAction } from '../src/control';
-import { commandWait } from '../src/jobs';
+import { cleanFeed, cleanFeedSettings, cleanSummary, defaultFeed, shouldPlay, summaryMarkdown, trustedImage } from '../src/feed';
+import { commandWait, runJob } from '../src/jobs';
 import { diagnosticsText } from '../src/diagnostics';
-import { defaultMixItUpPath, isMixItUpExe, startMixItUp } from '../src/launch';
+import { defaultMixItUpPath, defaultObsPath, isMixItUpExe, isObsExe, obsRunning, startMixItUp, startObs } from '../src/launch';
 import { Logger, redact } from '../src/log';
 import { MixItUpClient } from '../src/mixitup';
 import { cleanObsAddress, isOverlayUrl, ObsWatcher } from '../src/obs';
@@ -706,6 +707,55 @@ async function main() {
   if (home === undefined) delete process.env.LOCALAPPDATA; else process.env.LOCALAPPDATA = home;
   rmSync(exeDir, { recursive: true, force: true });
 
+  // ── Streamer tools (55.11): the feed's sound threshold, the image host rule, the OBS launch path rule, the summary ──
+  assert.deepEqual([1, 3, 4, 5].map(stars => shouldPlay(stars, { minStars: 4, volume: 0.5, muted: false })), [false, false, true, true], 'the sound plays from the chosen rarity up');
+  assert.deepEqual([shouldPlay(5, { minStars: 4, volume: 0.5, muted: true }), shouldPlay(5, { minStars: 4, volume: 0, muted: false })], [false, false], 'mute and zero volume are silent');
+  assert.deepEqual(cleanFeedSettings({ minStars: 9, volume: 7, on: 'yes' as unknown as boolean }, defaultFeed()), { on: false, minStars: 5, volume: 1, muted: false, onTop: false }, 'settings are clamped, and the feed is off by default');
+  const SITE = 'https://cheesytcg.app';
+  const blob = 'https://abc123.public.blob.vercel-storage.com/cards/a.webp';
+  assert.deepEqual(
+    [blob, '/cards/a.png', 'https://cheesytcg.app/x.png', 'https://evil.test/a.png', 'http://abc123.public.blob.vercel-storage.com/a.png', 'https://public.blob.vercel-storage.com.evil.test/a.png', '//evil.test/a.png', 'https://user:pw@abc123.public.blob.vercel-storage.com/a.png', 'javascript:alert(1)', 'data:image/png;base64,AAAA', '', 5].map(u => trustedImage(u, SITE)),
+    [blob, 'https://cheesytcg.app/cards/a.png', 'https://cheesytcg.app/x.png', '', '', '', '', '', '', '', '', ''], 'images load only from the site or Vercel Blob');
+  assert.equal(trustedImage('/a.png', 'http://localhost:3000'), 'http://localhost:3000/a.png', 'a local site serves its own images');
+  assert.equal(cleanFeed({ viewer: 'ann', card: 'Gouda Goat', stars: 4, image: 'https://evil.test/a.png' }, SITE)?.image, '', 'an untrusted image is dropped, the pull stays');
+  assert.equal(cleanFeed({ viewer: 'ann' }, SITE), null, 'not a pull');
+  const fed: unknown[] = [], summed: unknown[] = [];
+  const sinks = { feed: (r: unknown) => { fed.push(r); }, summary: (r: unknown) => { summed.push(r); } };
+  const got = await runJob({ id: 'j1', kind: 'pull-event', phase: 'reveal', feed: { viewer: 'ann', card: 'x' } }, undefined as never, undefined as never, undefined, undefined, sinks);
+  assert.deepEqual([got.ok, fed.length], [true, 1], 'a reveal with a feed reaches the window');
+  await runJob({ id: 'j2', kind: 'pull-event', phase: 'reveal' }, undefined as never, undefined as never, undefined, undefined, sinks);
+  assert.equal(fed.length, 1, 'a reveal without one does not');
+  assert.equal((await runJob({ id: 'j3', kind: 'summary', summary: { packs: 3 } }, undefined as never, undefined as never, undefined, undefined, sinks)).ok && summed.length, 1, 'a summary job reaches the window');
+  const sum = cleanSummary({ packs: 12, pullers: 4, partial: false, taken: 1200, refunded: 100, topPullers: [{ username: 'ann', packs: 5 }], bigPulls: [{ username: 'bob', cardName: 'Gouda Goat', rarity: 'Epic', variant: 'Golden', serial: 7 }, { junk: 1 }] })!;
+  assert.equal(summaryMarkdown(sum, 'Cheesygidds'), ['**Cheesygidds recap**', 'Packs opened: 12 by 4 viewers', '', '**Big pulls**', '- Gouda Goat (Epic, Golden, #7) pulled by bob', '', '**Top pullers**', '1. ann: 5 packs', '', 'Brie Bucks: 1,200 taken, 100 refunded'].join('\n'), 'plain Markdown for Discord');
+  assert.equal(cleanSummary('x'), null);
+  const obsDir = mkdtempSync(join(tmpdir(), 'tcg-bridge-obs-'));
+  const obsExe = join(obsDir, 'obs64.exe');
+  writeFileSync(obsExe, 'x');
+  writeFileSync(join(obsDir, 'MixItUp.exe'), 'x');
+  assert.deepEqual([obsExe, join(obsDir, 'MixItUp.exe'), join(obsDir, 'missing', 'obs64.exe'), 'obs64.exe', ''].map(isObsExe), [true, false, false, false, false], 'only a file called obs64.exe is launched');
+  const obsSpawned: { cmd: string; cwd: unknown }[] = [];
+  const obsSpawn = ((cmd: string, _a: string[], opts: Record<string, unknown>) => {
+    obsSpawned.push({ cmd, cwd: opts.cwd });
+    const child = new EventEmitter() as ChildProcess;
+    child.unref = () => child;
+    queueMicrotask(() => child.emit('spawn'));
+    return child;
+  }) as unknown as Parameters<typeof startObs>[1];
+  const programFiles = process.env.ProgramFiles;
+  process.env.ProgramFiles = join(obsDir, 'empty'); // no OBS at the default path
+  assert.equal((await startObs(join(obsDir, 'MixItUp.exe'), obsSpawn)).ok, false, 'a saved path that is not obs64.exe is never launched');
+  if (programFiles === undefined) delete process.env.ProgramFiles; else process.env.ProgramFiles = programFiles;
+  assert.equal(obsSpawned.length, 0);
+  assert.equal((await startObs(obsExe, obsSpawn)).ok, true);
+  assert.deepEqual(obsSpawned[0], { cmd: obsExe, cwd: obsDir }, 'OBS starts with its own folder as the working directory');
+  assert.match(defaultObsPath(), /obs-studio[\\/]bin[\\/]64bit[\\/]obs64\.exe$/);
+  assert.equal(await obsRunning(((_c: string, _a: string[], _o: unknown, cb: (e: Error | null, out: string) => void) => { cb(null, 'obs64.exe   1234 Console'); }) as never), true, 'a running OBS is not started twice');
+  assert.equal(await obsRunning(((_c: string, _a: string[], _o: unknown, cb: (e: Error | null, out: string) => void) => { cb(null, 'INFO: No tasks are running'); }) as never), false);
+  rmSync(obsDir, { recursive: true, force: true });
+  const s0 = defaults();
+  assert.deepEqual([s0.feed.on, s0.summary, s0.startObs], [false, false, false], 'every streamer tool is off by default');
+
   // ── Updates ──
   assert.equal(releaseUrl('0.3.0'), 'https://github.com/JoshMiles/tcg/releases/tag/bridge-v0.3.0');
   assert.deepEqual([updatedTo('', '0.3.0'), updatedTo('0.3.0', '0.3.0'), updatedTo('0.2.0', '0.3.0')], ['', '', '0.3.0'], 'first run and no change say nothing');
@@ -776,7 +826,7 @@ async function main() {
   assert.equal((await store.load()).site, 'https://cheesytcg.app');
   assert.equal((await store.load()).startWithWindows, true);
   assert.deepEqual([(await store.load()).alerts, (await store.load()).startMixItUp, (await store.load()).mixItUpPath, defaults().lastSeenVersion], [true, false, '', ''], 'alerts on, starting Mix It Up off');
-  const full = { site: 'https://example.test', token: 'secret-token', pairedAs: 'PC', startWithWindows: false, obsEnabled: true, obsAddress: 'ws://localhost:4456', obsPassword: 'obs-secret', obsStartReplay: true, alerts: false, startMixItUp: true, mixItUpPath: 'C:\\Mix\\MixItUp.exe', lastSeenVersion: '0.2.0', controlKey: 'abcdefghij0123456789', hotkeys: { refresh: 'Ctrl+Alt+R', pause: '', lastBuff: 'Ctrl+Alt+B' } };
+  const full = { site: 'https://example.test', token: 'secret-token', pairedAs: 'PC', startWithWindows: false, obsEnabled: true, obsAddress: 'ws://localhost:4456', obsPassword: 'obs-secret', obsStartReplay: true, alerts: false, startMixItUp: true, mixItUpPath: 'C:\\Mix\\MixItUp.exe', lastSeenVersion: '0.2.0', controlKey: 'abcdefghij0123456789', hotkeys: { refresh: 'Ctrl+Alt+R', pause: '', lastBuff: 'Ctrl+Alt+B' }, feed: { on: true, minStars: 3, volume: 0.25, muted: true, onTop: true }, summary: true, startObs: true, obsPath: 'C:\\Obs\\obs64.exe' };
   await store.save(full);
   const saved = readFileSync(join(dir, 'settings.json'), 'utf8');
   assert.ok(!saved.includes('secret-token') && !saved.includes('obs-secret'));

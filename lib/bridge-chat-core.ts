@@ -2,6 +2,8 @@
 // the ledger comparison. No database, no network. lib/bridge-chat.ts does the sending and keeps the records.
 
 import type { StreamRecap } from './stream-recap';
+import { getRarity } from './rarity';
+import { VARIANT_LABELS } from './variants';
 
 export const DEFAULT_START = 'Packs are open: type !pack';
 export const DEFAULT_END = 'Thanks for watching! Top pull: {topPull}. Most packs: {topPullers}';
@@ -66,4 +68,24 @@ export function compareLedgers(site: readonly LedgerRow[], app: readonly AppLedg
   }
   for (const [id, a] of theirs) if (!mine.has(id)) out.push(`${a.user} ${signed(a.amount)}: in TCG Bridge's ledger${a.answer && a.answer !== 'ok' ? ` (${a.answer})` : ''}, not in the site's record`);
   return out;
+}
+
+// ── The end-of-stream summary for the app (ROADMAP 55.11) ──
+
+export interface SummaryPull { username: string; cardName: string; rarity: string; variant: string; serial?: number }
+/** What the app's summary window shows: the recap's own numbers plus the Brie Bucks the site took and gave back during the stream. */
+export interface StreamSummary { packs: number; pullers: number; partial: boolean; topPullers: { username: string; packs: number }[]; bigPulls: SummaryPull[]; taken: number; refunded: number }
+
+/** The recap (not recounted) and the site's charge record for the stream, as the job the app shows. */
+export function summaryOf(recap: StreamRecap, charges: readonly LedgerRow[], from: number, to: number): StreamSummary {
+  const pull = (p: NonNullable<StreamRecap['rarest']>): SummaryPull => ({ username: p.username, cardName: p.cardName, rarity: getRarity(p.stars)?.label ?? '', variant: VARIANT_LABELS[p.variant ?? 'regular'], ...(p.serial ? { serial: p.serial } : {}) });
+  const big = [recap.rarest, ...recap.firstEver].filter((p): p is NonNullable<StreamRecap['rarest']> => !!p);
+  const mine = charges.filter(r => r.at >= from && r.at <= to);
+  return {
+    packs: recap.packs, pullers: recap.pullers, partial: recap.partial,
+    topPullers: (recap.topPullers ?? (recap.topPuller ? [recap.topPuller] : [])).slice(0, 3),
+    bigPulls: big.filter((p, i) => big.findIndex(q => q.username === p.username && q.cardName === p.cardName && q.serial === p.serial) === i).slice(0, 5).map(pull),
+    taken: -mine.filter(r => r.amount < 0).reduce((n, r) => n + r.amount, 0),
+    refunded: mine.filter(r => r.amount > 0).reduce((n, r) => n + r.amount, 0),
+  };
 }

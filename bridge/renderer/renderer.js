@@ -107,6 +107,14 @@ function render() {
   $('update').textContent = state.update || 'No update waiting.';
   $('alerts').checked = state.alerts;
   $('mix-autostart').checked = state.mixItUp.startWithBridge;
+  $('feed-on').checked = state.tools.feed.on;
+  $('feed-top').checked = state.tools.feed.onTop;
+  $('feed-mute').checked = state.tools.feed.muted;
+  $('feed-stars').value = String(state.tools.feed.minStars);
+  if (document.activeElement !== $('feed-volume')) $('feed-volume').value = String(Math.round(state.tools.feed.volume * 100)); // not while it is being dragged
+  $('summary-on').checked = state.tools.summary;
+  $('obs-autostart').checked = state.tools.startObs;
+  $('obs-path').textContent = state.tools.obsPath;
   renderBanners();
   renderControl();
   const level = svc ? svc.tray : 'offline';
@@ -194,6 +202,13 @@ $('autostart').addEventListener('change', e => window.bridge.setStartWithWindows
 
 $('alerts').addEventListener('change', e => window.bridge.setAlerts(e.target.checked));
 $('mix-autostart').addEventListener('change', e => window.bridge.setStartMixItUp(e.target.checked));
+$('feed-on').addEventListener('change', e => window.bridge.setFeed({ on: e.target.checked }));
+$('feed-top').addEventListener('change', e => window.bridge.setFeed({ onTop: e.target.checked }));
+$('feed-mute').addEventListener('change', e => window.bridge.setFeed({ muted: e.target.checked }));
+$('feed-stars').addEventListener('change', e => window.bridge.setFeed({ minStars: Number(e.target.value) }));
+$('feed-volume').addEventListener('change', e => window.bridge.setFeed({ volume: Number(e.target.value) / 100 }));
+$('summary-on').addEventListener('change', e => window.bridge.setSummary(e.target.checked));
+$('obs-autostart').addEventListener('change', e => window.bridge.setStartObs(e.target.checked));
 $('updated-link').addEventListener('click', () => window.bridge.openRelease());
 $('open-release').addEventListener('click', () => window.bridge.openRelease());
 $('updated-dismiss').addEventListener('click', () => window.bridge.dismissUpdated());
@@ -223,6 +238,7 @@ action('test-chat', 'test-chat-result', () => window.bridge.testChat());
 action('test-obs', 'test-obs-result', () => window.bridge.testObs());
 action('mix-start', 'mix-start-result', () => window.bridge.startMixItUp());
 action('mix-choose', 'mix-start-result', () => window.bridge.chooseMixItUp());
+action('obs-choose', 'obs-choose-result', () => window.bridge.chooseObsExe());
 action('open-logs', 'help-result', () => window.bridge.openLogs());
 action('open-backups', 'backup-result', () => window.bridge.openBackups());
 action('copy-diagnostics', 'help-result', () => window.bridge.copyDiagnostics());

@@ -3,6 +3,7 @@
 import { getRarity } from './rarity';
 import { VARIANTS, VARIANT_LABELS } from './variants';
 import type { Variant } from './types';
+import type { PullFeed } from './bridge-core';
 
 export const RULES_MAX = 10;
 export const REVEAL_MAX_MS = 15_000;
@@ -50,7 +51,10 @@ function readObs(raw: unknown, ok: (kind: 'scene' | 'source', name: string) => b
 }
 
 /** What a saved pull is, as far as the rules care. `isNew` = the first copy of this card the viewer has (new to their dex). */
-export interface PullFacts { username: string; cardName: string; stars: number; variant: Variant; isNew: boolean; serial?: number }
+export interface PullFacts { username: string; cardName: string; stars: number; variant: Variant; isNew: boolean; serial?: number; imageUrl?: string }
+
+/** The card as the app's live feed window shows it (ROADMAP 55.11). */
+export const feedOf = (p: PullFacts): PullFeed => ({ viewer: p.username, card: p.cardName, rarity: getRarity(p.stars)?.label ?? '', stars: p.stars, variant: VARIANT_LABELS[p.variant], ...(p.serial ? { serial: p.serial } : {}), ...(p.imageUrl ? { image: p.imageUrl } : {}) });
 
 const ID = /^[A-Za-z0-9_-]{1,40}$/;
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

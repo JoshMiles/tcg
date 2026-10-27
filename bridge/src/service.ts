@@ -1,6 +1,6 @@
 // The long-poll loop and the Mix It Up watcher. Plain TypeScript, no Electron: main.ts only wires it to the tray and the window.
 import { csvOf, writeBackup, type Ledger } from './bucks';
-import { commandWait, isKnownKind, Refused, runJob, undoLate, type BucksTasks } from './jobs';
+import { commandWait, isKnownKind, Refused, runJob, undoLate, type BucksTasks, type Sinks } from './jobs';
 import { MixItUpClient, MixItUpDown, MixItUpError } from './mixitup';
 import type { ObsConfig, ObsState, ObsWatcher } from './obs';
 import { SiteClient, SiteError, Unauthorized, type BridgeCommand, type BridgeJob, type BridgeResult } from './site';
@@ -38,6 +38,8 @@ export interface ServiceOptions {
   /** The Brie Bucks ledger and backup folder (ROADMAP 55.10); the checks leave them out. */
   ledger?: Ledger;
   backupDir?: string;
+  /** The live pull feed and summary windows (55.11). */
+  sinks?: Sinks;
 }
 
 const JOURNAL_MAX = 50;
@@ -57,7 +59,10 @@ export class BridgeService {
   private commandIds = new Set<string>();
   private done: Promise<unknown> = Promise.resolve();
   private seen = { site: '', mix: '', obs: '' };
-  private o: Required<Omit<ServiceOptions, 'ledger' | 'backupDir'>> & Pick<ServiceOptions, 'ledger' | 'backupDir'>;
+  /** Whether Mix It Up answered at the last report to the site, and when: the site keeps the uptime history from these (55.11). */
+  private mixReported: boolean | null = null;
+  private mixReportAt = 0;
+  private o: Required<Omit<ServiceOptions, 'ledger' | 'backupDir' | 'sinks'>> & Pick<ServiceOptions, 'ledger' | 'backupDir' | 'sinks'>;
 
   constructor(opts: ServiceOptions) {
     this.o = { log: () => undefined, mixCheckMs: 5000, commandsMs: 300_000, backoffMs: { min: 1000, max: 30_000 }, retryMs: 300, ...opts };
@@ -138,6 +143,11 @@ export class BridgeService {
     const version = await this.o.mix.version().catch(() => null);
     const was = this.state.mix.found;
     this.state.mix = { found: version !== null, version: version ?? '' };
+    if (this.mixReported !== (version !== null) || Date.now() - this.mixReportAt >= 60_000) {
+      this.mixReported = version !== null;
+      this.mixReportAt = Date.now();
+      void this.o.client.report({ type: 'mix', found: version !== null }).catch(() => undefined);
+    }
     if (!was && version !== null) this.helloPending = true;
     if (version !== null && !this.helloPending && Date.now() - this.helloAt >= this.o.commandsMs) this.helloPending = true; // the command list changes while Mix It Up runs
     if (version !== null && this.helloPending) {
@@ -200,7 +210,7 @@ export class BridgeService {
       if (this.abort.signal.aborted) return;
     }
     const t0 = Date.now();
-    const result = await runJob(job, this.o.mix, this.o.obs, this.commandIds, this.bucks);
+    const result = await runJob(job, this.o.mix, this.o.obs, this.commandIds, this.bucks, this.o.sinks);
     const signed = job.kind === 'deduct' ? -(job.amount ?? 0) : job.kind === 'add' ? job.amount ?? 0 : 0;
     if (this.o.ledger && signed !== 0 && job.username) {
       this.o.ledger.add({ id: job.id, user: job.username.toLowerCase(), amount: signed, at: job.at ?? Date.now(), answer: result.ok ? 'ok' : result.error ?? 'failed' });
@@ -271,6 +281,7 @@ function summary(job: BridgeJob, r: BridgeResult): string {
     case 'run-command': return 'ran a Mix It Up command';
     case 'backup': return 'saved the Brie Bucks backup';
     case 'ledger': return 'sent the Brie Bucks ledger to the site';
+    case 'summary': return 'showed the stream summary';
     default: return 'said in chat';
   }
 }

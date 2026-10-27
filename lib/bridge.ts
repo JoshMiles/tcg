@@ -11,9 +11,10 @@ import { noteOutgoing, outKindOf } from './mixitup-health';
 import type { MixItUpSettings } from './mixitup-core';
 import type { PullObs } from './pull-rules-core';
 import type { LedgerRow } from './bridge-chat-core';
+import { noteUptime } from './bridge-uptime';
 import {
-  BRIDGE_DID_NOT_ANSWER, IDLE_POLL_MS, LONG_POLL_MS, PAIR_TTL_S, POLL_MS, RESULT_TTL_S, TOUCH_EVERY_MS, WAIT_MS,
-  cleanHello, cleanName, cleanObs, cleanResult, hashToken, isFreshJob, newPairCode, normalizeCode, replyFromResult,
+  BRIDGE_DID_NOT_ANSWER, CONNECTED_MS, IDLE_POLL_MS, LONG_POLL_MS, PAIR_TTL_S, POLL_MS, RESULT_TTL_S, TOUCH_EVERY_MS, WAIT_MS,
+  cleanHello, cleanName, cleanObs, cleanResult, hashToken, isFreshJob, newPairCode, normalizeCode, replyFromResult, type PullFeed,
   type BridgeCommand, type BridgeCurrency, type BridgeJob, type BridgeReply, type JobKind, type ObsSnapshot,
 } from './bridge-core';
 
@@ -21,6 +22,7 @@ const JOBS = 'bridge:jobs';
 const TOKENS = 'bridge:tokens';
 const STATE = 'mixitup:bridge';
 const OBS = 'bridge:obs';
+const FEED = 'bridge:feed';
 const resultKey = (id: string) => `bridge:result:${id}`;
 const pairKey = (code: string) => `bridge:pair:${code}`;
 
@@ -134,8 +136,16 @@ export async function bridgeQueue(job: Omit<BridgeJob, 'id' | 'at'>): Promise<bo
 const pullEventKey = (id: string) => `bridge:pullevent:${id}`;
 const PULL_EVENT_TTL_S = 120;
 /** A pull's OBS actions plus the chat line (55.10), the line already rendered. */
-export type PullBridge = PullObs & { text?: string };
-const revealPart = (o: PullBridge): Partial<BridgeJob> => ({ ...(o.scene ? { scene: o.scene, secs: o.sceneSecs } : {}), ...(o.clip ? { clip: true } : {}), ...(o.text ? { text: o.text } : {}) });
+export type PullBridge = PullObs & { text?: string; feed?: PullFeed };
+const revealPart = (o: PullBridge): Partial<BridgeJob> => ({ ...(o.scene ? { scene: o.scene, secs: o.sceneSecs } : {}), ...(o.clip ? { clip: true } : {}), ...(o.text ? { text: o.text } : {}), ...(o.feed ? { feed: o.feed } : {}) });
+
+// The live pull feed window (ROADMAP 55.11) is off until the app says it is open: `bridge:feed` is set by the app's report. Only then does a pull
+// leave its card facts for the reveal, so nothing extra is stored or queued when the window is unused.
+export async function setFeedOn(on: boolean): Promise<void> {
+  if (on) await kv.set(FEED, 1, { ex: 7 * 86400 });
+  else await kv.del(FEED);
+}
+export const feedOn = async (): Promise<boolean> => !!(await kv.get(FEED).catch(() => null));
 
 /** The start of a pull's OBS actions. `holdMs` is how long until the reveal. True when anything was queued or kept for the reveal. */
 export async function bridgePullStart(o: PullBridge,holdMs: number, eventId?: string): Promise<boolean> {
@@ -207,6 +217,10 @@ async function touchBridge(hash: string, version?: string, now = Date.now()): Pr
   const rec = await kv.hget<BridgeToken>(TOKENS, hash);
   if (!rec) return false;
   if (now - rec.lastSeen < TOUCH_EVERY_MS) return true;
+  if (rec.lastSeen && now - rec.lastSeen > CONNECTED_MS) { // it was away: the uptime history gets the gap (55.11)
+    await noteUptime('bridge', false, rec.lastSeen + CONNECTED_MS);
+    await noteUptime('bridge', true, now);
+  }
   // shortcut: a revoke between the read and this write could bring the token back, when it matters make it one EVAL.
   await kv.hset(TOKENS, { [hash]: { ...rec, lastSeen: now } });
   await kv.hset(STATE, { at: now, ...(version ? { version } : {}) });

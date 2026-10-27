@@ -70,6 +70,8 @@ dd { margin: 0; overflow-wrap: anywhere; }
 form { display: grid; gap: 10px; max-width: 380px; margin-top: 10px; }
 label { display: grid; gap: 4px; }
 label.inline, label:has(input[type="checkbox"]:not(.switch)) { display: flex; align-items: center; gap: 8px; }
+select { padding: 6px 8px; border: 1px solid var(--line-hi); border-radius: var(--radius-field); background: var(--bg); color: var(--fg); font: inherit; }
+input[type="range"] { accent-color: var(--primary); }
 input[type="text"], input[type="password"] { padding: 8px 10px; border: 1px solid var(--line-hi); border-radius: var(--radius-field); background: var(--bg); color: var(--fg); font: inherit; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 .tools { margin-top: 12px; align-items: center; }

@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
         test ? Promise.resolve() : getWebhookSettings().then(settings => fireOutgoing(settings.outgoing.cardPulled, {
           username, cardName: ticket.cardName, cardNumber: String(cardNumber), stars: String(ticket.stars), variant, packName: ticket.packName,
         }, 'cardPulled')),
-        firePullRules({ username, cardName: ticket.cardName, stars: ticket.stars, variant, isNew, serial: serial || undefined }, revealDelay(revealInMs), eventId)
+        firePullRules({ username, cardName: ticket.cardName, stars: ticket.stars, variant, isNew, serial: serial || undefined, imageUrl: ticket.imageUrl }, revealDelay(revealInMs), eventId)
           .then(queued => step('rules', queued ? 'ok' : 'skipped', queued ? 'A Mix It Up command was queued for TCG Bridge' : 'No rule matched, or no bridge is paired')),
       ]);
       await endTest();

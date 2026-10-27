@@ -26,6 +26,7 @@ import { Overview, CHIP_STYLE } from './Overview';
 import { PullRules } from './PullRules';
 import { ChatBucks } from './ChatBucks';
 import { readLedgerCheck } from '@/lib/bridge-chat';
+import { readUptime } from '@/lib/bridge-uptime';
 import { recentTests } from '@/lib/mixitup-test';
 import { inSandbox } from '@/lib/db';
 
@@ -70,7 +71,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
       recent: [...log, ...cmdLog].sort((a, b) => b.at - a.at).slice(0, 5),
       streamExtra: streamBuffAmount(await getStreamBuff(), await currentStreamKey()),
       paused: await isPullsPaused(), pauseChat: await pauseChatOn(),
-      testViewers: settings.testViewers, paidOn: settings.enabled, sandbox: await inSandbox(), tests: await recentTests(),
+      testViewers: settings.testViewers, paidOn: settings.enabled, sandbox: await inSandbox(), tests: await recentTests(), uptime: await readUptime(),
     };
   };
   return (
