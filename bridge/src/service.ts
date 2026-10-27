@@ -6,13 +6,17 @@ import { SiteClient, SiteError, Unauthorized, type BridgeJob, type BridgeResult 
 
 export type SiteState = 'connecting' | 'connected' | 'offline' | 'revoked';
 export type TrayLevel = 'connected' | 'partly' | 'offline';
-export interface JobEntry { at: number; kind: string; username?: string; ok: boolean; detail: string }
+export interface JobEntry { at: number; kind: string; username?: string; ok: boolean; detail: string; ms: number }
 export interface BridgeState {
   site: SiteState;
   siteError: string;
   lastPollAt: number | null;
   mix: { found: boolean; version: string };
   currency: string;
+  /** From the site's hello answer, and the newest job's currency: the self-test reads it. */
+  currencyId: string;
+  /** The streamer's channel name, from the site's hello answer; prefills the Mix It Up test. */
+  channel: string;
   jobs: JobEntry[];
   tray: TrayLevel;
   obs: ObsState;
@@ -23,6 +27,8 @@ export interface ServiceOptions {
   mix: MixItUpClient;
   obs: ObsWatcher;
   onChange: () => void;
+  /** One line for the log file (main.ts redacts it). */
+  log?: (line: string) => void;
   mixCheckMs?: number;
   backoffMs?: { min: number; max: number };
   retryMs?: number;
@@ -40,11 +46,12 @@ export class BridgeService {
   private abort = new AbortController();
   private helloPending = true;
   private done: Promise<unknown> = Promise.resolve();
+  private seen = { site: '', mix: '', obs: '' };
   private o: Required<ServiceOptions>;
 
   constructor(opts: ServiceOptions) {
-    this.o = { mixCheckMs: 5000, backoffMs: { min: 1000, max: 30_000 }, retryMs: 300, ...opts };
-    this.state = { site: 'connecting', siteError: '', lastPollAt: null, mix: { found: false, version: '' }, currency: '', jobs: [], tray: 'offline', obs: opts.obs.state };
+    this.o = { log: () => undefined, mixCheckMs: 5000, backoffMs: { min: 1000, max: 30_000 }, retryMs: 300, ...opts };
+    this.state = { site: 'connecting', siteError: '', lastPollAt: null, mix: { found: false, version: '' }, currency: '', currencyId: '', channel: '', jobs: [], tray: 'offline', obs: opts.obs.state };
   }
 
   start(): void {
@@ -59,6 +66,9 @@ export class BridgeService {
     await Promise.all([this.done, this.o.obs.stop()]);
   }
 
+  /** For the window's "Check OBS". */
+  get obs(): ObsWatcher { return this.o.obs; }
+
   /** New OBS settings from the window. */
   reconfigureObs(config: ObsConfig): Promise<void> {
     return this.o.obs.configure(config);
@@ -70,7 +80,23 @@ export class BridgeService {
     const parts = [s.site === 'connected', s.mix.found, ...(s.obs.enabled ? [s.obs.connected] : [])];
     const up = parts.filter(Boolean).length;
     s.tray = up === parts.length ? 'connected' : up === 0 ? 'offline' : 'partly';
+    this.logTransitions();
     this.o.onChange();
+  }
+
+  /** One log line each time the site, Mix It Up or OBS goes up or down. */
+  private logTransitions(): void {
+    const s = this.state;
+    const now = {
+      site: s.site === 'connected' ? 'connected' : `${s.site}${s.siteError ? ` (${s.siteError})` : ''}`,
+      mix: s.mix.found ? `found, version ${s.mix.version}` : 'not found',
+      obs: !s.obs.enabled ? 'off' : s.obs.connected ? 'connected' : `not connected${s.obs.error ? ` (${s.obs.error})` : ''}`,
+    };
+    const names = { site: 'Site', mix: 'Mix It Up', obs: 'OBS' };
+    for (const k of ['site', 'mix', 'obs'] as const) {
+      if (now[k] !== this.seen[k]) this.o.log(`${names[k]}: ${now[k]}`);
+      this.seen[k] = now[k];
+    }
   }
 
   private revoke(): void {
@@ -105,10 +131,13 @@ export class BridgeService {
     if (!was && version !== null) this.helloPending = true;
     if (version !== null && this.helloPending) {
       try {
-        await this.o.client.hello(await this.o.mix.currencies(), version);
+        const answer = await this.o.client.hello(await this.o.mix.currencies(), version);
+        this.state.channel = answer.channel;
+        if (answer.currencyId) this.state.currencyId = answer.currencyId;
         this.helloPending = false;
       } catch (e) {
         if (e instanceof Unauthorized) this.revoke();
+        else this.o.log(`Hello to the site failed: ${e instanceof Error ? e.message : 'unknown error'}`);
         // anything else: try again on the next check
       }
     }
@@ -134,6 +163,7 @@ export class BridgeService {
         if (signal.aborted) return;
         this.state.site = 'offline';
         this.state.siteError = e instanceof SiteError ? e.message : 'Cannot reach the site';
+        if (!(e instanceof SiteError)) this.o.log(`Site error: ${e instanceof Error ? e.message : 'unknown error'}`);
         this.changed();
         await sleep(backoff, signal);
         backoff = Math.min(backoff * 2, this.o.backoffMs.max);
@@ -142,9 +172,12 @@ export class BridgeService {
   }
 
   private async handle(job: BridgeJob): Promise<void> {
+    const t0 = Date.now();
     const result = await runJob(job, this.o.mix, this.o.obs);
-    const entry = this.log({ kind: job.kind, username: job.username, ok: result.ok, detail: result.ok ? summary(job, result) : result.error ?? 'failed' });
-    if (job.currencyId) this.state.currency = this.o.mix.currencyName(job.currencyId);
+    const ms = Date.now() - t0;
+    const entry = this.log({ kind: job.kind, username: job.username, ok: result.ok, detail: result.ok ? summary(job, result) : result.error ?? 'failed', ms });
+    this.o.log(`Job ${job.kind} ${result.ok ? 'ok' : 'failed'} in ${ms} ms${result.ok ? '' : `: ${result.error ?? 'failed'}`}`);
+    if (job.currencyId) { this.state.currency = this.o.mix.currencyName(job.currencyId); this.state.currencyId = job.currencyId; }
     this.changed();
     let outcome: 'stored' | 'late' | 'lost';
     try {
@@ -155,7 +188,9 @@ export class BridgeService {
     }
     if (outcome === 'lost') {
       entry.detail += ' (the site did not get the result)';
+      this.o.log(`Job ${job.kind}: the site did not get the result`);
     } else if (outcome === 'late') {
+      this.o.log(`Job ${job.kind}: the site had given up`);
       entry.ok = false;
       entry.detail = result.ok ? (await undoLate(job, this.o.mix)) || 'Late: the site had given up, nothing to undo' : `${entry.detail} (late)`;
     } else if (result.ok && job.kind === 'deduct' && job.text) {

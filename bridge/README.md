@@ -20,6 +20,14 @@ The app can also watch OBS on the same PC: it tells the site when the stream sta
 
 The overlay is the browser source whose address is `<paired site>/overlay.html?...`; only its name is reported, never the address or key. An overlay inside a nested scene is not seen; an overlay inside a group is.
 
+## Alerts, tests and the log
+
+- **Alerts.** A Windows notification when the site link, Mix It Up or OBS drops while OBS says the stream is live (or any time OBS is switched off in the app), and one when it comes back. A part must be down 15 seconds first, and a part alerts at most once every 2 minutes. The "Alert me when a link drops while live" switch in the window turns the notifications off.
+- **Tests** (buttons in the window, each answers in words): **Test Mix It Up** (Developer API, version, the chosen currency by id and name, a balance for a Twitch name, prefilled with the channel name), **Send test chat message**, **Check OBS**.
+- **Start Mix It Up.** When Mix It Up is not found the window offers **Start Mix It Up**. It launches only `MixItUp.exe` from the path you chose with **Choose MixItUp.exe...**, else from Mix It Up's default install folder (`%LocalAppData%\MixItUp`). The **Start Mix It Up with TCG Bridge** switch (off by default) does it when the app starts.
+- **Log.** One file a day in the app's logs folder (**Open log folder**), kept 7 days: connects, drops, jobs (kind, result, time) and errors. It never holds the pairing token, the OBS password, the pair code or the overlay key. **Copy diagnostics** copies the versions, the statuses and the last 20 jobs as text, redacted the same way, for a bug report.
+- **Updates.** The window shows the version and a **Check for updates** button. After an update it says "Updated to x.y.z" once, with a link to the release notes.
+
 ## Develop
 
 ```
@@ -33,7 +41,7 @@ npm run dist        # build the installer into release/ (not committed)
 
 `TCG_BRIDGE_DATA=<folder>` keeps the app's settings in that folder instead of the real user data folder, which is handy against a local site (`http://localhost:3000` is allowed as a site address; anything else must be https).
 
-- `src/site.ts`, `src/mixitup.ts`, `src/obs.ts`, `src/jobs.ts`, `src/service.ts`, `src/settings.ts`: plain TypeScript with no Electron imports, so the checks run under Node.
+- `src/site.ts`, `src/mixitup.ts`, `src/obs.ts`, `src/jobs.ts`, `src/service.ts`, `src/settings.ts`, `src/alerts.ts`, `src/selftest.ts`, `src/launch.ts`, `src/log.ts`, `src/diagnostics.ts`, `src/update.ts`: plain TypeScript with no Electron imports, so the checks run under Node.
 - `src/main.ts` and `src/preload.ts`: the Electron glue (tray, window, auto start, updates, encrypted token).
 - `renderer/`: the window, plain HTML, CSS and JS.
 

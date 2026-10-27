@@ -2,9 +2,12 @@
 import { mkdirSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 
-export interface Settings { site: string; token: string; pairedAs: string; startWithWindows: boolean; obsEnabled: boolean; obsAddress: string; obsPassword: string }
+export interface Settings {
+  site: string; token: string; pairedAs: string; startWithWindows: boolean; obsEnabled: boolean; obsAddress: string; obsPassword: string;
+  alerts: boolean; startMixItUp: boolean; mixItUpPath: string; lastSeenVersion: string;
+}
 export const DEFAULT_SITE = 'https://cheesytcg.app';
-export const defaults = (): Settings => ({ site: DEFAULT_SITE, token: '', pairedAs: '', startWithWindows: true, obsEnabled: false, obsAddress: 'ws://127.0.0.1:4455', obsPassword: '' });
+export const defaults = (): Settings => ({ site: DEFAULT_SITE, token: '', pairedAs: '', startWithWindows: true, obsEnabled: false, obsAddress: 'ws://127.0.0.1:4455', obsPassword: '', alerts: true, startMixItUp: false, mixItUpPath: '', lastSeenVersion: '' });
 
 export interface Cipher { encrypt(plain: string): Promise<Buffer>; decrypt(data: Buffer): Promise<string> }
 export interface SettingsStore { load(): Promise<Settings>; save(s: Settings): Promise<void> }
@@ -23,6 +26,10 @@ export class FileSettingsStore implements SettingsStore {
       if (typeof raw.startWithWindows === 'boolean') s.startWithWindows = raw.startWithWindows;
       if (typeof raw.obsEnabled === 'boolean') s.obsEnabled = raw.obsEnabled;
       if (typeof raw.obsAddress === 'string' && raw.obsAddress) s.obsAddress = raw.obsAddress;
+      if (typeof raw.alerts === 'boolean') s.alerts = raw.alerts;
+      if (typeof raw.startMixItUp === 'boolean') s.startMixItUp = raw.startMixItUp;
+      if (typeof raw.mixItUpPath === 'string') s.mixItUpPath = raw.mixItUpPath;
+      if (typeof raw.lastSeenVersion === 'string') s.lastSeenVersion = raw.lastSeenVersion;
       if (typeof raw.obsPassword === 'string' && raw.obsPassword) s.obsPassword = await this.cipher.decrypt(Buffer.from(raw.obsPassword, 'base64')).catch(() => '');
       if (typeof raw.token === 'string' && raw.token) s.token = await this.cipher.decrypt(Buffer.from(raw.token, 'base64'));
     } catch { /* no file yet, or a token this PC cannot decrypt: start unpaired */ }
@@ -34,6 +41,7 @@ export class FileSettingsStore implements SettingsStore {
     const seal = async (plain: string) => (plain ? (await this.cipher.encrypt(plain)).toString('base64') : '');
     const out = {
       site: s.site, pairedAs: s.pairedAs, startWithWindows: s.startWithWindows, obsEnabled: s.obsEnabled, obsAddress: s.obsAddress,
+      alerts: s.alerts, startMixItUp: s.startMixItUp, mixItUpPath: s.mixItUpPath, lastSeenVersion: s.lastSeenVersion,
       obsPassword: await seal(s.obsPassword), token: await seal(s.token),
     };
     const tmp = this.file + '.tmp';

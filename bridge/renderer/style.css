@@ -23,10 +23,20 @@ label.inline { display: flex; align-items: center; gap: 6px; }
 input[type="text"], input[type="password"] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--fg); font: inherit; }
 label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: 6px; }
 button { padding: 6px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--accent); color: #1d1d1b; font: inherit; cursor: pointer; }
-button#unpair { background: var(--card); color: var(--fg); }
+button.plain, button#unpair { background: var(--card); color: var(--fg); }
+button:disabled { opacity: .6; cursor: default; }
+button.link { padding: 0; border: 0; background: none; color: inherit; text-decoration: underline; }
+.small { font-size: 12px; margin: 8px 0 0; }
+.tools { margin-top: 10px; align-items: center; }
+.result { margin: 6px 0 0; min-height: 1.4em; overflow-wrap: anywhere; }
+.result.ok { color: var(--ok); }
+.result.fail { color: var(--bad); }
+.help.good { border-left-color: var(--ok); }
+#test-name { width: 150px; }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { color: var(--muted); font-weight: 600; }
 td.fail { color: var(--bad); }
 footer { display: flex; align-items: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
 footer .muted { flex: 1; }
+footer .result { flex-basis: 100%; margin: 0; }

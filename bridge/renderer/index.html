@@ -12,6 +12,12 @@
     <span id="version" class="muted"></span>
   </header>
 
+  <p id="updated" class="help good" hidden>
+    Updated to <span id="updated-version"></span>.
+    <button id="updated-link" type="button" class="link">See what changed</button>
+    <button id="updated-dismiss" type="button" class="link">Dismiss</button>
+  </p>
+
   <section id="pairing" hidden>
     <h2>Pair with the site</h2>
     <p id="pair-note" class="muted">On the site, open Admin > Mix It Up > Paid pulls and press "Pair TCG Bridge". Type the code it shows here.</p>
@@ -44,6 +50,20 @@
       <p id="mix-help" class="help" hidden>
         Mix It Up is not answering on this PC. Open Mix It Up, then go to Services > Developer API > Connect. TCG Bridge will notice within a few seconds.
       </p>
+      <div class="row tools">
+        <button type="button" id="mix-start" hidden>Start Mix It Up</button>
+        <button type="button" id="mix-choose" class="plain">Choose MixItUp.exe...</button>
+      </div>
+      <p id="mix-start-result" class="result" role="status"></p>
+      <p class="muted small">Mix It Up file: <span id="mix-path"></span></p>
+      <label class="inline"><input id="mix-autostart" type="checkbox"> Start Mix It Up with TCG Bridge</label>
+      <div class="row tools">
+        <input id="test-name" type="text" placeholder="Twitch name" aria-label="Twitch name to read the balance of" spellcheck="false" autocomplete="off" maxlength="25">
+        <button type="button" id="test-mix" class="plain">Test Mix It Up</button>
+        <button type="button" id="test-chat" class="plain">Send test chat message</button>
+      </div>
+      <p id="test-mix-result" class="result" role="status"></p>
+      <p id="test-chat-result" class="result" role="status"></p>
     </section>
 
     <section class="card">
@@ -64,9 +84,23 @@
         </div>
         <p id="obs-error" class="bad" role="alert"></p>
       </form>
+      <div class="row tools">
+        <button type="button" id="test-obs" class="plain">Check OBS</button>
+      </div>
+      <p id="test-obs-result" class="result" role="status"></p>
       <p class="help muted">
         In OBS open Tools &gt; WebSocket Server Settings, tick "Enable WebSocket server", and copy the Server Password here (OBS 28 or newer; leave it empty if you switched authentication off). TCG Bridge only talks to OBS on this PC. It tells the site when the stream starts and stops, which scene is on air, and whether the TCG overlay browser source is in that scene and visible. An overlay inside a nested scene is not seen.
       </p>
+    </section>
+
+    <section class="card">
+      <h2>Help</h2>
+      <div class="row tools">
+        <button type="button" id="open-logs" class="plain">Open log folder</button>
+        <button type="button" id="copy-diagnostics" class="plain">Copy diagnostics</button>
+      </div>
+      <p id="help-result" class="result" role="status"></p>
+      <p class="muted small">The log keeps 7 days. It never holds the pairing token, the OBS password or the overlay key.</p>
     </section>
 
     <section>
@@ -81,7 +115,10 @@
 
   <footer>
     <label><input id="autostart" type="checkbox"> Start with Windows</label>
+    <label><input id="alerts" type="checkbox"> Alert me when a link drops while live</label>
+    <button id="check-update" type="button" class="plain">Check for updates</button>
     <span id="update" class="muted"></span>
+    <span id="update-result" class="result" role="status"></span>
     <button id="unpair" type="button" hidden>Unpair</button>
   </footer>
   <script src="renderer.js"></script>
