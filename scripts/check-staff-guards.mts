@@ -91,7 +91,7 @@ for (const f of routes) {
   ok(ADMIN_GUARD.test(src), `${rel(f)}: admin route never checks who is calling`);
   if (/hasStaffCapability\(\s*['"]mod['"]\s*\)/.test(src)) modRoutes.push(rel(f));
 }
-ok(JSON.stringify(modRoutes) === JSON.stringify(['app/api/admin/activity/route.ts']), `only the activity feed lets a mod read an admin route (found: ${modRoutes.join(', ') || 'none'})`);
+ok(JSON.stringify(modRoutes) === JSON.stringify(['app/api/admin/activity/route.ts', 'app/api/admin/overlay-status/route.ts']), `only the activity feed and the stream desk status let a mod read an admin route (found: ${modRoutes.join(', ') || 'none'})`);
 
 // ---- 4. the guards fail closed ----
 const guard = readFileSync(join(root, 'lib/staff-guard.ts'), 'utf8');
