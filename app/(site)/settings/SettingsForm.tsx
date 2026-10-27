@@ -119,7 +119,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false, alertL
           )}
         </div>
         {isStaff && <Row id="staff-badge" label="Show my staff badge" help="Your Streamer, Admin or Mod badge appears next to your name on your profile, the leaderboard and trades. Turn off to play as a normal player." checked={!s.hideStaffBadge} onChange={v => flip('hideStaffBadge')(!v)} />}
-        <Row id="private" label="Private profile" help="Hide my profile page and leave me off the public leaderboard, card owner lists and recent pulls. Anyone else who opens my page sees only that it is private; I still see it." checked={s.privateProfile} onChange={flip('privateProfile')} />
+        <Row id="private" label="Private profile" help="Hide my profile page and leave me off the public leaderboard, card owner lists and recent pulls. Anyone else who opens my page sees only that it is private; I still see it. My name still shows on stream when I pull, in the Discord feed and to people I trade with." checked={s.privateProfile} onChange={flip('privateProfile')} />
       </Section>
 
       <Section icon="bell" id="notifications" title="Trading and notifications" hint="Admin notices about your offers always come through.">

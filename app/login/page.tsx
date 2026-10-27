@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { Icon } from '@/app/components/Icon';
 import { BrandMark } from '../admin/components/BrandMark';
 import { isPasswordLoginEnabled } from '@/lib/admin-token';
 import { loginConfigured } from '@/lib/session';
@@ -9,7 +11,6 @@ import { PasswordLogin } from './PasswordLogin';
 export const instant = false;
 
 const ERRORS: Record<string, string> = {
-  'not-staff': 'That Twitch account isn\'t on the staff list. Ask an admin to add you.',
   unavailable: 'Twitch sign-in isn\'t set up on this site yet.',
 };
 
@@ -20,6 +21,26 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const dest = returnTo && /^\/(admin|mod)(\/|\?|$)/.test(returnTo) && !returnTo.startsWith('//') ? returnTo : '/admin';
   const twitchHref = `/auth/twitch?returnTo=${encodeURIComponent(dest)}`;
   const passwordOn = isPasswordLoginEnabled();
+
+  // A signed-in viewer who is not on the staff list lands here from /admin or /mod: say what happened instead of showing the sign-in form again.
+  if (error === 'not-staff') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="card rounded-3xl w-full max-w-sm overflow-hidden shadow-glow">
+          <div className="holo-strip" />
+          <div className="p-8 space-y-5 text-center">
+            <div className="flex flex-col items-center gap-2">
+              <BrandMark size={56} />
+              <h1 className="text-yellow-400 font-bold text-2xl flex items-center gap-2"><Icon name="lock" />Staff only</h1>
+            </div>
+            <p role="alert" className="text-sm text-gray-300 leading-relaxed">That Twitch account isn&rsquo;t on the staff list, so it can&rsquo;t open the admin or mod panels. If you should have access, ask an admin to add you, then try again.</p>
+            <Link href="/" className="btn btn-primary w-full rounded-xl">Back to the site</Link>
+            <Link href="/login" className="block text-xs text-gray-500 hover:text-gray-300">Sign in with a different account</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
