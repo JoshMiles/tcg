@@ -22,6 +22,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 47 | Access hardening (47.11) | Blocked (Josh, from 2026-11-02) | S |
 | 50 | Player features (50.3) | Needs design | M |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
+| 54 | Follow-ups from the audit run (54.1 to 54.9) | Ready | S each |
 
 Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -86,6 +87,19 @@ Tracks 46 to 52 come from the Track 44 audits (44.6 triage, Josh picked on 2026-
 - **50.2 Trial: browse before linking (S, next panel version, 4 weeks).** twitch-panel Experimental 1: Board and a read-only dex before the identity share prompt. Success: more identity shares per panel open.
 - **50.3 Swap finder on the trade board (Needs design, M).** public-site E-3: viewers who hold a card you want and want one you hold. Trial as a read-only list for the signed-in viewer; success: trades started from it.
 - **50.4 Trial: Looking for match alert in the panel (S, next panel version, 4 weeks).** twitch-panel Experimental 3: mark the Trades tab when a board offer gives a card on the viewer's Looking for list, worked out only when the tab opens. Success: offers accepted from those matches.
+### Track 54: follow-ups from the audit run (Ready)
+Raised at the end of Tracks 48 to 52; Josh picked each on 2026-10-27. One item per PR.
+
+- **54.1 Admin viewer page names trade cards per season (S).** `app/admin/users/[username]/page.tsx` looks a card number up in the first season that has it; use the per-season lookup the mod page got in 49.2.
+- **54.2 Season look-back on the Stats tab (S).** 52.5 dropped it when `/account` moved to the profile Stats tab. Bring back a "Past seasons" list for the owner: season, rank, score.
+- **54.3 Collapsed admin rail footer (S).** About 247px when collapsed; show it as one row of icons or one icon that opens a menu.
+- **54.4 QR codes use the current site (S).** Card back QR links always point at cheesytcg.app; build them from the address the deployment runs on, production unchanged.
+- **54.5 Rising this week (S).** The home Top collectors widget repeats the Leaderboard; show the biggest score gains over the last 7 days instead.
+- **54.6 Staff reports go to the admin log channel (S).** Feedback that names a staff member (51.6) is posted in full to the admin log channel, not the feedback channel.
+- **54.7 Empty rarity tier warns only with weight (S).** The 51.12 pre-flight rule warns only when the empty tier still has a pull weight above 0.
+- **54.8 Stray 500s count toward the error spike (S).** API routes that build their own 500 use `serverError()` so 51.13 counts them.
+- **54.9 Mods told why an admin page sent them back (S).** Redirect to `/mod?denied=1` and show a short "That page is for admins" note there.
+
 ## Standing decisions
 
 - Paid-pull limits default to no limit and stay editable. Staff can add extra pulls for everyone for the current stream.
