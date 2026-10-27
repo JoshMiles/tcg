@@ -14,5 +14,5 @@ export async function POST(req: NextRequest) {
 
   // The rest is shared with "Simulate a chat pull" on the Mix It Up page (lib/pull-queue.ts).
   // An optional requestId makes a retry safe: the first answer is replayed and no second pack is queued (ROADMAP 55.3).
-  return answerOnce('/api/webhooks/pull', parsed.username, parsed.body.requestId, async () => NextResponse.json(await queuePull(parsed.username, { role: parsed.body.role })));
+  return answerOnce('/api/webhooks/pull', parsed.username, parsed.body.requestId, async () => NextResponse.json(await queuePull(parsed.username, { role: parsed.body.role, chat: true })));
 }
