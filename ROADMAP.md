@@ -20,7 +20,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 40.2f | Site speed: re-measure, then cache shared data if needed | Blocked (field data from 2026-11-09) | S to M |
 | 43.3 | Rename `middleware.ts` to `proxy.ts` | Blocked (panel freeze: the CORS rules stay as submitted) | S |
 | 47 | Access hardening (47.11) | Blocked (Josh, from 2026-11-02) | S |
-| 50 | Player features (50.3) | Needs design | M |
+| 50 | Player features (50.3) | Ready | M |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
 
 Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52 and 54 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
@@ -84,7 +84,7 @@ Tracks 46 to 52 come from the Track 44 audits (44.6 triage, Josh picked on 2026-
 50.5 to 50.12 are done (archived). Trials run for the time given, then Josh keeps, changes or drops them. 50.1, 50.2 and 50.4 ride along with the next panel version (Track 53).
 - **50.1 Panel quick wins (S, next panel version).** twitch-panel Feature improvements 1 to 3 (new since last visit, your own row on the Board, offers waiting badge).
 - **50.2 Trial: browse before linking (S, next panel version, 4 weeks).** twitch-panel Experimental 1: Board and a read-only dex before the identity share prompt. Success: more identity shares per panel open.
-- **50.3 Swap finder on the trade board (Needs design, M).** public-site E-3: viewers who hold a card you want and want one you hold. Trial as a read-only list for the signed-in viewer; success: trades started from it.
+- **50.3 Trial: swap finder on the trade board (Ready, M, 4 weeks).** public-site E-3. A "Possible swaps" list on `/trade` for the signed-in viewer only: people who hold a card on the viewer's Looking for list and want one of the viewer's spare editions. No new storage: "wants" is the existing want index (`watchersByCard` in `lib/watch-index.ts`: Looking for list plus saved alerts), "holds" comes from `getCollectionCached` (the shared 20 s board). Their side: people with a spare of the card rank first, people with only one copy still show, marked "only copy". Your side: spares only (never suggest your last copy). Leave out yourself, private profiles, hidden users and anyone `tradeBlockedNow`. At most 5 people, one row each ("<name> has X, wants your Y", best pair first, the rest as "+N more"), with a button to `/trade/new?to=<name>&give=..&want=..&via=swap`. Pure matching in a client-safe module next to `lib/trade-match.ts` with a check script. Measure: an optional `via: 'swap'` on the trade (additive, set from the composer link), counted on the trade insights page. Success after 4 weeks: trades started from the list; Josh keeps, changes or drops it.
 - **50.4 Trial: Looking for match alert in the panel (S, next panel version, 4 weeks).** twitch-panel Experimental 3: mark the Trades tab when a board offer gives a card on the viewer's Looking for list, worked out only when the tab opens. Success: offers accepted from those matches.
 ## Standing decisions
 
