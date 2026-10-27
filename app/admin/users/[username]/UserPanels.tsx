@@ -8,6 +8,7 @@ import { Spinner } from '@/app/components/PendingButton';
 import { ArmedButton } from '@/app/components/ArmedButton';
 import { ConfirmButton } from '../../components/ConfirmButton';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
+import { KEEP_UNTIL, RESTRICTION_DAYS, formatUntil } from '@/lib/restriction';
 import {
   addPullBuffAction, removePullBuffAction, setPullLimitAction,
   cancelUserTradeAction, giftPacksAction, grantManyAction, mergeUserAction, moveAsideAction, restoreSnapshotAction, saveFlagsAction, saveTagsAction,
@@ -60,21 +61,31 @@ export function TagsEditor({ username, initial, suggestions }: { username: strin
 }
 
 /** Moderation: stop this viewer trading and/or hide them from public rankings. Reason is staff-only (admins and mods). */
-export function ModerationPanel({ username, initial }: { username: string; initial: { noTrading: boolean; hideFromBoard: boolean; reason: string; at?: number; by?: string } }) {
+export function ModerationPanel({ username, initial }: { username: string; initial: { noTrading: boolean; until?: number; hideFromBoard: boolean; reason: string; at?: number; by?: string } }) {
   const [noTrading, setNoTrading] = useState(initial.noTrading);
+  const [days, setDays] = useState(initial.until ? KEEP_UNTIL : 0); // trial 51.3: "Lifts after"
   const [hide, setHide] = useState(initial.hideFromBoard);
   const [reason, setReason] = useState(initial.reason);
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<UserActionResult | null>(null);
-  const dirty = noTrading !== initial.noTrading || hide !== initial.hideFromBoard || reason !== initial.reason;
+  const dirty = noTrading !== initial.noTrading || days !== (initial.until ? KEEP_UNTIL : 0) || hide !== initial.hideFromBoard || reason !== initial.reason;
   return (
     <div className="space-y-3">
       <label className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer"><input type="checkbox" role="switch" checked={noTrading} onChange={e => setNoTrading(e.target.checked)} className="toggle toggle-sm toggle-primary mt-0.5" /><span><strong className="text-white">Block trading.</strong> They can&apos;t make or accept offers, and nobody can offer to them. Existing offers can still be cancelled.</span></label>
       <label className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer"><input type="checkbox" role="switch" checked={hide} onChange={e => setHide(e.target.checked)} className="toggle toggle-sm toggle-primary mt-0.5" /><span><strong className="text-white">Hide from public boards.</strong> Left out of the leaderboard, the card owner lists and recent pulls. Their own collection page still works.</span></label>
+      {noTrading && (
+        <label className="flex flex-wrap items-center gap-2 text-sm text-gray-300">Lifts after
+          <select value={days} onChange={e => setDays(Number(e.target.value))} aria-label="Lifts after" className="select select-sm">
+            {initial.until && <option value={KEEP_UNTIL}>Keep current end ({formatUntil(initial.until)})</option>}
+            <option value={0}>Until a person lifts it</option>
+            {RESTRICTION_DAYS.filter(d => d > 0).map(d => <option key={d} value={d}>{d === 1 ? '1 day' : `${d} days`}</option>)}
+          </select>
+        </label>
+      )}
       {(noTrading || hide) && <input value={reason} onChange={e => setReason(e.target.value)} maxLength={200} placeholder="Reason (only staff see this)" aria-label="Reason" className={`${field} w-full`} />}
-      {initial.at && (initial.noTrading || initial.hideFromBoard) && <p className="text-xs text-gray-600">Set {new Date(initial.at).toLocaleString('en-GB', { timeZone: 'UTC' })}{initial.by ? ` by ${initial.by}` : ''}</p>}
+      {initial.at && (initial.noTrading || initial.hideFromBoard) && <p className="text-xs text-gray-600">Set {new Date(initial.at).toLocaleString('en-GB', { timeZone: 'UTC' })}{initial.by ? ` by ${initial.by}` : ''}{initial.noTrading && initial.until ? `. Trading lifts ${formatUntil(initial.until)}` : ''}</p>}
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" disabled={!dirty || pending} onClick={() => startTransition(async () => { setResult(await saveFlagsAction(username, { noTrading, hideFromBoard: hide, reason })); })} className={dirty ? 'btn btn-primary btn-sm' : btn}>{pending && <Spinner />}Save restrictions</button>
+        <button type="button" disabled={!dirty || pending} onClick={() => startTransition(async () => { const r = await saveFlagsAction(username, { noTrading, hideFromBoard: hide, reason }, days); setResult(r); if (r.ok && days > 0) setDays(KEEP_UNTIL); })} className={dirty ? 'btn btn-primary btn-sm' : btn}>{pending && <Spinner />}Save restrictions</button>
         <span className={`text-xs ${dirty ? 'text-yellow-300' : 'text-gray-600'}`}>{dirty ? 'Unsaved changes. Nothing applies until you save.' : 'No changes to save. Flip a switch or edit the reason first.'}</span>
       </div>
       <Result r={result} />

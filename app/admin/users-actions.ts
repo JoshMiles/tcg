@@ -35,11 +35,11 @@ export async function saveTagsAction(username: string, tags: string[]): Promise<
   return res;
 }
 
-export async function saveFlagsAction(username: string, flags: { noTrading: boolean; hideFromBoard: boolean; reason: string }): Promise<UserActionResult> {
+export async function saveFlagsAction(username: string, flags: { noTrading: boolean; hideFromBoard: boolean; reason: string }, days = 0): Promise<UserActionResult> {
   const staff = await requireStaff('mod');
   const allowed = await checkModerate(staff, [username], 'flags');
   if (!allowed.ok) return { ok: false, message: allowed.error };
-  const res = await saveFlags(username, flags);
+  const res = await saveFlags(username, flags, days);
   if (!res.ok) return { ok: false, message: res.error };
   revalidate(username);
   revalidatePath('/leaderboard', 'layout');

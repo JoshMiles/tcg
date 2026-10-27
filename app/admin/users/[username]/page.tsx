@@ -20,6 +20,7 @@ import { getLastSeen } from '@/lib/stats';
 import { tradesForUser } from '@/lib/trades';
 import { describeItems } from '@/lib/trade-core';
 import { listUserSnapshots, SUGGESTED_TAGS } from '@/lib/user-admin';
+import { formatUntil, liveUntil, tradeBlockedNow } from '@/lib/restriction';
 import { updateUserProfile, removeUserCard, resetUserSeason, resetUser, deleteUser } from '../../actions/users';
 import { PageTabs, pickTab } from '../../components/PageTabs';
 import { UserTesterPicker } from '../../settings/TesterControls';
@@ -190,7 +191,7 @@ export default async function UserDetailPage({
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-3xl font-bold text-white">{displayName}</h1>
             {profile?.twitchId && <span className="text-xs px-1.5 py-0.5 bg-purple-900/40 text-purple-400 rounded-md">Twitch</span>}
-            {flags?.noTrading && <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-red-900/40 text-red-300 rounded-md"><Icon name="ban" className="w-3 h-3" />No trading</span>}
+            {tradeBlockedNow(flags) && <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-red-900/40 text-red-300 rounded-md"><Icon name="ban" className="w-3 h-3" />No trading{liveUntil(flags) ? ` until ${formatUntil(liveUntil(flags)!)}` : ''}</span>}
             {flags?.hideFromBoard && <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-amber-900/40 text-amber-300 rounded-md"><Icon name="shield" className="w-3 h-3" />Hidden</span>}
             {myRow?.complete && <span className="text-xs px-1.5 py-0.5 bg-yellow-900/40 text-yellow-300 rounded-md">Complete</span>}
           </div>
@@ -360,7 +361,7 @@ export default async function UserDetailPage({
       {tab === 'admin' && (
         <>
       <Panel id="moderation" title="Moderation" hint="Restrictions apply immediately across the website and the Twitch panel.">
-        <ModerationPanel username={username} initial={{ noTrading: !!flags?.noTrading, hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at, by: flags?.by }} />
+        <ModerationPanel username={username} initial={{ noTrading: tradeBlockedNow(flags), until: liveUntil(flags), hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at, by: flags?.by }} />
       </Panel>
 
       <Panel id="tester" title="Closed alpha / beta tester" hint="Testers get in while the site is closed and keep a tester achievement. Set in Settings → Access too.">

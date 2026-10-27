@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session';
+import { formatUntil, liveUntil, tradeBlockedNow } from '@/lib/restriction';
 import { getUserCards, getUserProfile } from '@/lib/kv';
 import { getActive } from '@/lib/site-seasons';
 import { getTrade, getTradeSettings, sweepTrades } from '@/lib/trades';
@@ -39,7 +40,8 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
   if (season.tradingFrozen) return say('text-amber-200', <>Trading is closed for {season.name}.</>);
   if (!settings.enabled) return say('text-amber-200', 'Trading is paused right now. Check back soon.');
   // A viewer the streamer has switched trading off for would otherwise fill in a whole offer and only learn when sending it.
-  if ((await getUserProfile(session.username).catch(() => null))?.flags?.noTrading) return say('text-amber-200', 'Trading isn’t available on your account.');
+  const myFlags = (await getUserProfile(session.username).catch(() => null))?.flags;
+  if (tradeBlockedNow(myFlags)) return say('text-amber-200', <>Trading isn’t available on your account{liveUntil(myFlags) ? <> until {formatUntil(liveUntil(myFlags)!)}</> : ''}.</>);
   if (counter) {
     if (!original || original.status !== 'open') return say('text-gray-400', 'That offer is no longer open, so it can’t be countered.');
     if (original.kind !== 'direct' || original.to !== session.username) return say('text-gray-400', 'That offer wasn’t made to you, so you can’t counter it.');

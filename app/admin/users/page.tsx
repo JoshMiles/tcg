@@ -1,6 +1,7 @@
 import { staffPage } from '@/lib/staff-guard';
 import { Icon } from '@/app/components/Icon';
 import { getAllCollectionUsers, getUserProfiles, listSeasons, getPackCards, getPacksForSeason } from '@/lib/kv';
+import { tradeBlockedNow } from '@/lib/restriction';
 import { uniqueCount } from '@/lib/collection';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { getActivity } from '@/lib/activity';
@@ -70,7 +71,7 @@ export default async function UsersPage() {
       avatar: avatars[user.username] ? sizeTwitchAvatar(avatars[user.username], 70) : undefined,
       isTwitch: !!profile?.twitchId,
       tags: profile?.tags ?? [],
-      noTrading: !!profile?.flags?.noTrading,
+      noTrading: tradeBlockedNow(profile?.flags),
       hidden: !!profile?.flags?.hideFromBoard,
       hasNotes: !!profile?.notes?.trim(),
       unique, pulls, shiny, full,
