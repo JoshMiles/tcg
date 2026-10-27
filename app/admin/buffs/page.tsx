@@ -1,6 +1,7 @@
 import { staffPage } from '@/lib/staff-guard';
 import { findBuffUsage, getBuffDefs, type BuffUsage } from '@/lib/buffs';
 import { getMixItUpSettings, getOpenGrants } from '@/lib/mixitup';
+import { hasAddRoute } from '@/lib/mixitup-core';
 import { PageHeader, Tile } from '../components/ui';
 import { BuffEditorClient } from './BuffEditorClient';
 
@@ -37,7 +38,7 @@ export default async function BuffsPage() {
         <Tile label="Trainer cards linked" value={cardRefCount} sub="Across all packs" icon="cards" />
       </div>
 
-      <BuffEditorClient buffs={buffs} usages={usages} mixItUpReady={mix.enabled && !!mix.addUrl} openGrants={openGrants} />
+      <BuffEditorClient buffs={buffs} usages={usages} mixItUpReady={mix.enabled && hasAddRoute(mix)} openGrants={openGrants} />
     </div>
   );
 }

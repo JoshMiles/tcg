@@ -51,6 +51,7 @@ function run(cmd) {
     }
     case 'lpush': { const l = store.get(key) || []; l.unshift(rest[0]); store.set(key, l); types.set(key, 'list'); return l.length; }
     case 'rpush': { const l = store.get(key) || []; l.push(...rest); store.set(key, l); types.set(key, 'list'); return l.length; }
+    case 'lpop': { const l = store.get(key) || []; return l.shift() ?? null; }
     case 'rpop': { const l = store.get(key) || []; return l.pop() ?? null; }
     case 'incr': { const n = Number(store.get(key) || 0) + 1; store.set(key, String(n)); return n; }
     case 'decr': { const n = Number(store.get(key) || 0) - 1; store.set(key, String(n)); return n; }

@@ -2,6 +2,7 @@
 // settings use: `mixitup:seen` (field = incoming webhook route, value {okAt?, badAt?}) and `mixitup:out` (field = balance | deduct |
 // add | viewers, value {at, ok, detail}). Recording is a side effect: it never throws and the request never depends on it.
 import { kv } from './db';
+import { CONNECTED_MS } from './bridge-core';
 
 const SEEN = 'mixitup:seen';
 const OUT = 'mixitup:out';
@@ -49,8 +50,11 @@ export async function readMixItUpHealth(): Promise<MixItUpHealth> {
 export interface MixItUpHealth { seen: Record<string, Seen>; out: Partial<Record<OutKind, OutResult>> }
 export interface HealthChip { tone: 'ok' | 'warn' | 'bad' | 'muted'; text: string }
 
-/** The status row: when Mix It Up last reached the site, any wrong secret, and one chip per address the site calls. Pure. */
-export function healthChips(health: MixItUpHealth, urls: Record<OutKind, string>, now: number, ago: (at: number, now: number) => string): HealthChip[] {
+/**
+ * The status row: when Mix It Up last reached the site, any wrong secret, and one chip per address the site calls. In bridge mode
+ * (`bridge` given: when a bridge last polled, or null) one TCG Bridge chip replaces the address chips. Pure.
+ */
+export function healthChips(health: MixItUpHealth, urls: Record<OutKind, string>, now: number, ago: (at: number, now: number) => string, bridge?: { at: number | null }): HealthChip[] {
   const chips: HealthChip[] = [];
   const routes = Object.entries(health.seen);
   const last = routes.filter(([, s]) => s.okAt).sort((a, b) => b[1].okAt! - a[1].okAt!)[0];
@@ -59,6 +63,12 @@ export function healthChips(health: MixItUpHealth, urls: Record<OutKind, string>
     : { tone: 'muted', text: 'Mix It Up has not reached the site yet' });
   for (const [route, s] of routes) {
     if (s.badAt && s.badAt > (s.okAt ?? 0)) chips.push({ tone: 'warn', text: `Mix It Up reached ${routeName(route)} with the wrong secret ${ago(s.badAt, now)}` });
+  }
+  if (bridge) {
+    chips.push(bridge.at && now - bridge.at <= CONNECTED_MS
+      ? { tone: 'ok', text: `TCG Bridge connected (${ago(bridge.at, now)})` }
+      : { tone: 'bad', text: `TCG Bridge not connected${bridge.at ? ` (last seen ${ago(bridge.at, now)})` : ''}` });
+    return chips;
   }
   for (const kind of OUT_KINDS) {
     const label = OUT_LABELS[kind];

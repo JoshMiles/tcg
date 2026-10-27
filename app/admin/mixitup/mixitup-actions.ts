@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
 import { recordAudit } from '@/lib/audit';
-import { cleanMixItUpInput } from '@/lib/mixitup-core';
+import { cleanMixItUpInput, hasBalanceRoute } from '@/lib/mixitup-core';
+import { readBridge } from '@/lib/bridge';
 import { currentStreamKey, fetchBalance, getMixItUpSettings, logMixItUp, saveMixItUpSettings, sendTest } from '@/lib/mixitup';
 import { setStreamPullBuff } from '@/lib/pull-limit';
 import { streamAmount } from '@/lib/pull-limit-core';
@@ -16,6 +17,10 @@ export async function saveMixItUpAction(formData: FormData): Promise<void> {
   const raw = Object.fromEntries([...formData.entries()].filter(([, v]) => typeof v === 'string'));
   const r = cleanMixItUpInput({ ...raw, enabled: formData.get('enabled') === 'on' });
   if (!r.ok) return back('error', r.message);
+  if (r.settings.connection === 'bridge') { // the currency's name comes from what the bridge announced
+    const c = (await readBridge()).currencies.find(x => x.id === r.settings.currencyId);
+    if (c) r.settings.currency = c.name;
+  }
   await saveMixItUpSettings(r.settings);
   revalidatePath('/admin/mixitup');
   return back('saved', 'mixitup');
@@ -47,7 +52,7 @@ export async function checkBalanceAction(formData: FormData): Promise<void> {
   const user = String(formData.get('who') ?? '').trim().toLowerCase().replace(/^@/, '');
   if (!user) return back('error', 'Type a viewer name to check.');
   const s = await getMixItUpSettings();
-  if (!s.balanceUrl) return back('error', 'Save the balance address first.');
+  if (!hasBalanceRoute(s)) return back('error', s.connection === 'bridge' ? 'Pair TCG Bridge and save the currency first.' : 'Save the balance address first.');
   const { balance, error } = await fetchBalance(s, user);
   await logMixItUp({ username: user, what: 'balance', ok: balance !== null, detail: balance !== null ? `${balance} ${s.currency} (test)` : `${error ?? 'no answer'} (test)` });
   revalidatePath('/admin/mixitup');
@@ -58,7 +63,7 @@ export async function checkBalanceAction(formData: FormData): Promise<void> {
 export async function sendTestAction(): Promise<void> {
   await requireAdmin();
   const s = await getMixItUpSettings();
-  if (!s.balanceUrl && !s.deductUrl) return back('error', 'Save an address first.');
+  if (s.connection === 'addresses' && !s.balanceUrl && !s.deductUrl) return back('error', 'Save an address first.');
   const r = await sendTest(s);
   await logMixItUp({ username: 'tcg-test', what: 'test', ok: r.ok, detail: r.ok ? `HTTP ${r.status}` : r.error ?? `HTTP ${r.status}` });
   revalidatePath('/admin/mixitup');

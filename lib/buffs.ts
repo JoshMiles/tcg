@@ -13,7 +13,7 @@ import { recordAudit } from './audit';
 import { recordActivity } from './activity';
 import { addScoreBonus } from './score-bonus';
 import { getLiveStatus } from './twitch-live';
-import { streamKey } from './mixitup-core';
+import { hasAddRoute, hasViewersRoute, streamKey } from './mixitup-core';
 import type { Card } from './types';
 
 export type { BuffUsage };
@@ -185,8 +185,8 @@ async function applyInstantBuff(def: BuffDef, username: string, options?: { seas
   const community = def.scope === 'community';
   const mix = await import('./mixitup');
   const settings = await mix.getMixItUpSettings();
-  if (def.type === 'currency-grant' && (!settings.enabled || !settings.addUrl)) return { ok: false, reason: 'mixitup_off' };
-  if (community && (!settings.enabled || !settings.viewersUrl)) return { ok: false, reason: 'mixitup_off' };
+  if (def.type === 'currency-grant' && (!settings.enabled || !hasAddRoute(settings))) return { ok: false, reason: 'mixitup_off' };
+  if (community && (!settings.enabled || !hasViewersRoute(settings))) return { ok: false, reason: 'mixitup_off' };
   const season = def.type === 'score-bonus' ? (options?.seasonId ? await getSeason(options.seasonId) : await getActiveSeason()) : null;
   if (def.type === 'score-bonus' && !season) return { ok: false, reason: 'no_season' };
   const done: ApplyBuffOutcome = { ok: true, buffs: [], refreshed: false };

@@ -38,6 +38,7 @@ const GUARDS = {
   cron: /\bCRON_SECRET\b/,
   webhook: /\b(parseIncomingWebhook|incomingSecretValid)\(/,
   overlay: /\bisOverlayRequest\(/,
+  bridge: /\b(bridgeGuard|pairGuard)\(/, // TCG Bridge: a Bearer token (pair: a one-time code, rate limited)
 };
 type Kind = keyof typeof GUARDS | 'public';
 // A route may carry several kinds when its methods differ (all of them must show up in the source).
@@ -87,6 +88,10 @@ const R: Record<string, Kind[] | { public: string }> = {
   'app/api/webhooks/notify/route.ts': ['overlay'],
   'app/api/webhooks/queue/route.ts': ['overlay'],
   'app/api/overlay/heartbeat/route.ts': ['overlay'],
+  'app/api/bridge/hello/route.ts': ['bridge'],
+  'app/api/bridge/pair/route.ts': ['bridge'],
+  'app/api/bridge/poll/route.ts': ['bridge'],
+  'app/api/bridge/result/route.ts': ['bridge'],
   'app/api/collection/route.ts': ['overlay', 'staff'], // GET: the overlay key; POST: a ticket, or staff for a whole-collection replace
   // open by design
   'app/api/auth/login/route.ts': { public: 'the emergency password login: checks the password itself and is rate limited' },

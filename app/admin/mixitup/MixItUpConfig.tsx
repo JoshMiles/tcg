@@ -3,6 +3,8 @@ import { Icon } from '@/app/components/Icon';
 import type { MixItUpSettings } from '@/lib/mixitup-core';
 import { MESSAGE_MAX, MESSAGE_VARS, PULL_ROLES, PULL_ROLE_LABELS } from '@/lib/mixitup-core';
 import { saveMixItUpAction, checkBalanceAction, sendTestAction, setStreamBuffAction, clearStreamBuffAction } from './mixitup-actions';
+import type { BridgeState } from '@/lib/bridge';
+import { ConnectionSwitch } from './ConnectionSwitch';
 import { MessageField } from './MessageField';
 import { PaidPullSetup } from './PaidPullSetup';
 
@@ -13,7 +15,7 @@ const primary = 'rounded-lg bg-yellow-500 px-4 py-2 text-sm font-bold text-black
 const secondary = 'rounded-lg border border-gray-700 px-3 py-2 text-sm font-semibold text-gray-200 hover:border-gray-500 disabled:opacity-60';
 
 /** Mix It Up → Paid pulls: viewers pay a currency for a pack (ROADMAP Track 12). */
-export function MixItUpConfig({ settings: s, streamExtra }: { settings: MixItUpSettings; streamExtra: number }) {
+export function MixItUpConfig({ settings: s, streamExtra, bridge }: { settings: MixItUpSettings; streamExtra: number; bridge: BridgeState }) {
   return (
     <div className="space-y-6">
       <form action={saveMixItUpAction} className="card rounded-2xl overflow-hidden">
@@ -31,6 +33,27 @@ export function MixItUpConfig({ settings: s, streamExtra }: { settings: MixItUpS
             <p role="alert" className="text-xs text-amber-300">A saved address uses http. Save it again with https:// to keep it working securely.</p>
           )}
 
+          <ConnectionSwitch
+            initial={s.connection}
+            bridge={
+              <div className="sm:max-w-sm">
+                <label className={label} htmlFor="mx-currency-id">Currency</label>
+                {bridge.currencies.length > 0 ? (
+                  <select id="mx-currency-id" name="currencyId" defaultValue={s.currencyId} className="select w-full">
+                    <option value="">Choose a currency</option>
+                    {s.currencyId && !bridge.currencies.some(c => c.id === s.currencyId) && <option value={s.currencyId}>{s.currency} (saved)</option>}
+                    {bridge.currencies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                ) : (
+                  <>
+                    <input type="hidden" name="currencyId" value={s.currencyId} />
+                    <p className="text-sm text-amber-300">Pair TCG Bridge first.</p>
+                  </>
+                )}
+                <p className={help}>The Mix It Up currency viewers pay with. The list comes from TCG Bridge, so it appears once the app has connected. Balances, payments and chat viewers all go through the app.</p>
+              </div>
+            }
+            addresses={
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={label} htmlFor="mx-balance">Balance address</label>
@@ -66,6 +89,11 @@ export function MixItUpConfig({ settings: s, streamExtra }: { settings: MixItUpS
               <label className={label} htmlFor="mx-currency">Currency name</label>
               <input id="mx-currency" name="currency" defaultValue={s.currency} className={input} />
             </div>
+          </div>
+            }
+          />
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={label} htmlFor="mx-cost">Price per pack</label>
@@ -102,7 +130,7 @@ export function MixItUpConfig({ settings: s, streamExtra }: { settings: MixItUpS
               <li>Enough: the pack opens. When the card is revealed we tell Mix It Up to take {s.cost.toLocaleString()} {s.currency} and send your message.</li>
               <li>If Mix It Up does not confirm the payment, the edition is taken back and the System Discord channel is told.</li>
             </ol>
-            <p>Mix It Up must answer in the reply to each request (a Webhook Response action). A reply counts as paid when it is a 2xx and does not say <code>ok</code>, <code>success</code> or <code>applied</code> is <code>false</code>.</p>
+            {s.connection === 'addresses' && <p>Mix It Up must answer in the reply to each request (a Webhook Response action). A reply counts as paid when it is a 2xx and does not say <code>ok</code>, <code>success</code> or <code>applied</code> is <code>false</code>.</p>}
           </div>
 
           <PendingButton type="submit" className={primary}>Save Mix It Up</PendingButton>
@@ -127,7 +155,7 @@ export function MixItUpConfig({ settings: s, streamExtra }: { settings: MixItUpS
         </div>
       </section>
 
-      <PaidPullSetup settings={s} />
+      {s.connection === 'addresses' && <PaidPullSetup settings={s} />}
 
       <section className="card rounded-2xl overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-800">
