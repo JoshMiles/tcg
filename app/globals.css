@@ -447,6 +447,11 @@ fieldset.card { display: block; }
   .admin-aside[data-collapsed='true'] .aside-stack { flex-direction: column; }
   .admin-aside[data-collapsed='true'] .aside-card { padding-left: 0; padding-right: 0; }
   .admin-aside[data-collapsed='true'] .aside-rule { display: block; }
+  /* Footer on the rail: its buttons sit in a two-column grid of small squares instead of one tall column. */
+  .admin-aside[data-collapsed='true'] .aside-foot { display: grid; grid-template-columns: repeat(2, 1.5rem); justify-content: center; gap: 0.25rem; padding: 0.5rem 0; }
+  .admin-aside[data-collapsed='true'] .aside-foot .aside-stack { display: contents; }
+  .admin-aside[data-collapsed='true'] .aside-foot .aside-item { width: 1.5rem; height: 1.5rem; }
+  .admin-aside[data-collapsed='true'] .aside-foot .aside-avatar { width: 1.5rem; height: 1.5rem; }
 }
 .aside-rule { display: none; height: 1px; margin: 0.5rem 0.75rem; background: rgba(148, 163, 184, 0.14); }
 

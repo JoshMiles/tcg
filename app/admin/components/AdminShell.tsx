@@ -121,7 +121,7 @@ export function AdminShell({
         </div>
         
         {nav}
-        <div className="p-3 pt-2.5 border-t border-white/6 space-y-2">
+        <div className="aside-foot p-3 pt-2.5 border-t border-white/6 space-y-2">
           {footer}
         </div>
 
