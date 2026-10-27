@@ -10,6 +10,7 @@ import { dropDraw, issueDraw } from './draw';
 import { traceStep } from './mixitup-trace';
 import { isPullsPaused, PAUSED_MESSAGE } from './pull-pause';
 import { blockedRefusal } from './pull-block';
+import { replyText } from './mixitup-core';
 
 export interface PullOptions {
   /** What the webhook sent as `role` (limits are per role). */
@@ -62,7 +63,7 @@ export async function queuePull(username: string, o: PullOptions = {}): Promise<
   const draw = await issueDraw(id, username, paid, o.test && o.trace ? { trace: o.trace } : undefined);
   if (!draw) {
     if (paid) await releasePaidPull(id);
-    const message = 'There is no active season with packs to open.';
+    const message = replyText('no_packs', mix.replies, { username, cost: mix.cost.toLocaleString(), currency: mix.currency });
     await note('queued', 'failed', message);
     return { ok: true, ignored: true, reason: 'no_packs', message };
   }
@@ -75,5 +76,6 @@ export async function queuePull(username: string, o: PullOptions = {}): Promise<
   }
   await note('queued', 'ok', 'A ticket was rolled and the pull is waiting for the overlay');
   await recordActivity({ type: 'trigger', kind: 'pull', username, ...(o.test ? { test: true as const } : {}) });
-  return { ok: true, message: `Opening a pack for ${username}`, ...known };
+  const message = replyText('queued', mix.replies, { username, cost: mix.cost.toLocaleString(), currency: mix.currency, left: known.left, balance: known.balance?.toLocaleString() });
+  return { ok: true, message, ...known };
 }

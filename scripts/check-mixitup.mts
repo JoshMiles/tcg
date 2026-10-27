@@ -30,6 +30,12 @@ ok(blocks.length === 1 && blocks[0].command === '!showoff' && blocks[0].body.inc
 // ── Pure: message, replies, windows ──
 ok(c.renderMessage('{username} paid {amount} {currency} {nope}!', { username: 'ann', amount: 100, currency: 'Brie Bucks' }) === 'ann paid 100 Brie Bucks !', 'placeholders fill and unknown ones vanish');
 ok(c.renderMessage('x'.repeat(900), {}).length === c.MESSAGE_MAX, 'the message is capped');
+ok(c.renderReply('{username}: {cost} {nope} left {left}.', { username: 'ann', cost: '100' }) === 'ann: 100 left.', 'renderReply drops a placeholder with no value and tidies the gap');
+ok(c.renderReply('  hi   {username} !', { username: 'ann' }) === 'hi ann!' && c.renderReply('{username}', { username: 0 }) === '0', 'renderReply tidies spaces and keeps a zero');
+ok(c.renderReply('x'.repeat(900), {}).length === c.REPLY_MAX, 'a reply is capped at 400 characters');
+const rep = c.normalizeMixItUp({ replies: { queued: ' Go {username} ', bogus: 'x', no_packs: 'y'.repeat(900) }, reply_limit_reached: 'No more.', reply_queued: '' });
+ok(!('queued' in rep.replies) && rep.replies.limit_reached === 'No more.' && rep.replies.no_packs?.length === c.REPLY_MAX && !('bogus' in rep.replies), 'replies are trimmed, capped and keyed; a blank form field clears a saved one');
+ok(c.refusalMessage('limit_reached', { cost: 1, currency: 'x', limit: 2, replies: {} }, 'ann') === 'ann, you have used all 2 pulls for this stream.' && c.normalizeMixItUp(null).replies && Object.keys(c.normalizeMixItUp(null).replies).length === 0, 'blank replies keep the default text');
 ok(c.parseBalance({ balance: 250 }, 'balance') === 250 && c.parseBalance({ balance: '1,250' }, 'balance') === 1250 && c.parseBalance({ coins: 7.9 }, 'coins') === 7, 'balances are read from a number or numeric text');
 ok(c.parseBalance({ balance: -1 }, 'balance') === null && c.parseBalance({}, 'balance') === null && c.parseBalance('x', 'balance') === null && c.parseBalance({ balance: 'lots' }, 'balance') === null, 'a missing or bad balance is null');
 ok(c.replyApplied(200, null) && c.replyApplied(200, { ok: true }) && !c.replyApplied(200, { success: false }) && !c.replyApplied(200, { applied: 'false' }) && !c.replyApplied(500, {}), 'a reply counts as paid only when 2xx and not false');
