@@ -9,11 +9,15 @@ import { isTracking, mintedCounts, pageCopies } from '@/lib/serials';
 import { ORIGIN_LABELS, isEscrow } from '@/lib/serials-core';
 import { getHiddenUsers } from '@/lib/user-admin';
 import { getRarity } from '@/lib/rarity';
+import { tradeHistory } from '@/lib/trades';
+import { recentTradesFor } from '@/lib/trade-prices';
+import type { TradeItem } from '@/lib/trade-core';
 import { profileHref } from '@/lib/profile-url';
 import { VARIANTS, VARIANT_LABELS, encodeEntry } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 
 const SIZE = 25;
+const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' };
 
 type SP = { season?: string; variant?: string; page?: string };
 
@@ -45,7 +49,11 @@ export default async function CardCopiesPage({ params, searchParams }: { params:
   const total = made.get(encodeEntry(number, variant)) ?? 0;
   const pages = Math.max(1, Math.ceil(total / SIZE));
   const pageNo = Math.min(pages - 1, Math.max(0, (Number(sp.page) || 1) - 1));
-  const [{ copies }, hidden] = await Promise.all([pageCopies(c, number, variant, pageNo, SIZE), getHiddenUsers().catch(() => new Set<string>())]);
+  const [{ copies }, hidden, log] = await Promise.all([pageCopies(c, number, variant, pageNo, SIZE), getHiddenUsers().catch(() => new Set<string>()), tradeHistory().catch(() => [])]);
+  const recent = recentTradesFor(log, season.id, number);
+  const names = new Map(overview.cards.map(k => [k.number, k.name]));
+  const stack = (i: TradeItem) => `${names.get(i.cardNumber) ?? `#${i.cardNumber}`}${SHORT[i.variant] ? ` ${SHORT[i.variant]}` : ''}${i.count > 1 ? ` x${i.count}` : ''}`;
+  const stacks = (items: TradeItem[]) => items.map(stack).join(', ');
 
   const href = (o: { variant?: Variant; page?: number }) => {
     const q = new URLSearchParams({ season: season.id, variant: o.variant ?? variant });
@@ -120,6 +128,20 @@ export default async function CardCopiesPage({ params, searchParams }: { params:
             </div>
           )}
         </>
+      )}
+
+      {recent.length > 0 && (
+        <section className="space-y-2" aria-labelledby="recent-trades">
+          <h2 id="recent-trades" className="font-display text-xl font-bold text-white flex items-center gap-2"><Icon name="trade" /> Recent trades</h2>
+          <ul className="card rounded-2xl divide-y divide-gray-800/70 overflow-hidden">
+            {recent.map(r => (
+              <li key={r.id} className="px-4 py-3 text-sm">
+                <p className="text-gray-200">{stacks(r.card)} <span className="text-gray-500">for</span> {stacks(r.other)}</p>
+                <p className="text-xs text-gray-500">{new Date(r.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   );
