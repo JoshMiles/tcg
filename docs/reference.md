@@ -70,4 +70,5 @@
 - `GET /api/admin/overlay-status`, admin-only; `{ connected, clients, streaming, recording, lastSeen, queued }`
 
 ### Webhooks
+- `POST /api/bridge/pair | poll | result | hello`, TCG Bridge (the stream PC app; Bearer token except `pair`): see docs/admin/mixitup.md, "TCG Bridge (site side)".
 - `POST /api/webhooks/grant-card`, MixItUp integration: body `{ secret, username, cardNumber }` → appends card to user's active season collection. Every incoming webhook that takes a `username` (`parseIncomingWebhook`) answers 400 unless it is a Twitch login (3 to 25 letters, digits, underscores; a leading `@` is dropped); grant-card answers 404 when the card number is not in a published pack of the active season

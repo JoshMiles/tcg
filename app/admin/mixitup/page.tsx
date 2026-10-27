@@ -13,6 +13,8 @@ import { SITE_URL } from '@/lib/site';
 import { CommandsPanel } from './CommandsPanel';
 import { MixItUpConfig } from './MixItUpConfig';
 import { MixItUpLog } from './MixItUpLog';
+import { BridgeCard } from './BridgeCard';
+import { listBridges, readBridge } from '@/lib/bridge';
 
 // @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
 // Remove this opt-out after verifying the segment passes validation without it.
@@ -39,11 +41,12 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
   const { tab: tabParam, saved, error, note } = await searchParams;
   const tab = pickTab(TABS, tabParam);
   const settings = await getMixItUpSettings();
+  const bridge = await readBridge();
   return (
     <div className="space-y-6">
       <PageHeader title="Mix It Up" subtitle={TABS.find(t => t.id === tab)?.hint} />
       <ul className="flex flex-wrap gap-2" aria-label="Mix It Up connection">
-        {healthChips(await readMixItUpHealth(), { balance: settings.balanceUrl, deduct: settings.deductUrl, add: settings.addUrl, viewers: settings.viewersUrl }, Date.now(), timeAgo).map(c => (
+        {healthChips(await readMixItUpHealth(), { balance: settings.balanceUrl, deduct: settings.deductUrl, add: settings.addUrl, viewers: settings.viewersUrl }, Date.now(), timeAgo, settings.connection === 'bridge' ? { at: bridge.at } : undefined).map(c => (
           <li key={c.text} className={`badge badge-sm h-auto py-1 gap-1 whitespace-normal ${CHIP_STYLE[c.tone].badge}`}>
             <Icon name={CHIP_STYLE[c.tone].icon} /> {c.text}
           </li>
@@ -59,7 +62,15 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
         </div>
       )}
 
-      {tab === 'paid' && <MixItUpConfig settings={settings} streamExtra={streamBuffAmount(await getStreamBuff(), await currentStreamKey())} />}
+      {tab === 'paid' && (
+        <div className="space-y-6">
+          <BridgeCard
+            version={bridge.version}
+            bridges={(await listBridges()).map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never' }))}
+          />
+          <MixItUpConfig settings={settings} streamExtra={streamBuffAmount(await getStreamBuff(), await currentStreamKey())} bridge={bridge} />
+        </div>
+      )}
       {tab === 'commands' && <CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} />}
       {tab === 'log' && <MixItUpLog log={[...(await getMixItUpLog()), ...(await getCommandLog())].sort((a, b) => b.at - a.at)} />}
     </div>

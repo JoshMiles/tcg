@@ -4,6 +4,7 @@
 import { kv, inSandbox } from './db';
 import { sendWebhook } from './webhook-send';
 import { noteOutgoing, outKindOf } from './mixitup-health';
+import { callBridge } from './bridge';
 import { getActiveSeason, withLock } from './kv';
 import { getLiveStatus } from './twitch-live';
 import { notifySystem } from './discord';
@@ -11,7 +12,7 @@ import { getStreamBuff, getUserPullLimit } from './pull-limit';
 import { effectiveLimit, streamBuffAmount } from './pull-limit-core';
 import { extraPullsFromBuffs, releaseExtraPackCredit, reserveExtraPackCredit } from './buffs';
 import {
-  normalizeMixItUp, parseBalance, parseViewers, pullRole, refusalMessage, renderMessage, replyApplied, roleLimitOf, streamKey, decide,
+  hasAddRoute, hasViewersRoute, normalizeMixItUp, parseBalance, parseViewers, pullRole, refusalMessage, renderMessage, replyApplied, roleLimitOf, streamKey, decide,
   type MixItUpSettings, type RefusalReason,
 } from './mixitup-core';
 
@@ -59,21 +60,26 @@ export async function callMixItUp(url: string, payload: Record<string, unknown>,
   return { ok: sent.res.ok, status: sent.res.status, body };
 }
 
+/** One request to Mix It Up: a job for TCG Bridge in bridge mode, else the saved address. Both answer with a Reply. */
+const callOut = (s: MixItUpSettings, url: string, payload: Record<string, unknown>, doFetch?: Fetch): Promise<Reply> =>
+  s.connection === 'bridge' ? callBridge(s, payload) : callMixItUp(url, payload, doFetch);
+
 const deductUrl = (s: MixItUpSettings) => s.deductUrl || s.balanceUrl;
 
 /** Asks Mix It Up for one viewer's balance. */
 export async function fetchBalance(s: MixItUpSettings, username: string, doFetch?: Fetch): Promise<{ balance: number | null; error?: string }> {
-  const r = await callMixItUp(s.balanceUrl, { action: 'balance', secret: s.secret, username, currency: s.currency }, doFetch);
+  const r = await callOut(s, s.balanceUrl, { action: 'balance', secret: s.secret, username, currency: s.currency }, doFetch);
   if (!r.ok) return { balance: null, error: r.error ?? `HTTP ${r.status}` };
-  const balance = parseBalance(r.body, s.balanceField);
-  return balance === null ? { balance: null, error: `no number at "${s.balanceField}" in the reply` } : { balance };
+  const field = s.connection === 'bridge' ? 'balance' : s.balanceField; // the bridge's answer always has the number at `balance`
+  const balance = parseBalance(r.body, field);
+  return balance === null ? { balance: null, error: `no number at "${field}" in the reply` } : { balance };
 }
 
 /** Gives a viewer currency through the add address (the currency-grant buff). Applied = Mix It Up said so. */
 export async function grantCurrency(s: MixItUpSettings, username: string, amount: number, doFetch?: Fetch): Promise<{ applied: boolean; error?: string }> {
-  if (!s.enabled || !s.addUrl) return { applied: false, error: 'Mix It Up is off or has no add address.' };
+  if (!s.enabled || !hasAddRoute(s)) return { applied: false, error: 'Mix It Up is off or has no add address.' };
   if (await inSandbox()) return { applied: true };
-  const r = await callMixItUp(s.addUrl, { action: 'add', secret: s.secret, username, amount, currency: s.currency }, doFetch);
+  const r = await callOut(s, s.addUrl, { action: 'add', secret: s.secret, username, amount, currency: s.currency }, doFetch);
   const applied = replyApplied(r.status, r.body);
   await logMixItUp({ username, what: 'add', ok: applied, detail: applied ? `+${amount} ${s.currency}` : r.error ?? `HTTP ${r.status}, not applied` });
   return applied ? { applied } : { applied, error: r.error ?? `HTTP ${r.status}` };
@@ -81,8 +87,8 @@ export async function grantCurrency(s: MixItUpSettings, username: string, amount
 
 /** Who is in stream chat now, from the viewers address. */
 export async function fetchChatViewers(s: MixItUpSettings, doFetch?: Fetch): Promise<{ users: string[]; error?: string }> {
-  if (!s.enabled || !s.viewersUrl) return { users: [], error: 'Mix It Up is off or has no chat viewers address.' };
-  const r = await callMixItUp(s.viewersUrl, { action: 'viewers', secret: s.secret, currency: s.currency }, doFetch);
+  if (!s.enabled || !hasViewersRoute(s)) return { users: [], error: 'Mix It Up is off or has no chat viewers address.' };
+  const r = await callOut(s, s.viewersUrl, { action: 'viewers', secret: s.secret, currency: s.currency }, doFetch);
   if (!r.ok) return { users: [], error: r.error ?? `HTTP ${r.status}` };
   const users = parseViewers(r.body);
   if (!users) return { users: [], error: 'no users list in the reply' };
@@ -134,7 +140,7 @@ export async function getOpenGrants(): Promise<{ id: string; name: string; amoun
 
 /** Sends a message that deducts nothing, so the command can be tried without a real pull. */
 export async function sendTest(s: MixItUpSettings, doFetch?: Fetch): Promise<Reply> {
-  return callMixItUp(deductUrl(s), { action: 'test', secret: s.secret, username: 'tcg-test', amount: 0, currency: s.currency, message: renderMessage(s.message, { username: 'tcg-test', amount: 0, currency: s.currency, cardName: 'Test Card', variant: 'Regular', stars: 1, packName: 'Test', cardNumber: 1, serial: 1 }) }, doFetch);
+  return callOut(s, deductUrl(s), { action: 'test', secret: s.secret, username: 'tcg-test', amount: 0, currency: s.currency, message: renderMessage(s.message, { username: 'tcg-test', amount: 0, currency: s.currency, cardName: 'Test Card', variant: 'Regular', stars: 1, packName: 'Test', cardNumber: 1, serial: 1 }) }, doFetch);
 }
 
 // ── Reserve ──
@@ -224,7 +230,7 @@ export async function chargePaidPull(s: MixItUpSettings, c: Claimed, d: PullDeta
   if (c.credit || c.amount === 0) return { applied: true };
   if (await inSandbox()) return { applied: true };
   const message = renderMessage(s.message, { username: c.username, amount: c.amount, currency: s.currency, cardName: d.cardName, variant: d.variant, stars: d.stars, packName: d.packName, cardNumber: d.cardNumber, serial: d.serial ?? '' });
-  const r = await callMixItUp(deductUrl(s), { action: 'deduct', secret: s.secret, username: c.username, amount: c.amount, currency: s.currency, message, pullId: c.payId }, doFetch);
+  const r = await callOut(s, deductUrl(s), { action: 'deduct', secret: s.secret, username: c.username, amount: c.amount, currency: s.currency, message, pullId: c.payId }, doFetch);
   const applied = replyApplied(r.status, r.body);
   await logMixItUp({ username: c.username, what: 'deduct', ok: applied, detail: applied ? `${c.amount} ${s.currency}` : r.error ?? `HTTP ${r.status}, not applied` });
   return applied ? { applied } : { applied, error: r.error ?? `HTTP ${r.status}` };

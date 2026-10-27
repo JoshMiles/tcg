@@ -10,8 +10,15 @@ export const PULL_ROLE_LABELS: Record<PullRole, string> = {
   regular: 'Regular', subscriber: 'Subscriber', vip: 'VIP', moderator: 'Moderator', broadcaster: 'Broadcaster',
 };
 
+/** How the site talks to Mix It Up: through TCG Bridge (the app on the stream PC; ROADMAP 55.0) or to the four addresses below. */
+export type MixItUpConnection = 'bridge' | 'addresses';
+
 export interface MixItUpSettings {
   enabled: boolean;
+  /** `addresses` keeps the four addresses working (a relay of the streamer's own); `bridge` ignores them. */
+  connection: MixItUpConnection;
+  /** The Mix It Up currency's id (bridge mode); `currency` stays the display name. */
+  currencyId: string;
   /** Mix It Up webhook command that answers `{ balance }`. */
   balanceUrl: string;
   /** Command that takes the currency. Empty = the balance URL again (Mix It Up tells them apart by `action`). */
@@ -42,9 +49,16 @@ export const MESSAGE_MAX = 400;
 const NO_ROLE_LIMITS: Record<PullRole, number> = { regular: 0, subscriber: 0, vip: 0, moderator: 0, broadcaster: 0 };
 
 export const DEFAULT_MIXITUP: MixItUpSettings = {
-  enabled: false, balanceUrl: '', deductUrl: '', addUrl: '', viewersUrl: '', secret: '', currency: 'Brie Bucks', cost: 100, limit: 0,
+  enabled: false, connection: 'bridge', currencyId: '', balanceUrl: '', deductUrl: '', addUrl: '', viewersUrl: '', secret: '', currency: 'Brie Bucks', cost: 100, limit: 0,
   roleLimits: { ...NO_ROLE_LIMITS }, message: DEFAULT_MESSAGE, balanceField: 'balance',
 };
+
+/** Is there somewhere to send a balance check? Bridge: a chosen currency. Addresses: the balance address. */
+export const hasBalanceRoute = (s: Pick<MixItUpSettings, 'connection' | 'currencyId' | 'balanceUrl'>): boolean => (s.connection === 'bridge' ? !!s.currencyId : !!s.balanceUrl);
+/** Can currency be given (the add address, or the bridge with a currency)? */
+export const hasAddRoute = (s: Pick<MixItUpSettings, 'connection' | 'currencyId' | 'addUrl'>): boolean => (s.connection === 'bridge' ? !!s.currencyId : !!s.addUrl);
+/** Can the chat viewers be listed (the viewers address, or the bridge)? */
+export const hasViewersRoute = (s: Pick<MixItUpSettings, 'connection' | 'viewersUrl'>): boolean => s.connection === 'bridge' || !!s.viewersUrl;
 
 /** The role a paid pull counts as. The channel login is always the broadcaster. Missing or unknown is regular. */
 export function pullRole(role: unknown, username: string): PullRole {
@@ -81,8 +95,12 @@ export function normalizeMixItUp(raw: unknown): MixItUpSettings {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const d = DEFAULT_MIXITUP;
   const limit = num(r.limit, d.limit, 0, 1000);
+  const anyAddress = [r.balanceUrl, r.deductUrl, r.addUrl, r.viewersUrl].some(u => typeof u === 'string' && u.trim() !== '');
   return {
     enabled: r.enabled === true,
+    // Settings saved before the bridge have no `connection`: they keep their addresses, a new setup starts on the bridge.
+    connection: r.connection === 'bridge' || r.connection === 'addresses' ? r.connection : anyAddress ? 'addresses' : 'bridge',
+    currencyId: text(r.currencyId, 80),
     balanceUrl: text(r.balanceUrl, 500),
     deductUrl: text(r.deductUrl, 500),
     addUrl: text(r.addUrl, 500),
@@ -108,7 +126,8 @@ export function cleanMixItUpInput(raw: Record<string, unknown>): { ok: true; set
   const cost = Number(raw.cost);
   if (raw.cost !== undefined && (!Number.isFinite(cost) || cost < 1)) return { ok: false, message: 'The price per pack must be 1 or more.' };
   s.enabled = raw.enabled === true || raw.enabled === 'true' || raw.enabled === 'on';
-  if (s.enabled && !s.balanceUrl) return { ok: false, message: 'Paste the balance address before switching Mix It Up on.' };
+  if (s.enabled && s.connection === 'addresses' && !s.balanceUrl) return { ok: false, message: 'Paste the balance address before switching Mix It Up on.' };
+  if (s.enabled && s.connection === 'bridge' && !s.currencyId) return { ok: false, message: 'Pair TCG Bridge and choose the currency before switching Mix It Up on.' };
   return { ok: true, settings: s };
 }
 
