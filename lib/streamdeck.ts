@@ -48,7 +48,7 @@ async function resolveTarget(body: Record<string, unknown>, needsViewer: boolean
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
 /** "+1 pull this stream", "+100 Brie Bucks": what a buff gives, for the chat line. */
-function phrase(def: BuffDef): string {
+export function phrase(def: BuffDef): string {
   const n = (def.points ?? POINTS_DEFAULT).toLocaleString('en-US');
   if (def.type === 'score-bonus') return `+${n} leaderboard points`;
   if (def.type === 'currency-grant') return `+${n} Brie Bucks`;
@@ -58,7 +58,7 @@ function phrase(def: BuffDef): string {
   return what + dur;
 }
 
-function refusal(r: Extract<ApplyBuffOutcome, { ok: false }>, def: BuffDef, who: string): string {
+export function refusal(r: Extract<ApplyBuffOutcome, { ok: false }>, def: BuffDef, who: string): string {
   switch (r.reason) {
     case 'already_active': return `${def.name} is already active${who === 'everyone' ? '' : ` for ${who}`}.`;
     case 'max_buffs': return `${who} has too many buffs already.`;

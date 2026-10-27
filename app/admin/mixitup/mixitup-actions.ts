@@ -9,6 +9,8 @@ import { cleanRulesInput, pullArgs, rulesFromForm, SAMPLE_PULL, shoutText } from
 import { normalizeChat } from '@/lib/bridge-chat-core';
 import { getMixItUpSettings, saveMixItUpSettings } from '@/lib/mixitup';
 import { runBalanceTest, runSendTest } from './test-calls';
+import { cleanEventRewardsInput, EVENT_NAMES } from '@/lib/event-rewards-core';
+import { getBuffDefs } from '@/lib/buffs';
 
 const back = (tab: string, kind: 'saved' | 'error' | 'note', text: string): never => redirect(`/admin/mixitup?tab=${tab}&${kind}=${encodeURIComponent(text)}`);
 
@@ -78,6 +80,22 @@ export async function saveChatAction(formData: FormData): Promise<void> {
   await recordAudit('everyone', 'Chat and Brie Bucks settings saved', `start post ${chat.startOn ? 'on' : 'off'}, end post ${chat.endOn ? 'on' : 'off'}, backup ${chat.backup ? 'on' : 'off'}, check ${chat.check ? 'on' : 'off'}`);
   revalidatePath('/admin/mixitup');
   return back('chat', 'note', 'Chat and Brie Bucks settings saved.');
+}
+
+/** Saves the Events form (ROADMAP 55.4g): what gifted subs, bits, raids and redeems earn. A buff must be one the Stream Deck can apply to one viewer. */
+export async function saveEventRewardsAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const r = cleanEventRewardsInput(k => { const v = formData.get(k); return typeof v === 'string' ? v : undefined; });
+  if (!r.ok) return back('events', 'error', r.message);
+  const usable = new Set((await getBuffDefs()).filter(b => b.streamDeck && b.scope !== 'community' && b.type !== 'grant-achievement').map(b => b.id));
+  for (const name of EVENT_NAMES) {
+    const e = r.rewards[name];
+    if (e.reward === 'buff' && !usable.has(e.buffId ?? '')) return back('events', 'error', 'Choose a buff that has the Stream Deck switch on and goes to one viewer.');
+  }
+  await saveMixItUpSettings({ ...(await getMixItUpSettings()), eventRewards: r.rewards });
+  await recordAudit('everyone', 'Event rewards saved', EVENT_NAMES.map(n => `${n} ${r.rewards[n].on ? 'on' : 'off'}`).join(', '));
+  revalidatePath('/admin/mixitup');
+  return back('events', 'note', 'Event rewards saved.');
 }
 
 /** Removes one saved rule. Other edits on the form are not saved. */

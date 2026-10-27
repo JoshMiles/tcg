@@ -663,7 +663,7 @@ function EventRow({
       body = e.source === 'admin' && e.kind === 'pull' ? (
         <>{(e.count ?? 1) > 1 ? `${e.count} packs` : 'A pack'} gifted to <UserLink username={e.username} /></>
       ) : (
-        <><UserLink username={e.username} /> {e.kind === 'card' ? <>showed off {e.cardName ?? 'a card'}</> : <>triggered {e.kind === 'pull' ? 'a pack draw' : 'a collection view'}</>}</>
+        <><UserLink username={e.username} /> {e.kind === 'card' ? <>showed off {e.cardName ?? 'a card'}</> : e.kind === 'pull' && e.reason ? <>got a free pack ({e.reason})</> : <>triggered {e.kind === 'pull' ? 'a pack draw' : 'a collection view'}</>}</>
       );
       sub = e.source === 'admin' ? 'by admin' : 'via webhook';
       break;
