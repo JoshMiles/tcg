@@ -10,7 +10,7 @@ import { clientIp, limitWebhook, rateLimit } from './rate-limit';
 import { noteOutgoing, outKindOf } from './mixitup-health';
 import type { MixItUpSettings } from './mixitup-core';
 import {
-  IDLE_POLL_MS, LONG_POLL_MS, PAIR_TTL_S, POLL_MS, RESULT_TTL_S, TOUCH_EVERY_MS, WAIT_MS,
+  BRIDGE_DID_NOT_ANSWER, IDLE_POLL_MS, LONG_POLL_MS, PAIR_TTL_S, POLL_MS, RESULT_TTL_S, TOUCH_EVERY_MS, WAIT_MS,
   cleanHello, cleanName, cleanResult, hashToken, isFreshJob, newPairCode, normalizeCode, replyFromResult,
   type BridgeCurrency, type BridgeJob, type BridgeReply, type JobKind,
 } from './bridge-core';
@@ -60,7 +60,10 @@ async function waitForResult(id: string) {
     const r = cleanResult(await kv.get(resultKey(id)));
     if (r) return r;
   }
-  return null;
+  // Give up with a marker so a result that comes later is refused (see storeResult). NX fails when a real result landed meanwhile: use it.
+  const gaveUp = { id, ok: false, error: BRIDGE_DID_NOT_ANSWER, late: true };
+  if (await kv.set(resultKey(id), gaveUp, { nx: true, ex: RESULT_TTL_S })) return null;
+  return cleanResult(await kv.get(resultKey(id)));
 }
 
 /** Posts a line in chat through the bridge and does not wait. Not wired into any flow yet. Never throws; a sandbox sends nothing. */
@@ -166,12 +169,13 @@ export async function pollJobs(hash: string, version?: string): Promise<BridgeJo
   }
 }
 
-/** Stores a result for the waiting call. False when the shape is wrong. */
-export async function storeResult(raw: unknown): Promise<boolean> {
+/** Stores a result for the waiting call: 'bad' for a wrong shape, 'late' when the waiter already gave up on that job. A repeat of a stored result is 'stored'. */
+export async function storeResult(raw: unknown): Promise<'stored' | 'late' | 'bad'> {
   const r = cleanResult(raw);
-  if (!r) return false;
-  await kv.set(resultKey(r.id), r, { ex: RESULT_TTL_S });
-  return true;
+  if (!r) return 'bad';
+  if (await kv.set(resultKey(r.id), r, { nx: true, ex: RESULT_TTL_S })) return 'stored';
+  const had = await kv.get<{ late?: boolean }>(resultKey(r.id));
+  return had && had.late === true ? 'late' : 'stored';
 }
 
 /** Stores what a bridge announces: its version and the currencies the select offers. False when the shape is wrong. */

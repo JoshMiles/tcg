@@ -104,6 +104,23 @@ ok(!unpaid.applied && unpaid.error === 'TCG Bridge did not answer', 'a charge is
 ok(!(await m.grantCurrency(bridgeMix, 'cat', 5)).applied && (await m.fetchChatViewers(bridgeMix)).users.length === 0, 'grants and viewers fail the same way');
 const out = (await h.readMixItUpHealth()).out;
 ok(out.balance && !out.balance.ok && out.deduct && !out.deduct.ok, 'the failure is noted in the health record');
+// A result that arrives after the waiter gave up is refused (the app undoes a deduct or add on the 409)
+const missed = await b.claimJobs();
+ok(missed.length > 0 && (await kv.get<{ late?: boolean }>(`bridge:result:${missed[0].id}`))?.late === true, 'giving up leaves a marker for the job');
+ok((await b.storeResult({ id: missed[0].id, ok: true })) === 'late', 'a result after the waiter gave up is late');
+const lateRes = await post(resultRoute, 'result', tokenA, { id: missed[0].id, ok: true });
+ok(lateRes.status === 409 && (await lateRes.json()).late === true, 'the result route answers 409 late');
+ok((await b.storeResult({ id: 'r1', ok: true, balance: 7 })) === 'stored', 'a repeated real result is not late');
+// A result that wins the race against the marker is used: waitMs 0 skips the wait loop, so the marker write is the next step
+const raceId = crypto.randomUUID();
+const realUuid = crypto.randomUUID.bind(crypto);
+(crypto as { randomUUID: () => string }).randomUUID = () => raceId;
+await b.storeResult({ id: raceId, ok: true, balance: 9 });
+Object.assign(b.tuning, { waitMs: 0 });
+const raced = await m.fetchBalance(bridgeMix, 'cat');
+(crypto as { randomUUID: () => string }).randomUUID = realUuid;
+ok(raced.balance === 9, 'a result that landed before the marker is used');
+Object.assign(b.tuning, { waitMs: 300 });
 await b.claimJobs(); // drain what nobody picked up
 
 // ── A fake bridge answering real jobs ──
