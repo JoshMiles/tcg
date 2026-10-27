@@ -27,3 +27,21 @@ export async function ensureAdminGen(): Promise<number> {
 export async function bumpAdminGen(): Promise<void> {
   await prodKv.incr(adminGenKey());
 }
+
+/** KV key for the time of the last emergency password login. Fenced like the generation, so a preview never touches production's. */
+const lastLoginKey = () => adminGenKey().replace('auth-gen', 'last-login');
+
+/** One timestamp, overwritten at each emergency login (the Discord admin log has the history). Never throws: it must not block the login. */
+export async function recordEmergencyLogin(now = Date.now()): Promise<void> {
+  try { await prodKv.set(lastLoginKey(), now); } catch { /* the login still succeeds */ }
+}
+
+/** When the emergency password last signed anyone in, or null if it never has (or before this was recorded). */
+export async function lastEmergencyLogin(): Promise<number | null> {
+  try {
+    const v = Number(await prodKv.get(lastLoginKey()));
+    return Number.isFinite(v) && v > 0 ? v : null;
+  } catch {
+    return null;
+  }
+}

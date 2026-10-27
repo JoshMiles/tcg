@@ -13,6 +13,7 @@ import { DashboardControls } from './dashboard/DashboardControls';
 import type { WidgetType } from '@/lib/dashboard';
 import { renderWidget } from './dashboard/widgets';
 import { DashboardGrid } from './dashboard/DashboardGrid';
+import { HealthStrip } from './HealthStrip';
 
 // @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
 // Remove this opt-out after verifying the segment passes validation without it.
@@ -89,6 +90,8 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
           <OverlayStatus />
         </div>
       </div>
+
+      <HealthStrip />
 
       <DashboardControls seasons={seasons.map(s => ({ id: s.id, name: s.name, active: s.active }))} seasonId={season.id} range={range} />
 
