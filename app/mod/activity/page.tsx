@@ -15,7 +15,7 @@ export const metadata = { title: 'Live Activity · Mod', robots: { index: false 
 /** The same live feed the admin sees, read-only: mods can watch, filter and open an event, but not gift, grant or remove anything. */
 export default async function ModActivityPage() {
   await requireStaff('mod');
-  const [{ events, seq }, active] = await Promise.all([getActivity({ limit: 100 }), getActiveSeasonWithPacks()]);
+  const [{ events, seq }, active] = await Promise.all([getActivity({ limit: 100, includeTest: true }), getActiveSeasonWithPacks()]);
   const raw = await getAvatars(events.map(e => e.username));
   const avatars = Object.fromEntries(Object.entries(raw).map(([u, url]) => [u, sizeTwitchAvatar(url, 70)]));
   const seasons = Object.fromEntries((await listSeasons()).map(s => [s.collectionName, s.id]));

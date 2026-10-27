@@ -36,9 +36,11 @@ export type ActivityEvent = ActivityDetail & {
   collectionName?: string;
   /** The staff member (Twitch login) who did it, on events that staff cause: gifts, grants, removals, resets, deletes and admin cancels of offers. */
   staff?: string;
+  /** A simulated pull from the Mix It Up page's Test pulls card (ROADMAP 55.14). It is logged and shown with a Test tag, but counts nowhere else. */
+  test?: true;
 };
 
-export type NewActivity = ActivityDetail & { username: string; collectionName?: string };
+export type NewActivity = ActivityDetail & { username: string; collectionName?: string; test?: true };
 
 /**
  * Is this the kind of event a staff member causes (so it should name them)? A viewer's own pull, upgrade or trade is not, even when
@@ -62,6 +64,8 @@ export async function recordActivity(event: NewActivity): Promise<void> {
     const full: ActivityEvent = { ...event, username: event.username.toLowerCase(), seq, at: Date.now(), ...(staff ? { staff } : {}) };
     await kv.lpush(LOG_KEY, full);
     await kv.ltrim(LOG_KEY, 0, LOG_CAP - 1);
+    // A test pull counts and posts nowhere: the statistics, achievements and the Discord feed all start here.
+    if (full.test) return;
     await recordStats(full as unknown as Parameters<typeof recordStats>[0], full.at);
     // A sandbox never posts to Discord (the post runs in after(), where the request's sandbox isn't visible, so decide here).
     if (!(await inSandbox())) forwardToDiscord(full);
@@ -85,11 +89,11 @@ function forwardToDiscord(event: ActivityEvent): void {
  * Newest-first events. With `after`, returns only events newer than that seq (at most `limit`);
  * when nothing is new it costs a single GET.
  */
-export async function getActivity({ after, limit = 100 }: { after?: number; limit?: number } = {}): Promise<{ events: ActivityEvent[]; seq: number }> {
+export async function getActivity({ after, limit = 100, includeTest = false }: { after?: number; limit?: number; /** Staff views show simulated pulls (with a Test tag); everything else never sees them. */ includeTest?: boolean } = {}): Promise<{ events: ActivityEvent[]; seq: number }> {
   const seq = (await kv.get<number>(SEQ_KEY)) ?? 0;
   if (after !== undefined && seq <= after) return { events: [], seq };
   const count = Math.min(after !== undefined ? seq - after : limit, limit);
-  const events = ((await kv.lrange<ActivityEvent>(LOG_KEY, 0, count - 1)) ?? []).map(normalizeEvent);
+  const events = ((await kv.lrange<ActivityEvent>(LOG_KEY, 0, count - 1)) ?? []).map(normalizeEvent).filter(e => includeTest || !e.test);
   return { events: after !== undefined ? events.filter(e => e.seq > after) : events, seq };
 }
 

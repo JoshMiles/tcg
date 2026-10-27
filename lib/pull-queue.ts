@@ -1,0 +1,60 @@
+// What a chat !pack does once the pull webhook has checked who is asking: reserve the payment (paid pulls), roll a ticket, queue it for
+// the overlay. POST /api/webhooks/pull and the Mix It Up page's "Simulate a chat pull" (ROADMAP 55.14) both call this, so a test runs the
+// code a viewer hits. A test passes `test` and a `trace` id: the ticket is marked, the activity event says so and each step is noted
+// (lib/mixitup-trace.ts). Without a trace id nothing extra is written, so a real pull is unchanged.
+import { enqueueEvent } from './webhooks';
+import { recordActivity } from './activity';
+import { getMixItUpSettings, releasePaidPull, reservePaidPull } from './mixitup';
+import { inSandbox } from './db';
+import { dropDraw, issueDraw } from './draw';
+import { traceStep } from './mixitup-trace';
+
+export interface PullOptions {
+  /** What the webhook sent as `role` (limits are per role). */
+  role?: unknown;
+  /** A simulated pull: its edition is saved apart from the season and counts nowhere. */
+  test?: boolean;
+  /** The test's trace id; steps are noted only when it is given. */
+  trace?: string;
+  /** A free pull: no balance check and no charge, like a free !pack. Used by tests; the webhook never sets it. */
+  free?: boolean;
+}
+
+/** Returns the JSON the webhook answers with. Throws only when the queue itself fails (after undoing what was reserved). */
+export async function queuePull(username: string, o: PullOptions = {}): Promise<Record<string, unknown>> {
+  const note = (step: Parameters<typeof traceStep>[1], state: Parameters<typeof traceStep>[2], detail?: string) => traceStep(o.trace, step, state, detail);
+  await note('received', 'ok', `A !pack for ${username}${o.test ? ' (simulated)' : ''}`);
+
+  // Paid pulls (Settings → Mix It Up): the viewer's limit and balance are checked first; a refusal queues nothing and says why.
+  const id = crypto.randomUUID();
+  const mix = await getMixItUpSettings();
+  const paid = mix.enabled && !o.free && !(await inSandbox());
+  if (paid) {
+    const r = await reservePaidPull(mix, username, id, undefined, o.role);
+    if (!r.ok) {
+      await note('balance', 'failed', r.message);
+      return { ok: true, ignored: true, reason: r.reason, message: r.message, ...(r.balance !== undefined ? { balance: r.balance } : {}) };
+    }
+    await note('balance', 'ok', `Mix It Up answered and ${username} can pay ${mix.cost.toLocaleString()} ${mix.currency}`);
+  } else {
+    await note('balance', 'skipped', o.free ? 'Free pull: no balance check' : mix.enabled ? 'A sandbox never asks Mix It Up' : 'Paid pulls are off: no balance check');
+  }
+
+  const draw = await issueDraw(id, username, paid, o.test && o.trace ? { trace: o.trace } : undefined);
+  if (!draw) {
+    if (paid) await releasePaidPull(id);
+    const message = 'There is no active season with packs to open.';
+    await note('queued', 'failed', message);
+    return { ok: true, ignored: true, reason: 'no_packs', message };
+  }
+  try {
+    await enqueueEvent({ id, type: 'pull', username, queuedAt: Date.now(), draw, ...(paid ? { paid: true } : {}) });
+  } catch (e) {
+    await dropDraw(id);
+    if (paid) await releasePaidPull(id);
+    throw e;
+  }
+  await note('queued', 'ok', 'A ticket was rolled and the pull is waiting for the overlay');
+  await recordActivity({ type: 'trigger', kind: 'pull', username, ...(o.test ? { test: true as const } : {}) });
+  return { ok: true };
+}

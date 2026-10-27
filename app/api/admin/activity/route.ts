@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const afterParam = req.nextUrl.searchParams.get('after');
   const after = afterParam !== null && /^\d+$/.test(afterParam) ? Number(afterParam) : undefined;
 
-  const { events, seq } = await getActivity({ after, limit: 100 });
+  const { events, seq } = await getActivity({ after, limit: 100, includeTest: true });
 
   const raw = events.length > 0 ? await getAvatars(events.map(e => e.username)) : {};
   const avatars = Object.fromEntries(Object.entries(raw).map(([u, url]) => [u, sizeTwitchAvatar(url, 70)]));

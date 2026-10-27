@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '@/app/components/PendingButton';
 import { Panel, fieldClass, selectClass } from '../components/ui';
 import type { MixItUpSettings } from '@/lib/mixitup-core';
@@ -6,6 +7,8 @@ import { saveConnectionAction, checkBalanceAction, sendTestAction } from './mixi
 import { BridgeCard, type BridgeRow } from './BridgeCard';
 import { ConnectionSwitch } from './ConnectionSwitch';
 import { PaidPullSetup } from './PaidPullSetup';
+import { addTestViewerAction, removeTestViewerAction } from './test-pull-actions';
+import { TEST_VIEWERS_MAX } from '@/lib/mixitup-core';
 
 const help = 'text-[11px] text-gray-500 leading-relaxed';
 const secondary = 'btn btn-sm btn-outline';
@@ -82,6 +85,29 @@ export function ConnectionTab({ settings: s, bridge, bridges }: { settings: MixI
           </form>
           <form action={sendTestAction}><PendingButton type="submit" className={secondary}>Send test message</PendingButton></form>
         </div>
+      </Panel>
+      <Panel title="Test viewers" icon="flask" hint={`Who "Simulate a chat pull" on the Overview may pretend to be, so a real viewer is never touched. At most ${TEST_VIEWERS_MAX}. A throwaway Twitch account works well.`}>
+        {s.testViewers.length === 0 ? <p className="text-xs text-gray-500">None. Add one to use Test pulls.</p> : (
+          <ul className="flex flex-wrap gap-2">
+            {s.testViewers.map(v => (
+              <li key={v}>
+                <form action={removeTestViewerAction.bind(null, v)} className="badge badge-lg gap-2 pr-1">
+                  {v}
+                  <PendingButton className="btn btn-ghost btn-xs btn-circle" aria-label={`Remove ${v}`}><Icon name="x" /></PendingButton>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+        {s.testViewers.length < TEST_VIEWERS_MAX && (
+          <form action={addTestViewerAction} className="flex items-end gap-2">
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend"><label htmlFor="mx-testviewer">Twitch login</label></legend>
+              <input id="mx-testviewer" name="login" placeholder="a_throwaway_account" autoComplete="off" className={fieldClass} />
+            </fieldset>
+            <PendingButton className={secondary}>Add test viewer</PendingButton>
+          </form>
+        )}
       </Panel>
     </div>
   );
