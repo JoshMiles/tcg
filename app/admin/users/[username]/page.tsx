@@ -133,13 +133,19 @@ export default async function UserDetailPage({
 
   // Trades
   const seasonName = (id: string) => seasons.find(s => s.id === id)?.name ?? id;
-  const toLine = (t: (typeof trades.outgoing)[number], open: boolean): TradeLine => ({
-    id: t.id, status: t.status, open, kind: t.kind,
-    other: t.from === username ? (t.to ?? null) : t.from,
-    mine: t.from === username,
-    give: describeItems(t.give, nameOf), get: describeItems(t.get, nameOf),
-    at: t.resolvedAt ?? t.createdAt, expiresAt: t.expiresAt, seasonId: t.seasonId, season: seasonName(t.seasonId),
-  });
+  // Each trade is named from its own season's cards (seasonEntries already holds every season's packs).
+  const toLine = (t: (typeof trades.outgoing)[number], open: boolean): TradeLine => {
+    const names = new Map<number, string>();
+    for (const p of seasonEntries.find(e => e.season.id === t.seasonId)?.packs ?? []) for (const c of p.cards) names.set(c.number, c.name);
+    const tradeNameOf = (n: number) => names.get(n);
+    return {
+      id: t.id, status: t.status, open, kind: t.kind,
+      other: t.from === username ? (t.to ?? null) : t.from,
+      mine: t.from === username,
+      give: describeItems(t.give, tradeNameOf), get: describeItems(t.get, tradeNameOf),
+      at: t.resolvedAt ?? t.createdAt, expiresAt: t.expiresAt, seasonId: t.seasonId, season: seasonName(t.seasonId),
+    };
+  };
   const tradeLines: TradeLine[] = [
     ...trades.outgoing.map(t => toLine(t, true)),
     ...trades.incoming.map(t => toLine(t, true)),
