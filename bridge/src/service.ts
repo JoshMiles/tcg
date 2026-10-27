@@ -1,8 +1,8 @@
 // The long-poll loop and the Mix It Up watcher. Plain TypeScript, no Electron: main.ts only wires it to the tray and the window.
-import { isKnownKind, runJob, undoLate } from './jobs';
+import { commandWait, isKnownKind, runJob, undoLate } from './jobs';
 import { MixItUpClient } from './mixitup';
 import type { ObsConfig, ObsState, ObsWatcher } from './obs';
-import { SiteClient, SiteError, Unauthorized, type BridgeJob, type BridgeResult } from './site';
+import { SiteClient, SiteError, Unauthorized, type BridgeCommand, type BridgeJob, type BridgeResult } from './site';
 
 export type SiteState = 'connecting' | 'connected' | 'offline' | 'revoked';
 export type TrayLevel = 'connected' | 'partly' | 'offline';
@@ -30,6 +30,8 @@ export interface ServiceOptions {
   /** One line for the log file (main.ts redacts it). */
   log?: (line: string) => void;
   mixCheckMs?: number;
+  /** How often the Mix It Up command list is sent again. */
+  commandsMs?: number;
   backoffMs?: { min: number; max: number };
   retryMs?: number;
 }
@@ -45,12 +47,16 @@ export class BridgeService {
   readonly state: BridgeState;
   private abort = new AbortController();
   private helloPending = true;
+  private helloAt = 0;
+  /** The commands last reported to the site (lowercase ids); a run-command job is only run for one of these. */
+  private commands: BridgeCommand[] = [];
+  private commandIds = new Set<string>();
   private done: Promise<unknown> = Promise.resolve();
   private seen = { site: '', mix: '', obs: '' };
   private o: Required<ServiceOptions>;
 
   constructor(opts: ServiceOptions) {
-    this.o = { log: () => undefined, mixCheckMs: 5000, backoffMs: { min: 1000, max: 30_000 }, retryMs: 300, ...opts };
+    this.o = { log: () => undefined, mixCheckMs: 5000, commandsMs: 300_000, backoffMs: { min: 1000, max: 30_000 }, retryMs: 300, ...opts };
     this.state = { site: 'connecting', siteError: '', lastPollAt: null, mix: { found: false, version: '' }, currency: '', currencyId: '', channel: '', jobs: [], tray: 'offline', obs: opts.obs.state };
   }
 
@@ -129,9 +135,16 @@ export class BridgeService {
     const was = this.state.mix.found;
     this.state.mix = { found: version !== null, version: version ?? '' };
     if (!was && version !== null) this.helloPending = true;
+    if (version !== null && !this.helloPending && Date.now() - this.helloAt >= this.o.commandsMs) this.helloPending = true; // the command list changes while Mix It Up runs
     if (version !== null && this.helloPending) {
       try {
-        const answer = await this.o.client.hello(await this.o.mix.currencies(), version);
+        const currencies = await this.o.mix.currencies();
+        try { // keep the last list when Mix It Up cannot give one now
+          this.commands = await this.o.mix.commands();
+          this.commandIds = new Set(this.commands.map(c => c.id.toLowerCase()));
+        } catch (e) { this.o.log(`Mix It Up commands: ${e instanceof Error ? e.message : 'unknown error'}`); }
+        const answer = await this.o.client.hello(currencies, version, this.commands);
+        this.helloAt = Date.now();
         this.state.channel = answer.channel;
         if (answer.currencyId) this.state.currencyId = answer.currencyId;
         this.helloPending = false;
@@ -157,7 +170,12 @@ export class BridgeService {
         this.state.siteError = '';
         this.state.lastPollAt = Date.now();
         this.changed();
-        for (const job of jobs) if (job && typeof job.id === 'string' && isKnownKind(job.kind)) await this.handle(job);
+        for (const job of jobs) {
+          if (!job || typeof job.id !== 'string' || !isKnownKind(job.kind)) continue;
+          // A run-command may wait for the card reveal; it runs apart so balance and deduct jobs never queue behind a sound.
+          if (job.kind === 'run-command') void this.handle(job).catch(e => { if (e instanceof Unauthorized) this.revoke(); });
+          else await this.handle(job);
+        }
       } catch (e) {
         if (e instanceof Unauthorized) return this.revoke();
         if (signal.aborted) return;
@@ -172,8 +190,13 @@ export class BridgeService {
   }
 
   private async handle(job: BridgeJob): Promise<void> {
+    const wait = commandWait(job);
+    if (wait > 0) {
+      await sleep(wait, this.abort.signal);
+      if (this.abort.signal.aborted) return;
+    }
     const t0 = Date.now();
-    const result = await runJob(job, this.o.mix, this.o.obs);
+    const result = await runJob(job, this.o.mix, this.o.obs, this.commandIds);
     const ms = Date.now() - t0;
     const entry = this.log({ kind: job.kind, username: job.username, ok: result.ok, detail: result.ok ? summary(job, result) : result.error ?? 'failed', ms });
     this.o.log(`Job ${job.kind} ${result.ok ? 'ok' : 'failed'} in ${ms} ms${result.ok ? '' : `: ${result.error ?? 'failed'}`}`);
@@ -220,6 +243,7 @@ function summary(job: BridgeJob, r: BridgeResult): string {
     case 'add': return `gave ${job.amount}`;
     case 'viewers': return `${r.users?.length ?? 0} viewers`;
     case 'obs-refresh': return 'refreshed the overlay in OBS';
+    case 'run-command': return 'ran a Mix It Up command';
     default: return 'said in chat';
   }
 }

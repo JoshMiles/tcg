@@ -62,6 +62,21 @@ export class MixItUpClient {
     return out;
   }
 
+  /** GET /api/commands (CommandV1Controller): [{ ID, Name, IsEnabled, ... }]. Enabled commands only, at most 500, names cut at 100. */
+  async commands(): Promise<{ id: string; name: string }[]> {
+    const list = (await this.ok('GET', '/api/commands')) as Json[];
+    return (Array.isArray(list) ? list : [])
+      .filter(c => c.IsEnabled !== false)
+      .map(c => ({ id: str(c.ID), name: str(c.Name).trim().slice(0, 100) }))
+      .filter(c => c.id && c.name)
+      .slice(0, 500);
+  }
+
+  /** POST /api/commands/{id} with a JSON array of strings (the command's arguments, $arg1text and so on). Mix It Up queues it and answers 200 at once. */
+  async runCommand(id: string, args: string[]): Promise<void> {
+    await this.ok('POST', `/api/commands/${encodeURIComponent(id)}`, args);
+  }
+
   /** The name of a currency as last seen, for messages. */
   currencyName(id: string): string { return this.names.get(id.toLowerCase()) ?? 'currency'; }
 

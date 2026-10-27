@@ -1485,7 +1485,8 @@ async function loadCollection() {
 function saveCollection(pull) {
   if (PREVIEW || !SEASON_CFG.collectionName) return Promise.resolve(null);
   // Only the pull goes up: the ticket decides the card, and the server appends it to the real collection.
-  const body = { pull: { username: pull.username, ticket: pull.ticket } };
+  // revealInMs: how long until the card is shown, so the server can time a Mix It Up command to the reveal, not the save.
+  const body = { pull: { username: pull.username, ticket: pull.ticket }, revealInMs: pull.revealInMs };
   return fetch(`/api/collection?name=${SEASON_CFG.collectionName}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -2069,7 +2070,9 @@ function drawCard(username, opts) {
     const prior = revealedCardsByUser[user].slice();
     const entry0 = encodeEntry(card.number, variant);
     revealedCardsByUser[user].push(entry0);
-    saveCollection({ username: user, ticket: opts.ticket })
+    const preStyle = pv(P, 'moment.firstEver.style', 'inherit');
+    const revealInMs = Math.round((REVEALS[preStyle] || REVEALS.classic).reveal * 1000 / S + pv(P, 'reveal.startDelay', 0) * 1000);
+    saveCollection({ username: user, ticket: opts.ticket, revealInMs })
       .then(r => drawCard(username, Object.assign({}, opts, { _pre: { r: r || null, prior } })));
     return;
   }
@@ -2221,7 +2224,7 @@ function drawCard(username, opts) {
     saved = Promise.resolve(pre.r);   // already saved before the reveal (see the first-ever style above)
   } else if (!opts.dry) {
     revealedCardsByUser[user].push(entry);
-    saved = saveCollection({ username: user, ticket: opts.ticket });
+    saved = saveCollection({ username: user, ticket: opts.ticket, revealInMs: Math.round(at(R.reveal)) });
   } else if (!PREVIEW) {
     // Test panel (dry run): nothing is saved, so show a sample serial to see how the badge looks.
     const n = opts.sampleSerial || 1 + Math.floor(Math.random() * 30);

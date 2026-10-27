@@ -3,7 +3,7 @@ import { MixItUpClient, MixItUpDown, MixItUpError, type MixItUpUser } from './mi
 import { ObsError, type ObsWatcher } from './obs';
 import type { BridgeJob, BridgeResult } from './site';
 
-export const KINDS = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh'] as const;
+export const KINDS = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh', 'run-command'] as const;
 export const isKnownKind = (k: unknown): boolean => typeof k === 'string' && (KINDS as readonly string[]).includes(k);
 
 const LOGIN = /^[a-z0-9_]{1,25}$/;
@@ -11,9 +11,26 @@ const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 class Refused extends Error {}
 
+const DELAY_MAX_MS = 15_000;
+
+/** How long to hold a run-command so it lands on the card reveal: the job's delay counted from when the site queued it, at most 15 s. */
+export function commandWait(job: BridgeJob, now = Date.now()): number {
+  if (job.kind !== 'run-command' || typeof job.delayMs !== 'number' || !Number.isFinite(job.delayMs)) return 0;
+  const d = Math.min(job.delayMs, DELAY_MAX_MS);
+  return Math.max(0, Math.min(d, (typeof job.at === 'number' ? job.at : now) + d - now));
+}
+
 /** Runs a known job and says how it went. Never throws. */
-export async function runJob(job: BridgeJob, mix: MixItUpClient, obs: ObsWatcher): Promise<BridgeResult> {
+export async function runJob(job: BridgeJob, mix: MixItUpClient, obs: ObsWatcher, commandIds: ReadonlySet<string> = new Set()): Promise<BridgeResult> {
   try {
+    if (job.kind === 'run-command') {
+      // Only a command this app itself reported to the site, so the site (or anyone holding its token) cannot run just any command id.
+      const id = typeof job.commandId === 'string' ? job.commandId.toLowerCase() : '';
+      if (!GUID.test(id) || !commandIds.has(id)) throw new Refused('That Mix It Up command is not in the list this app reported');
+      const args = Array.isArray(job.args) ? job.args.filter((a): a is string => typeof a === 'string').slice(0, 10).map(a => a.slice(0, 200)) : [];
+      await mix.runCommand(id, args);
+      return { id: job.id, ok: true };
+    }
     if (job.kind === 'obs-refresh') {
       await obs.refresh();
       return { id: job.id, ok: true };

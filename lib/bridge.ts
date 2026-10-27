@@ -2,7 +2,7 @@
 // JSON, so in "bridge" mode a call to Mix It Up becomes a job on a KV list; the desktop app on the stream PC long-polls for jobs, runs
 // them through Mix It Up's local Developer API and posts a result, which the waiting call reads. Keys: `bridge:jobs` (list),
 // `bridge:result:<id>` (60 s), `bridge:pair:<code>` (600 s), `bridge:tokens` (hash: sha256 of a token -> record), `mixitup:bridge` (hash:
-// at, version, currencies; the health row and the currency select), `bridge:obs` (what the bridge last saw in OBS, 55.6b).
+// at, version, currencies, commands; the health row, the currency select and the pull rules' command select), `bridge:obs` (what the bridge last saw in OBS, 55.6b).
 import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { kv, inSandbox } from './db';
@@ -12,7 +12,7 @@ import type { MixItUpSettings } from './mixitup-core';
 import {
   BRIDGE_DID_NOT_ANSWER, IDLE_POLL_MS, LONG_POLL_MS, PAIR_TTL_S, POLL_MS, RESULT_TTL_S, TOUCH_EVERY_MS, WAIT_MS,
   cleanHello, cleanName, cleanObs, cleanResult, hashToken, isFreshJob, newPairCode, normalizeCode, replyFromResult,
-  type BridgeCurrency, type BridgeJob, type BridgeReply, type JobKind, type ObsSnapshot,
+  type BridgeCommand, type BridgeCurrency, type BridgeJob, type BridgeReply, type JobKind, type ObsSnapshot,
 } from './bridge-core';
 
 const JOBS = 'bridge:jobs';
@@ -88,6 +88,21 @@ export async function bridgeSay(text: string): Promise<void> {
   } catch { /* chat is a nicety */ }
 }
 
+/**
+ * Asks the bridge to run one of Mix It Up's commands (ROADMAP 55.6d) and does not wait: a pull never waits on it. Nothing is queued in a
+ * sandbox or when no bridge is paired. Never throws. True when a job was queued.
+ */
+export async function bridgeRunCommand(commandId: string, args: string[], delayMs = 0): Promise<boolean> {
+  try {
+    if (await inSandbox()) return false;
+    if (!(await listBridges()).length) return false;
+    await kv.rpush(JOBS, { id: crypto.randomUUID(), kind: 'run-command', commandId, args: args.slice(0, 10).map(a => a.slice(0, 200)), ...(delayMs > 0 ? { delayMs } : {}), at: Date.now() } satisfies BridgeJob);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ── Pairing and tokens ──
 
 /** A one-time code for the staff page, good for 10 minutes. */
@@ -133,12 +148,12 @@ async function touchBridge(hash: string, version?: string, now = Date.now()): Pr
   return true;
 }
 
-export interface BridgeState { at: number | null; version: string; currencies: BridgeCurrency[] }
+export interface BridgeState { at: number | null; version: string; currencies: BridgeCurrency[]; commands: BridgeCommand[] }
 /** What the bridge last said (for the currency select and the health chip). */
 export async function readBridge(): Promise<BridgeState> {
-  const h = await kv.hgetall<{ at?: number | string; version?: string; currencies?: BridgeCurrency[] }>(STATE).catch(() => null);
+  const h = await kv.hgetall<{ at?: number | string; version?: string; currencies?: BridgeCurrency[]; commands?: BridgeCommand[] }>(STATE).catch(() => null);
   const at = Number(h?.at);
-  return { at: Number.isFinite(at) && at > 0 ? at : null, version: h?.version ?? '', currencies: Array.isArray(h?.currencies) ? h.currencies : [] };
+  return { at: Number.isFinite(at) && at > 0 ? at : null, version: h?.version ?? '', currencies: Array.isArray(h?.currencies) ? h.currencies : [], commands: Array.isArray(h?.commands) ? h.commands : [] };
 }
 
 // ── The API routes' side ──
@@ -208,10 +223,10 @@ export async function readObs(): Promise<ObsSnapshot | null> {
   return o && Number.isFinite(at) ? { at, ...o } : null;
 }
 
-/** Stores what a bridge announces: its version and the currencies the select offers. False when the shape is wrong. */
+/** Stores what a bridge announces: its version, the currencies the select offers and the Mix It Up commands the rules offer. An older app sends no commands: the stored list is kept. False when the shape is wrong. */
 export async function storeHello(raw: unknown): Promise<boolean> {
   const h = cleanHello(raw);
   if (!h) return false;
-  await kv.hset(STATE, { at: Date.now(), version: h.version, currencies: h.currencies });
+  await kv.hset(STATE, { at: Date.now(), version: h.version, currencies: h.currencies, ...(h.commands ? { commands: h.commands } : {}) });
   return true;
 }
