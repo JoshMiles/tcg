@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { currentSandboxId } from './db';
 import { signingKey } from './signing';
+import { noteSecretUsed } from './secret-used';
 
 export interface TwitchJwtPayload {
   opaque_user_id: string;
@@ -80,7 +81,10 @@ function verifyMockJwt(token: string): TwitchJwtPayload | null {
  */
 export async function verifyExtensionAuth(token: string): Promise<TwitchJwtPayload | null> {
   const real = verifyTwitchJwt(token);
-  if (real) return real;
+  if (real) {
+    noteSecretUsed('TWITCH_EXTENSION_SECRET', '/api/twitch/*'); // the route is not known here; a side effect only, the response is unchanged
+    return real;
+  }
   const mock = verifyMockJwt(token);
   if (!mock) return null;
   return (await currentSandboxId()) === mock.sandbox ? mock : null;

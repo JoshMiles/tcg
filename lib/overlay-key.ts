@@ -6,6 +6,7 @@ import { timingSafeEqual, randomBytes } from 'node:crypto';
 import { kv, currentSandboxId } from './db';
 import { isAuthenticated } from './auth';
 import { createTtlCache } from './ttl-cache';
+import { noteSecretUsed } from './secret-used';
 
 const KEY = 'overlay:key';
 export const OVERLAY_KEY_HEADER = 'x-overlay-key';
@@ -49,7 +50,10 @@ export function keyMatches(given: string | null | undefined, key: string): boole
 /** May this request act as the overlay? Right key (the sandbox's own key inside a sandbox) or a staff session. Never throws: any doubt is a no. */
 export async function isOverlayRequest(req: Request): Promise<boolean> {
   try {
-    if (keyMatches(req.headers.get(OVERLAY_KEY_HEADER), await getOverlayKey())) return true;
+    if (keyMatches(req.headers.get(OVERLAY_KEY_HEADER), await getOverlayKey())) {
+      noteSecretUsed('OVERLAY_KEY', new URL(req.url).pathname);
+      return true;
+    }
     return await isAuthenticated();
   } catch {
     return false;
