@@ -14,6 +14,7 @@ import { getCommandLog, getCommands, getCommandStats } from '@/lib/commands';
 import { getWebhookSettings } from '@/lib/webhooks';
 import { CHANNEL_LOGIN, SITE_URL } from '@/lib/site';
 import { listBridges, readBridge, readObs } from '@/lib/bridge';
+import { readWatchdogAt } from '@/lib/overlay-watchdog';
 import { CommandsPanel } from './CommandsPanel';
 import { ConnectionTab } from './ConnectionTab';
 import { MixItUpConfig } from './MixItUpConfig';
@@ -50,6 +51,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
   const bridge = await readBridge();
   const health = await readMixItUpHealth();
   const obs = await readObs();
+  const watchdogAt = await readWatchdogAt();
   const bridges = await listBridges();
   const now = Date.now();
   const setupLabel = bridges.length > 0 || Object.values(health.seen).some(s => s.okAt) ? 'Run setup again' : 'Set up Mix It Up';
@@ -57,7 +59,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
   /** Everything the Overview shows beyond the health row: the stream marker, both logs and the stream's extra pulls. Read only on that tab. */
   const overviewProps = async () => {
     const [log, cmdLog] = [await getMixItUpLog(), await getCommandLog()];
-    const cards = statusCards({ health, settings, bridge, paired: bridges.length, obs, now, ago: timeAgo });
+    const cards = statusCards({ health, settings, bridge, paired: bridges.length, obs, now, ago: timeAgo, watchdogAt });
     return {
       cards, now, login: CHANNEL_LOGIN, obsPaired: bridges.length > 0, setup: needsSetup(cards), setupLabel,
       numbers: streamNumbers(log, cmdLog, (await kv.get<number>('twitch:live:since')) || null, now),
@@ -71,7 +73,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
       <PageHeader title="Mix It Up" subtitle={TABS.find(t => t.id === tab)?.hint} />
       {tab !== 'overview' && (
         <ul className="flex flex-wrap gap-2" aria-label="Mix It Up connection">
-          {healthChips(health, { balance: settings.balanceUrl, deduct: settings.deductUrl, add: settings.addUrl, viewers: settings.viewersUrl }, now, timeAgo, settings.connection === 'bridge' ? { at: bridge.at, obs } : undefined).map(c => (
+          {healthChips(health, { balance: settings.balanceUrl, deduct: settings.deductUrl, add: settings.addUrl, viewers: settings.viewersUrl }, now, timeAgo, settings.connection === 'bridge' ? { at: bridge.at, obs, watchdog: { on: settings.overlayWatchdog, at: watchdogAt } } : undefined).map(c => (
             <li key={c.text} className={`badge badge-sm h-auto py-1 gap-1 whitespace-normal ${CHIP_STYLE[c.tone].badge}`}>
               <Icon name={CHIP_STYLE[c.tone].icon} /> {c.text}
             </li>
@@ -96,7 +98,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
         </div>
       )}
       {tab === 'paid' && <MixItUpConfig settings={settings} />}
-      {tab === 'bigpulls' && <PullRules rules={settings.pullRules} commands={bridge.commands} />}
+      {tab === 'bigpulls' && <PullRules rules={settings.pullRules} commands={bridge.commands} obs={{ scenes: obs?.scenes ?? [], sources: obs?.sources ?? [] }} watchdog={settings.overlayWatchdog} />}
       {tab === 'commands' && <CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} />}
       {tab === 'streamdeck' && <StreamDeckTab buffs={await getBuffDefs()} url={`${SITE_URL}/api/webhooks/buff`} secret={(await getWebhookSettings()).incomingSecret} />}
       {tab === 'log' && <MixItUpLog log={await mergedLog()} filter={pickLogFilter(filter)} now={now} />}

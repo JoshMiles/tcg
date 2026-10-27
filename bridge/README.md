@@ -24,6 +24,8 @@ The app can also watch OBS on the same PC: it tells the site when the stream sta
 1. In OBS (28 or newer) open Tools > WebSocket Server Settings, tick **Enable WebSocket server** and copy the **Server Password**.
 2. In the app's OBS card tick **Talk to OBS**, check the address (`ws://127.0.0.1:4455` is the OBS default), paste the password and press Save. The password is stored encrypted on this PC and is never sent to the site, and only `ws://localhost` and `ws://127.0.0.1` addresses are accepted.
 
+**Big pulls (0.6.0).** A pull rule on the site can also save a clip, switch to a scene for a few seconds, or show a source while a pack opens. The app does only those three things, only with scene and source names it reported itself. A clip needs the OBS replay buffer running (Settings > Output > Replay Buffer in OBS); if it is off, the site's log says so. Tick **Start the replay buffer when the stream starts** in the OBS card to have the app start it for you (off by default).
+
 The overlay is the browser source whose address is `<paired site>/overlay.html?...`; only its name is reported, never the address or key. An overlay inside a nested scene is not seen; an overlay inside a group is.
 
 ## Alerts, tests and the log

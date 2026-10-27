@@ -29,6 +29,8 @@ export interface StatusInput {
   obs: ObsSnapshot | null;
   now: number;
   ago: Ago;
+  /** When the overlay watchdog last refreshed the overlay (ROADMAP 55.8), or null. */
+  watchdogAt?: number | null;
 }
 
 const TAB = (id: string) => `/admin/mixitup?tab=${id}`;
@@ -90,11 +92,12 @@ const callRow = (k: OutKind, health: MixItUpHealth, now: number, ago: Ago): { te
   return r.ok ? { text: `worked ${ago(r.at, now)}`, tone: 'ok' } : { text: `failed ${ago(r.at, now)}: ${r.detail}`, tone: 'warn' };
 };
 
-function obsCard({ obs, paired, now, ago }: StatusInput): StatusCard {
+function obsCard({ obs, paired, now, ago, watchdogAt }: StatusInput): StatusCard {
   const base = { id: 'obs' as const, title: 'OBS' };
   if (paired === 0) return { ...base, rows: [], tone: 'muted', state: 'Not checked', todo: 'TCG Bridge watches OBS and can refresh the overlay. Pair it first.', fix: CONNECTION };
   if (!obs) return { ...base, rows: [], tone: 'muted', state: 'TCG Bridge has not reported OBS', todo: 'In TCG Bridge, switch on "Talk to OBS" and type the OBS WebSocket password.' };
   const rows: StatusCard['rows'] = [{ label: 'Last report', text: ago(obs.at, now), tone: 'muted' }];
+  if (watchdogAt) rows.push({ label: 'Overlay watchdog', text: `last refreshed the overlay ${ago(watchdogAt, now)}`, tone: 'muted' });
   if (!obs.connected || now - obs.at > CONNECTED_MS) return { ...base, rows, tone: 'bad', state: 'OBS is not connected', todo: 'Open OBS and switch its WebSocket server on (Tools, WebSocket Server Settings), then check the password in TCG Bridge.' };
   const { found, inProgram, visible } = obs.overlay;
   rows.unshift({ label: 'Scene', text: obs.scene, tone: 'muted' });

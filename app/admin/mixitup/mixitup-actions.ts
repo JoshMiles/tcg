@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
 import { recordAudit } from '@/lib/audit';
 import { cleanMixItUpInput } from '@/lib/mixitup-core';
-import { bridgeRunCommand, listBridges, readBridge } from '@/lib/bridge';
+import { bridgePullTest, bridgeRunCommand, listBridges, readBridge, readObs } from '@/lib/bridge';
 import { cleanRulesInput, pullArgs, rulesFromForm, SAMPLE_PULL } from '@/lib/pull-rules-core';
 import { getMixItUpSettings, saveMixItUpSettings } from '@/lib/mixitup';
 import { runBalanceTest, runSendTest } from './test-calls';
@@ -49,12 +49,23 @@ export async function saveConnectionAction(formData: FormData): Promise<void> {
 export async function savePullRulesAction(formData: FormData): Promise<void> {
   await requireAdmin();
   const s = await getMixItUpSettings();
-  const r = cleanRulesInput(rulesFromForm(formData), (await readBridge()).commands.map(c => c.id), s.pullRules);
+  const obs = await readObs();
+  const r = cleanRulesInput(rulesFromForm(formData), (await readBridge()).commands.map(c => c.id), s.pullRules, { scenes: obs?.scenes ?? [], sources: obs?.sources ?? [] });
   if (!r.ok) return back('bigpulls', 'error', r.message);
   await saveMixItUpSettings({ ...s, pullRules: r.rules });
   await recordAudit('everyone', 'Big pull rules saved', `${r.rules.length} rule${r.rules.length === 1 ? '' : 's'}, ${r.rules.filter(x => x.on).length} on`);
   revalidatePath('/admin/mixitup');
   return back('bigpulls', 'note', 'Big pull rules saved.');
+}
+
+/** Switches the overlay watchdog (ROADMAP 55.8) on or off. */
+export async function saveWatchdogAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const on = formData.get('overlayWatchdog') === 'on';
+  await saveMixItUpSettings({ ...(await getMixItUpSettings()), overlayWatchdog: on });
+  await recordAudit('everyone', `Overlay watchdog ${on ? 'on' : 'off'}`);
+  revalidatePath('/admin/mixitup');
+  return back('bigpulls', 'note', on ? 'The overlay watchdog is on.' : 'The overlay watchdog is off.');
 }
 
 /** Removes one saved rule. Other edits on the form are not saved. */
@@ -73,7 +84,7 @@ export async function testPullRuleAction(id: string): Promise<void> {
   const rule = (await getMixItUpSettings()).pullRules.find(r => r.id === id);
   if (!rule) return back('bigpulls', 'error', 'Save the rule first, then test it.');
   if (!(await listBridges()).length) return back('bigpulls', 'error', 'Pair TCG Bridge first.');
-  const queued = await bridgeRunCommand(rule.commandId, pullArgs(SAMPLE_PULL));
+  const queued = (rule.commandId ? await bridgeRunCommand(rule.commandId, pullArgs(SAMPLE_PULL)) : false) || (rule.obs ? await bridgePullTest(rule.obs) : false);
   return queued ? back('bigpulls', 'note', 'Sent to TCG Bridge with a sample pull. Nothing waits for Mix It Up: if it did not run, look at the job list in the TCG Bridge window.') : back('bigpulls', 'error', 'The command could not be queued.');
 }
 

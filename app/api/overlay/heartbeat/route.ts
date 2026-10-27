@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { recordHeartbeat, isValidClientId } from '@/lib/overlay';
 import { getReloadSignal } from '@/lib/overlay-settings';
 import { isOverlayRequest } from '@/lib/overlay-key';
+import { bridgePullReveal } from '@/lib/bridge';
 
 // The OBS overlay (public/widget.js) pings this every ~10s so the admin can see it is open.
 // Needs the overlay key (or a staff session), so nobody can fake an open overlay; it also only accepts a tiny, validated payload.
@@ -10,6 +11,10 @@ export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body || !isValidClientId(body.id)) {
     return NextResponse.json({ error: 'invalid id' }, { status: 400 });
+  }
+  // The reveal report (ROADMAP 55.8): `{ id, reveal: <event id from the save> }` when a pull's card is shown. Not a heartbeat, so it records nothing about this client.
+  if (typeof body.reveal === 'string') {
+    return NextResponse.json({ ok: true, queued: isValidClientId(body.reveal) && (await bridgePullReveal(body.reveal)) });
   }
   const flag = (v: unknown): boolean | null => (typeof v === 'boolean' ? v : null);
 

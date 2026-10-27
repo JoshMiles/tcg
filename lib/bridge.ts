@@ -9,6 +9,7 @@ import { kv, inSandbox } from './db';
 import { clientIp, limitWebhook, rateLimit } from './rate-limit';
 import { noteOutgoing, outKindOf } from './mixitup-health';
 import type { MixItUpSettings } from './mixitup-core';
+import type { PullObs } from './pull-rules-core';
 import {
   BRIDGE_DID_NOT_ANSWER, IDLE_POLL_MS, LONG_POLL_MS, PAIR_TTL_S, POLL_MS, RESULT_TTL_S, TOUCH_EVERY_MS, WAIT_MS,
   cleanHello, cleanName, cleanObs, cleanResult, hashToken, isFreshJob, newPairCode, normalizeCode, replyFromResult,
@@ -101,6 +102,56 @@ export async function bridgeRunCommand(commandId: string, args: string[], delayM
   } catch {
     return false;
   }
+}
+
+/** Queues any job and does not wait. Nothing is queued in a sandbox or when no bridge is paired. Never throws. True when queued. */
+export async function bridgeQueue(job: Omit<BridgeJob, 'id' | 'at'>): Promise<boolean> {
+  try {
+    if (await inSandbox()) return false;
+    if (!(await listBridges()).length) return false;
+    await kv.rpush(JOBS, { ...job, id: crypto.randomUUID(), at: Date.now() } satisfies BridgeJob);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ── OBS actions on big pulls (ROADMAP 55.8) ──
+// A pull that meets a rule with OBS actions: the source is shown as the pack starts opening (job queued at once, hidden again after `holdMs`),
+// and the scene switch and the clip wait for the overlay's reveal report (`pullevent:<id>` is what the report looks up and claims).
+const pullEventKey = (id: string) => `bridge:pullevent:${id}`;
+const PULL_EVENT_TTL_S = 120;
+const revealPart = (o: PullObs): Partial<BridgeJob> => ({ ...(o.scene ? { scene: o.scene, secs: o.sceneSecs } : {}), ...(o.clip ? { clip: true } : {}) });
+
+/** The start of a pull's OBS actions. `holdMs` is how long until the reveal. True when anything was queued or kept for the reveal. */
+export async function bridgePullStart(o: PullObs, holdMs: number, eventId?: string): Promise<boolean> {
+  try {
+    if ((await inSandbox()) || !(await listBridges()).length) return false;
+    const later = Object.keys(revealPart(o)).length > 0 && !!eventId;
+    if (later) await kv.set(pullEventKey(eventId!), revealPart(o), { ex: PULL_EVENT_TTL_S });
+    const shown = o.source ? await bridgeQueue({ kind: 'pull-event', phase: 'start', source: o.source, holdMs }) : false;
+    return later || shown;
+  } catch {
+    return false;
+  }
+}
+
+/** The overlay says the pull `eventId` was revealed: queue its scene switch and clip, once (the key is claimed). True when queued. */
+export async function bridgePullReveal(eventId: string): Promise<boolean> {
+  try {
+    const part = await kv.get<Partial<BridgeJob>>(pullEventKey(eventId));
+    if (!part || (await kv.del(pullEventKey(eventId))) !== 1) return false; // DEL's count is the claim: of two reports, one wins
+    return await bridgeQueue({ kind: 'pull-event', phase: 'reveal', ...part });
+  } catch {
+    return false;
+  }
+}
+
+/** The rule's Test button: the OBS actions now, with a 3 s source and no overlay. */
+export async function bridgePullTest(o: PullObs): Promise<boolean> {
+  const a = o.source ? await bridgeQueue({ kind: 'pull-event', phase: 'start', source: o.source, holdMs: 3000 }) : false;
+  const b = Object.keys(revealPart(o)).length ? await bridgeQueue({ kind: 'pull-event', phase: 'reveal', ...revealPart(o) }) : false;
+  return a || b;
 }
 
 // ── Pairing and tokens ──

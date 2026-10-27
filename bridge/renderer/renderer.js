@@ -27,6 +27,7 @@ function renderObs(obs, saved) {
     obsFormFilled = true;
     $('obs-on').checked = saved.enabled;
     $('obs-address').value = saved.address;
+    $('obs-replay').checked = !!saved.startReplay;
     $('obs-password').placeholder = saved.hasPassword ? '(saved, type to replace)' : '';
   }
   $('obs-forget').hidden = !(saved && saved.hasPassword);
@@ -137,7 +138,7 @@ $('pair-form').addEventListener('submit', async e => {
 });
 async function saveObs(password) {
   $('obs-error').textContent = '';
-  const r = await window.bridge.setObs($('obs-on').checked, $('obs-address').value, password);
+  const r = await window.bridge.setObs($('obs-on').checked, $('obs-address').value, password, $('obs-replay').checked);
   if (r.ok) { $('obs-password').value = ''; $('obs-address').value = $('obs-address').value.trim(); }
   else $('obs-error').textContent = r.error || 'Could not save';
 }
