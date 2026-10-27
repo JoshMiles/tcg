@@ -53,7 +53,7 @@ for (const x of [ev, gr]) ok(JSON.stringify(Object.keys(x).filter(k => !['EventT
 // the link: spec -> file with the real secret and address; junk is refused
 const make = (s: object) => p.presetFile(JSON.stringify(s), 'https://cheesytcg.app', 'real-secret');
 const pack = make({ kind: 'chat', name: 'pack', path: 'pull', fields: { username: '$username' }, reply: ['message', 'left', 'balance'] });
-ok(pack && pack.filename === 'pack.miucommand' && pack.text.includes('real-secret') && pack.text.includes('https://cheesytcg.app/api/webhooks/pull'), 'the file holds the real secret and site address');
+ok(pack && pack.filename === 'pack.miucommand' && pack.text.includes('real-secret') && JSON.parse(pack.text).Actions[0].Url === 'https://cheesytcg.app/api/webhooks/pull','the file holds the real secret and site address');
 const live = make({ kind: 'event', name: 'Stream Start', path: 'stream', fields: { event: 'live' }, event: 'live' });
 ok(live && JSON.parse(live.text).EventType === 200 && live.filename === 'stream-start.miucommand' && JSON.parse(live.text).Actions.length === 1, 'stream start is event 200 with no chat message');
 ok(JSON.parse(make({ kind: 'event', name: 'Stream End', path: 'stream', fields: { event: 'offline' }, event: 'offline' })!.text).EventType === 201, 'stream end is event 201');
