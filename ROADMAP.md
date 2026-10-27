@@ -22,7 +22,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 47 | Access hardening (47.11) | Blocked (Josh, from 2026-11-02) | S |
 | 50 | Swap finder trial (50.3) | Blocked (trial readout from 2026-11-24) | S |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
-| 55 | Mix It Up integration: bridge, setup wizard, Stream Deck buffs, clearer messages, more settings, command downloads, TCG Bridge app and its features, a better Mix It Up page (55.0 to 55.13) | Ready (55.4 needs a decision) | L |
+| 55 | Mix It Up integration: bridge, setup wizard, Stream Deck buffs, clearer messages, more settings, command downloads, TCG Bridge app and its features, a better Mix It Up page (55.0 to 55.14) | Ready (55.4 needs a decision) | L |
 
 Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52 and 54 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -61,7 +61,7 @@ The file holds the extension's CORS rules, which stay as submitted while panel 0
 
 Josh: connecting Mix It Up is confusing, there are too few settings, and Cheesygidds rewards viewers from the Stream Deck a lot, which the site cannot take today. Read `docs/admin/mixitup.md` first.
 
-**Where it stands (2026-10-27).** Mix It Up calls the site on seven incoming webhooks (`/api/webhooks/pull`, `command`, `show-card`, `grant-card`, `collection`, `stream`, `queue` for the overlay), all on the one incoming secret. The site calls Mix It Up on up to four outgoing addresses (balance, deduct, add, chat viewers; public https only, so Mix It Up on the streamer's PC needs a tunnel). Setup is spread over Admin Settings > Webhooks (the incoming secret), the Mix It Up page's Paid pulls form and the Copy setup cards; nothing shows whether Mix It Up has ever reached the site. Buffs reach players only through trainer cards and achievements; the one live lever is "Extra pulls this stream" on the Mix It Up page. The Stream Deck runs Mix It Up commands through Mix It Up's Developer API (the Mix It Up plugin from the Elgato store, Developer API service switched on in Mix It Up), so a Stream Deck button is a Mix It Up command that calls one of our webhooks. Order: 55.0 (site side, #581), 55.6a (#582), 55.6b (#584), 55.6c (#586), 55.6d, 55.6e (the look and the start-up updater), 55.7 (the page), the 55.1 wizard (health merged as #579; it opens from 55.7's Connection tab), 55.2, 55.8 to 55.11 (the app features Josh picked), 55.12 and 55.13 (staff tools in the app), 55.3, 55.5, and 55.4 once Josh picks. One PR per item unless it says otherwise.
+**Where it stands (2026-10-27).** Mix It Up calls the site on seven incoming webhooks (`/api/webhooks/pull`, `command`, `show-card`, `grant-card`, `collection`, `stream`, `queue` for the overlay), all on the one incoming secret. The site calls Mix It Up on up to four outgoing addresses (balance, deduct, add, chat viewers; public https only, so Mix It Up on the streamer's PC needs a tunnel). Setup is spread over Admin Settings > Webhooks (the incoming secret), the Mix It Up page's Paid pulls form and the Copy setup cards; nothing shows whether Mix It Up has ever reached the site. Buffs reach players only through trainer cards and achievements; the one live lever is "Extra pulls this stream" on the Mix It Up page. The Stream Deck runs Mix It Up commands through Mix It Up's Developer API (the Mix It Up plugin from the Elgato store, Developer API service switched on in Mix It Up), so a Stream Deck button is a Mix It Up command that calls one of our webhooks. Order: 55.0 (site side, #581), 55.6a (#582), 55.6b (#584), 55.6c (#586), 55.6d (#588), 55.6e (#589), 55.7 (the page), 55.14 (test pulls), the 55.1 wizard (health merged as #579; it opens from 55.7's Connection tab), 55.2, 55.8 to 55.11 (the app features Josh picked), 55.12 and 55.13 (staff tools in the app), 55.3, 55.5, and 55.4 once Josh picks. One PR per item unless it says otherwise.
 
 **From Mix It Up's source (github.com/MixItUpBot/Desktop, read 2026-10-27).**
 - Mix It Up has no action that sends a custom answer back to an HTTP request. The site's paid-pull calls (balance, deduct, add, viewers) expect a Mix It Up command to answer with JSON, which stock Mix It Up cannot do, so those addresses can only work through something in between. See 55.0.
@@ -309,6 +309,42 @@ Josh asked for admin features in the app for quick use, and picked all sixteen f
 - **Back up now:** runs the same backup as Admin Settings (docs/hosting.md), and says when it is done or why it failed.
 - **Recent activity panel:** an Activity tab with the dashboard's recent activity (pulls, grants, trades), read while the tab is open.
 - **Quick search:** one box that finds a viewer, card or pack (reuse the admin palette's search, `/api/admin/palette`) and opens its admin page in the browser.
+
+### 55.14 Test pulls (Ready, M to L)
+Josh (2026-10-27) asked for a way to test the whole chain the way a viewer uses it: a test viewer pulls from chat and everything happens for real. The existing tools don't cover that. The overlay test panel plays a dry run (no charge, no save, no rules), and the self-tests, "Send test message" and the Big pulls Test button each check one link only. After 55.7: it lives on the Overview tab, and later in the app's Staff tab (55.12).
+
+- **"Simulate a chat pull":** pick a test viewer, choose paid or free, and press it. It runs the exact code a chat `!pack` runs (the pull webhook's own function, not a copy), so it tests what viewers actually hit:
+  1. the balance check;
+  2. the charge through TCG Bridge;
+  3. the queue with a real ticket;
+  4. the overlay plays it;
+  5. the edition is saved;
+  6. the Big pulls rules (55.6d) fire on the reveal;
+  7. the chat reply goes out.
+- **Each step reported as it happens,** in a live list beside the button: webhook received, balance read, charged, queued, shown on the overlay, saved, rules fired, chat reply sent. Each step is ticked, failed with the reason in words, or skipped (for example "free pull: no charge"), so a break shows exactly where. Read the existing logs and the bridge results for this; add a per-test trace in KV with a short expiry only where a step leaves no record.
+- **Marked as a test:**
+  - The pull carries a `test` flag from the ticket onward.
+  - The leaderboard and score, Discord, the stream recap, the stats counters and achievements skip it.
+  - The activity log and the viewer's admin page show it with a Test tag.
+  - Find every reader with `trail callers` on the activity and stats writers before choosing where the flag is checked. Prefer one place: skip at the writer, not in each reader.
+  - The viewer's public binder, dex and profile never show test editions.
+- **"Undo test pull":** one click per test pull, on the trace and on the viewer's admin page.
+  - It removes the edition through the existing removal (serial ledger rules, docs/serials.md).
+  - It refunds the Brie Bucks through the bridge when the pull was paid.
+  - It writes an audit line.
+  - Undo works only on test pulls.
+- **Test viewers:** a short list on the Mix It Up page, defaulting to the streamer's own account. A throwaway Twitch account can be added so a real viewer is never touched. Simulate refuses anyone not on the list.
+- **Guards:**
+  - `requireAdmin()` and `recordAudit` on every action.
+  - At most one simulated pull running at a time.
+  - Refused with "queue anyway" when no overlay is connected, like gifts.
+  - Never runs in a sandbox against the real bridge (a sandbox has its own fake path, docs/sandbox.md).
+- **Checks** with the mock KV and a fake bridge:
+  - a simulated paid pull walks every step;
+  - a test pull leaves the leaderboard, Discord, recap and stats untouched;
+  - Undo removes the edition and queues the refund;
+  - a non-test pull cannot be undone this way;
+  - a viewer not on the list is refused.
 
 ## Twitch extension
 
