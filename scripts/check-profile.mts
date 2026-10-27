@@ -14,6 +14,8 @@ eq(p.profileHref('  bob_the_builder '), '/u/bob_the_builder', 'trimmed');
 eq(p.profileHref('a b/c#d'), '/u/a%20b%2Fc%23d', 'unsafe characters are encoded');
 eq(p.profileHref('alice', 'overview'), '/u/alice', 'the overview is the plain address');
 eq(p.profileHref('alice', 'collection'), '/u/alice?tab=collection', 'the collection is its own tab');
+eq(p.profileHref('alice', undefined, true), '/u/alice?public=1', 'View as public on the overview');
+eq(p.profileHref('alice', 'stats', true), '/u/alice?tab=stats&public=1', 'View as public keeps the tab');
 eq(p.profileHref('alice', 'stats'), '/u/alice?tab=stats', 'other tabs add ?tab=');
 eq(p.profileTitle('Alice', 'overview'), "Alice's profile", 'the overview title');
 eq(['collection', 'stats', 'trades', 'activity', 'share'].map(t => p.profileTitle('Alice', t as never)), ["Alice's collection", "Alice's stats", "Alice's trades", "Alice's activity", "Alice's share"], 'every other tab uses the same pattern');

@@ -81,6 +81,11 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staff
               <Icon name="trend" />My stats &amp; upgrades
             </Link>
           )}
+          {isOwner && (
+            <Link href={profileHref(b.lower, undefined, true)} className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors">
+              <Icon name="eye" />View as public
+            </Link>
+          )}
           {isOwner && <ProfileOwnerMenu leaderboardHref={leaderboardHref} />}
         </div>
       </div>

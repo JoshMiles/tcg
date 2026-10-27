@@ -22,6 +22,10 @@ const wc = w.wantedCounts([{ cardNumber: 1 }, { cardNumber: 2 }, { cardNumber: 2
 ok(JSON.stringify(wc) === '{"1":2,"2":1}', `wanted counts drop the excluded, count a person once, and skip zeros: ${JSON.stringify(wc)}`);
 ok(Object.keys(w.wantedCounts([{ cardNumber: 9 }], {}, [])).length === 0, 'no watchers, no entry');
 
+const ago = (at: number) => `${at}ago`;
+ok(w.alertHealth(s, null, ago) === 'Watching 4 cards. Last alert: never.', `health, never fired: ${w.alertHealth(s, null, ago)}`);
+ok(w.alertHealth({ ...s, wanted: [], watches: [s.watches[0]], notifyWatch: false }, 5, ago) === 'Watching 1 card. Listing alerts are switched off. Last alert: 5ago.', 'health: one card, switched off, fired');
+
 // ── stored ──
 const kvLib = await import('../lib/kv');
 const { kv } = await import('../lib/db');
@@ -60,6 +64,8 @@ const lst2 = await trades.createTrade({ seasonId: season.id, from: 'carol', kind
 ok(lst2.ok, 'carol lists the shiny');
 ok((await noticesOf('bob')).length === 1, 'bob is told about the shiny listing');
 ok((await notif.listNotices('alice')).notices.filter(x => x.kind === 'watch').length === 1, 'alice is not told about a listing she does not want');
+ok(typeof await idx.lastAlertAt('alice') === 'number' && typeof await idx.lastAlertAt('bob') === 'number', 'a told viewer has a last-alert time');
+ok(await idx.lastAlertAt('dave') === null && await idx.lastAlertAt('carol') === null, 'dave (switched off) and the lister never fired: never');
 // ── a failed index build is not remembered as ready ──
 const realFetch = globalThis.fetch;
 // Makes the mock KV answer 500 to a read of any key matching `re` (null = healthy again).

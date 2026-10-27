@@ -173,6 +173,7 @@ const STEPS: { name: string; run: (c: Ctx) => Promise<void> }[] = [
       await moveHash(`push:${from}`, `push:${to}`);
       await moveValue(`notif:${from}:seen`, `notif:${to}:seen`);
       await moveValue(`notif:${from}:v`, `notif:${to}:v`);
+      await moveValue(`watch:last:${from}`, `watch:last:${to}`);
       await moveList(`notif:${from}`, `notif:${to}`);
       await moveList(`audit:user:${from}`, `audit:user:${to}`);
       await moveDiscordLink(from, to);
