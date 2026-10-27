@@ -18,6 +18,7 @@ import { mintedCounts } from './serials';
 import { histText } from './flip-back';
 import { cardBackFor } from './card-back-store';
 import { cardThumbUrl } from './card-art';
+import { pickWanted } from './share-stats';
 import type { BigStat, ShareCard, ShareSpec } from './share-image';
 import { copyPoints, type CardValue, type LeaderboardRow } from './leaderboard';
 import type { ScoringSettings } from './scoring-core';
@@ -56,6 +57,16 @@ export function buildShareBase(b: ProfileBase, siteHost: string): Omit<ShareSpec
     subtitle: `@${b.lower} · ${b.season.name}`,
     stats: [b.rank ? `#${b.rank} rank` : 'Unranked', `${b.row ? Math.round(b.row.score).toLocaleString() : 0} pts`, `${b.uniqueOwned}/${b.total} collected`],
     footer: siteHost,
+  };
+}
+
+/** The "Cards I'm looking for" image: their Looking for list (at most WANTED_MAX, so always one grid) as plain art. Null when none is in this season. */
+export function buildWantedSpec(b: ProfileBase, siteHost: string): ShareSpec | null {
+  const picked = pickWanted(b.settings.wanted, b.allCards);
+  if (picked.length === 0) return null;
+  return {
+    title: 'Looking for', subtitle: `@${b.lower} · ${b.season.name}`, footer: siteHost,
+    cards: picked.map(c => ({ src: c.imageUrl, thumb: cardThumbUrl(c.imageUrl), name: c.name, hex: RARITIES.find(r => r.stars === c.stars)?.hex })),
   };
 }
 

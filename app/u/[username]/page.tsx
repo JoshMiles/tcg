@@ -8,7 +8,7 @@ import { getOwnerCopies } from '@/lib/serials';
 import { pronounsFor } from '@/lib/pronouns-store';
 import { getUserProfile } from '@/lib/kv';
 import { SITE_URL } from '@/lib/site';
-import { buildBigStats, buildGridCards, buildShareBase, buildShareCandidates, buildShareSpec, loadProfileBase } from '@/lib/profile-data';
+import { buildBigStats, buildGridCards, buildShareBase, buildShareCandidates, buildShareSpec, buildWantedSpec, loadProfileBase } from '@/lib/profile-data';
 import { pickProfileTab, profileHref, profileTitle } from '@/lib/profile-url';
 import { SiteMessage } from '@/app/components/site/SiteMessage';
 import { getStaffBadges } from '@/lib/staff-badge';
@@ -107,7 +107,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
         : <StatsTab b={b} />)}
       {tab === 'trades' && <TradesTab b={b} viewer={session?.username} />}
       {tab === 'activity' && <ActivityTab b={b} />}
-      {tab === 'share' && isOwner && <ShareTab base={buildShareBase(b, SITE_SHORT)} candidates={buildShareCandidates(b, copies, 18)} bigStats={buildBigStats(b)} link={`${SITE_URL}${profileHref(lower)}`} username={lower} discordOn={discordOn} wrapped={wrapped} />}
+      {tab === 'share' && isOwner && <ShareTab base={buildShareBase(b, SITE_SHORT)} candidates={buildShareCandidates(b, copies, 18)} bigStats={buildBigStats(b)} link={`${SITE_URL}${profileHref(lower)}`} username={lower} discordOn={discordOn} wrapped={wrapped} wanted={buildWantedSpec(b, SITE_SHORT)} />}
       <p className="text-center text-xs text-gray-600 pt-2">
         Pull cards live on stream · <Link href="/collection" className="hover:text-gray-400"><Icon name="search" className="mr-1" />find another collector</Link>
       </p>

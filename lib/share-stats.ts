@@ -62,3 +62,9 @@ export function wrappedRow<R extends { username: string }>(standings: R[], usern
 export function tradesInSeason(log: { status: string; seasonId: string; from: string; to?: string; resolvedBy?: string; reversedAt?: number }[], seasonId: string, username: string): number {
   return log.filter(t => t.status === 'accepted' && !t.reversedAt && t.seasonId === seasonId && (t.from === username || t.to === username || t.resolvedBy === username)).length;
 }
+
+/** The cards of a Looking for list that exist in this season's pool, in the order the player put them (a card from another season is skipped). */
+export function pickWanted<T extends { number: number }>(wanted: number[], pool: T[]): T[] {
+  const byNumber = new Map(pool.map(c => [c.number, c]));
+  return wanted.flatMap(n => byNumber.get(n) ?? []);
+}
