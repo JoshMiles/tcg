@@ -1,5 +1,5 @@
 // Checks the figures and the layout of the "Share my stats" image (pure). Run: npx tsx scripts/check-share-stats.mts
-import { buildStatsCard, rarestPrint, type StatsCardInput } from '../lib/share-stats';
+import { buildStatsCard, rarestPrint, tradesInSeason, wrappedRow, type StatsCardInput } from '../lib/share-stats';
 import { statsLayout, SHARE_H, STORY_H, cardArea } from '../lib/share-image';
 
 const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED: ' + msg); };
@@ -41,4 +41,15 @@ for (const h of [SHARE_H, STORY_H]) {
   ok(L.thumbs.every(t => t.h > 100 && t.y + t.h <= a.y + a.h + 0.5 && t.x >= a.x && t.x + t.w <= a.x + a.w + 0.5), `the three prints fit the area (${h})`);
   eq(Math.round(L.thumbs[0].w / L.thumbs[0].h * 1000), 667, `prints keep the card ratio (${h})`);
 }
+// season wrapped: rank from the frozen standings, trades counted within the season
+const rows = [{ username: 'amy' }, { username: 'ben' }, { username: 'cy' }];
+eq(wrappedRow(rows, 'Ben')?.rank, 2, 'rank is the 1-based place in the standings, case-insensitive');
+eq(wrappedRow(rows, 'zed'), null, 'not in the standings: no wrapped');
+const log = [
+  { status: 'accepted', seasonId: 's1', from: 'ben', to: 'amy' }, { status: 'accepted', seasonId: 's1', from: 'amy', resolvedBy: 'ben' },
+  { status: 'accepted', seasonId: 's2', from: 'ben', to: 'amy' }, { status: 'declined', seasonId: 's1', from: 'ben', to: 'amy' },
+  { status: 'accepted', seasonId: 's1', from: 'ben', to: 'amy', reversedAt: 5 }, { status: 'accepted', seasonId: 's1', from: 'cy', to: 'amy' },
+];
+eq(tradesInSeason(log, 's1', 'ben'), 2, 'completed, not reversed, this season, either side');
+eq(tradesInSeason(log, 's1', 'zed'), 0, 'no trades');
 console.log('share stats ok');

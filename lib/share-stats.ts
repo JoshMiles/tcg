@@ -51,3 +51,14 @@ export function buildStatsCard(i: StatsCardInput): StatsCardShare {
     ],
   };
 }
+
+/** A viewer's place in a season's frozen standings: 1-based rank and the row. Null when they are not in it (the snapshot keeps the top 100). */
+export function wrappedRow<R extends { username: string }>(standings: R[], username: string): { rank: number; row: R } | null {
+  const i = standings.findIndex(r => r.username.toLowerCase() === username.toLowerCase());
+  return i < 0 ? null : { rank: i + 1, row: standings[i] };
+}
+
+/** Completed trades (not reversed) a viewer was in, within one season. */
+export function tradesInSeason(log: { status: string; seasonId: string; from: string; to?: string; resolvedBy?: string; reversedAt?: number }[], seasonId: string, username: string): number {
+  return log.filter(t => t.status === 'accepted' && !t.reversedAt && t.seasonId === seasonId && (t.from === username || t.to === username || t.resolvedBy === username)).length;
+}

@@ -18,6 +18,7 @@ import { ProfileTabBar } from './ProfileTabBar';
 import { OverviewTab } from './OverviewTab';
 import { CloseToComplete } from './CloseToComplete';
 import { ShareTab } from './ShareTab';
+import { loadSeasonWrapped } from '@/lib/season-wrapped';
 import { OwnerStats } from './OwnerStats';
 import { sweepTrades } from '@/lib/trades';
 import { sharesPostingOn } from '@/lib/discord';
@@ -80,11 +81,12 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   // For "Compare with me": the signed-in viewer's copies per card (the season's collection is already loaded).
   const mine = session && !isOwner && (tab === 'collection' || tab === 'overview') ? Object.fromEntries(countPulls(b.collection[session.username] ?? [])) : undefined;
   const SITE_SHORT = SITE_URL.replace(/^https?:\/\//, '');
-  const [prefs, copies, discordOn, pronouns] = await Promise.all([
+  const [prefs, copies, discordOn, pronouns, wrapped] = await Promise.all([
     session ? getUserSettings(session.username) : undefined,
     getOwnerCopies(b.season.collectionName, lower),
     tab === 'share' && isOwner ? sharesPostingOn() : false,
     pronounsFor(lower, b.settings.pronouns),
+    tab === 'share' && isOwner ? loadSeasonWrapped(lower, b.displayName, SITE_SHORT) : null,
   ]);
   const grid = tab === 'collection' ? await buildGridCards(b, copies) : [];
   return (
@@ -105,7 +107,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
         : <StatsTab b={b} />)}
       {tab === 'trades' && <TradesTab b={b} viewer={session?.username} />}
       {tab === 'activity' && <ActivityTab b={b} />}
-      {tab === 'share' && isOwner && <ShareTab base={buildShareBase(b, SITE_SHORT)} candidates={buildShareCandidates(b, copies, 18)} bigStats={buildBigStats(b)} link={`${SITE_URL}${profileHref(lower)}`} username={lower} discordOn={discordOn} />}
+      {tab === 'share' && isOwner && <ShareTab base={buildShareBase(b, SITE_SHORT)} candidates={buildShareCandidates(b, copies, 18)} bigStats={buildBigStats(b)} link={`${SITE_URL}${profileHref(lower)}`} username={lower} discordOn={discordOn} wrapped={wrapped} />}
       <p className="text-center text-xs text-gray-600 pt-2">
         Pull cards live on stream · <Link href="/collection" className="hover:text-gray-400"><Icon name="search" className="mr-1" />find another collector</Link>
       </p>
