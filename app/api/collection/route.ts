@@ -9,6 +9,7 @@ import { recordActivity } from '@/lib/activity';
 import { decodeEntry, parseCollectionData, VARIANT_LABELS } from '@/lib/variants';
 import { isAuthenticated } from '@/lib/auth';
 import { claimDraw } from '@/lib/draw';
+import { revealDelay } from '@/lib/pull-rules-core';
 import { getMixItUpSettings, claimPaidPull, chargePaidPull, noticeUnpaid, refundPaidPull, firePullRules } from '@/lib/mixitup';
 import { isOverlayRequest } from '@/lib/overlay-key';
 import { consumePullOnSave } from '@/lib/buffs';
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { data, pull } = await req.json().catch(() => ({}));
+  const { data, pull, revealInMs } = await req.json().catch(() => ({}));
 
   // Writing is not open to the world. A pull is saved only against a ticket the server issued when it queued the pull
   // (lib/draw.ts), and what is saved is what the TICKET says: the caller cannot pick the card, the viewer or the collection.
@@ -124,7 +125,7 @@ export async function POST(req: NextRequest) {
         getWebhookSettings().then(settings => fireOutgoing(settings.outgoing.cardPulled, {
           username, cardName: ticket.cardName, cardNumber: String(cardNumber), stars: String(ticket.stars), variant, packName: ticket.packName,
         }, 'cardPulled')),
-        firePullRules({ username, cardName: ticket.cardName, stars: ticket.stars, variant, isNew }),
+        firePullRules({ username, cardName: ticket.cardName, stars: ticket.stars, variant, isNew }, revealDelay(revealInMs)),
       ]);
     };
     try { after(() => send().catch(() => {})); } catch { await send().catch(() => {}); }

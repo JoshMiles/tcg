@@ -34,12 +34,12 @@ export async function saveMixItUpSettings(s: MixItUpSettings): Promise<void> {
  * Runs the first Mix It Up command whose rule this pull meets (ROADMAP 55.6d). Called once per ticketed save, so it fires as the overlay
  * reveals the pull. Does not wait for the command; never throws; a sandbox, no rules or no paired bridge do nothing. True when queued.
  */
-export async function firePullRules(pull: PullFacts): Promise<boolean> {
+export async function firePullRules(pull: PullFacts, delayMs = 0): Promise<boolean> {
   try {
     if (await inSandbox()) return false;
     const rules = (await getMixItUpSettings()).pullRules;
     const hit = rules.length ? matchRule(rules, pull) : null;
-    return hit ? await bridgeRunCommand(hit.commandId, pullArgs(pull)) : false;
+    return hit ? await bridgeRunCommand(hit.commandId, pullArgs(pull), delayMs) : false;
   } catch {
     return false;
   }

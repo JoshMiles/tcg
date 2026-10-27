@@ -1,5 +1,5 @@
 // The long-poll loop and the Mix It Up watcher. Plain TypeScript, no Electron: main.ts only wires it to the tray and the window.
-import { isKnownKind, runJob, undoLate } from './jobs';
+import { commandWait, isKnownKind, runJob, undoLate } from './jobs';
 import { MixItUpClient } from './mixitup';
 import type { ObsConfig, ObsState, ObsWatcher } from './obs';
 import { SiteClient, SiteError, Unauthorized, type BridgeCommand, type BridgeJob, type BridgeResult } from './site';
@@ -170,7 +170,12 @@ export class BridgeService {
         this.state.siteError = '';
         this.state.lastPollAt = Date.now();
         this.changed();
-        for (const job of jobs) if (job && typeof job.id === 'string' && isKnownKind(job.kind)) await this.handle(job);
+        for (const job of jobs) {
+          if (!job || typeof job.id !== 'string' || !isKnownKind(job.kind)) continue;
+          // A run-command may wait for the card reveal; it runs apart so balance and deduct jobs never queue behind a sound.
+          if (job.kind === 'run-command') void this.handle(job).catch(e => { if (e instanceof Unauthorized) this.revoke(); });
+          else await this.handle(job);
+        }
       } catch (e) {
         if (e instanceof Unauthorized) return this.revoke();
         if (signal.aborted) return;
@@ -185,6 +190,11 @@ export class BridgeService {
   }
 
   private async handle(job: BridgeJob): Promise<void> {
+    const wait = commandWait(job);
+    if (wait > 0) {
+      await sleep(wait, this.abort.signal);
+      if (this.abort.signal.aborted) return;
+    }
     const t0 = Date.now();
     const result = await runJob(job, this.o.mix, this.o.obs, this.commandIds);
     const ms = Date.now() - t0;

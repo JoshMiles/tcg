@@ -11,6 +11,15 @@ const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 class Refused extends Error {}
 
+const DELAY_MAX_MS = 15_000;
+
+/** How long to hold a run-command so it lands on the card reveal: the job's delay counted from when the site queued it, at most 15 s. */
+export function commandWait(job: BridgeJob, now = Date.now()): number {
+  if (job.kind !== 'run-command' || typeof job.delayMs !== 'number' || !Number.isFinite(job.delayMs)) return 0;
+  const d = Math.min(job.delayMs, DELAY_MAX_MS);
+  return Math.max(0, Math.min(d, (typeof job.at === 'number' ? job.at : now) + d - now));
+}
+
 /** Runs a known job and says how it went. Never throws. */
 export async function runJob(job: BridgeJob, mix: MixItUpClient, obs: ObsWatcher, commandIds: ReadonlySet<string> = new Set()): Promise<BridgeResult> {
   try {

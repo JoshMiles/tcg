@@ -1,6 +1,6 @@
 // The TCG site's bridge API (app/api/bridge/*). The only address this file ever fetches is the paired site.
 export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command';
-export interface BridgeJob { id: string; kind: string; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; at?: number }
+export interface BridgeJob { id: string; kind: string; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; delayMs?: number; at?: number }
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeCurrency { id: string; name: string }
 export interface BridgeCommand { id: string; name: string }

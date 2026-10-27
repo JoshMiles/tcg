@@ -153,4 +153,20 @@ const test = (await commandJobs())[0];
 ok(test.commandId === C2 && JSON.stringify(test.args) === JSON.stringify(['cheesyviewer', 'Gouda Goat', 'Epic', 'Full Art Holo']), 'with the sample pull');
 await clearJobs();
 
+// revealInMs: the overlay says how long until the card is shown; the route clamps it (0 to 15 s) and assumes 3 s when it is missing
+ok(r.revealDelay(1800) === 1800 && r.revealDelay(-5) === 0 && r.revealDelay(99_000) === 15_000 && r.revealDelay(1234.6) === 1235, 'revealDelay: clamped to 0..15000');
+ok(r.revealDelay(undefined) === 3000 && r.revealDelay('4000') === 3000 && r.revealDelay(NaN) === 3000 && r.revealDelay(Infinity) === 3000, 'revealDelay: missing or not a number = 3000');
+await withRules([rule('everything', C1)]);
+const saveWith = async (ticket: string, revealInMs?: unknown) => {
+  await clearJobs();
+  await draw.issueDraw(ticket, 'ann');
+  await POST(new NextRequest('http://localhost/api/collection', { method: 'POST', body: JSON.stringify({ pull: { username: 'ann', ticket }, ...(revealInMs === undefined ? {} : { revealInMs }) }) }));
+  return (await commandJobs())[0];
+};
+ok((await saveWith('d1', 2800))?.delayMs === 2800, 'the job carries the delay the overlay sent');
+ok((await saveWith('d2', 90_000))?.delayMs === 15_000, 'a huge delay is clamped to 15 s');
+ok((await saveWith('d3', -40))?.delayMs === undefined, 'a negative delay is 0: the job carries none');
+ok((await saveWith('d4'))?.delayMs === 3000, 'an old cached overlay (no revealInMs) gets 3 s');
+await clearJobs();
+
 console.log('pull rules checks passed');

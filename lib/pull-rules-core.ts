@@ -5,6 +5,12 @@ import { VARIANTS, VARIANT_LABELS } from './variants';
 import type { Variant } from './types';
 
 export const RULES_MAX = 10;
+export const REVEAL_MAX_MS = 15_000;
+const REVEAL_DEFAULT_MS = 3000;
+
+/** The overlay's `revealInMs` (save to card reveal), clamped to 0..15 s; an old cached overlay sends none, so assume a classic opening. */
+export const revealDelay = (raw: unknown): number =>
+  typeof raw === 'number' && Number.isFinite(raw) ? Math.min(REVEAL_MAX_MS, Math.max(0, Math.round(raw))) : REVEAL_DEFAULT_MS;
 
 /** `when` holds the conditions a pull must meet (all of the ones that are set). No condition at all means every pull. */
 export interface PullRule {

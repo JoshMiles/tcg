@@ -8,6 +8,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Alerts, snapshotOf, type Snapshot } from '../src/alerts';
+import { commandWait } from '../src/jobs';
 import { diagnosticsText } from '../src/diagnostics';
 import { defaultMixItUpPath, isMixItUpExe, startMixItUp } from '../src/launch';
 import { Logger, redact } from '../src/log';
@@ -353,6 +354,29 @@ async function main() {
   assert.equal((await resultOf(job('run-command', { args: ['alice'] }))).ok, false, 'no command id');
   assert.equal(mi.ran.length, ranBefore, 'an unreported id never reaches Mix It Up');
   assert.ok(!mi.calls.some(c => c.url.includes('..')));
+
+  // delayMs: a run-command waits for the card reveal (counted from when the site queued it, at most 15 s) and holds nothing else up
+  const T = 1_000_000;
+  const rc = (o: Partial<BridgeJob>): BridgeJob => ({ id: 'x', kind: 'run-command', at: T, ...o });
+  assert.equal(commandWait(rc({ delayMs: 3000 }), T), 3000, 'the full delay when it has just been queued');
+  assert.equal(commandWait(rc({ delayMs: 3000 }), T + 1000), 2000, 'less the time already spent in transit');
+  assert.equal(commandWait(rc({ delayMs: 3000 }), T + 9000), 0, 'never negative');
+  assert.equal(commandWait(rc({ delayMs: 99_000 }), T), 15_000, 'capped at 15 s');
+  assert.equal(commandWait(rc({}), T), 0, 'no delay from an older site');
+  assert.equal(commandWait(rc({ delayMs: NaN }), T), 0);
+  assert.equal(commandWait({ id: 'x', kind: 'deduct', delayMs: 3000, at: T }, T), 0, 'only run-command waits');
+  const slow = job('run-command', { commandId: CMD_SOUND, args: ['alice', 'Gouda Goat', 'Legendary', 'Golden'], delayMs: 500 });
+  const tSlow = Date.now();
+  si.s.jobs.push(slow);
+  const quick = await resultOf(job('deduct', { username: 'alice', amount: 1 }));
+  assert.equal(quick.ok, true, 'a deduct queued right behind the sound still runs');
+  assert.ok(Date.now() - tSlow < 400 && !si.s.results.some(r => r.id === slow.id) && mi.ran.length === ranBefore, 'at once, while the sound is still waiting');
+  await waitFor('delayed command result', () => si.s.results.some(r => r.id === slow.id));
+  assert.ok(Date.now() - tSlow >= 450, 'the command waited about its delay');
+  assert.equal(si.s.results.find(r => r.id === slow.id)!.ok, true);
+  assert.deepEqual(mi.ran.at(-1), { id: CMD_SOUND, args: ['alice', 'Gouda Goat', 'Legendary', 'Golden'] }, 'then ran with its arguments');
+  await resultOf(job('add', { username: 'alice', amount: 1 }));
+  assert.equal(mi.users.get('alice')!.amount, 12, 'balance put back for the checks below');
 
   // OBS is off by default: the refresh job is answered at once and the tray ignores OBS
   const offT0 = Date.now();

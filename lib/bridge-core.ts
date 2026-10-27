@@ -4,7 +4,7 @@ import { createHash, randomInt } from 'crypto';
 import { VIEWERS_MAX } from './mixitup-core';
 
 export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command';
-export interface BridgeJob { id: string; kind: JobKind; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; at: number }
+export interface BridgeJob { id: string; kind: JobKind; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; delayMs?: number; at: number }
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeReply { ok: boolean; status: number; body: unknown; error?: string }
 export interface BridgeCurrency { id: string; name: string }

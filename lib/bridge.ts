@@ -92,11 +92,11 @@ export async function bridgeSay(text: string): Promise<void> {
  * Asks the bridge to run one of Mix It Up's commands (ROADMAP 55.6d) and does not wait: a pull never waits on it. Nothing is queued in a
  * sandbox or when no bridge is paired. Never throws. True when a job was queued.
  */
-export async function bridgeRunCommand(commandId: string, args: string[]): Promise<boolean> {
+export async function bridgeRunCommand(commandId: string, args: string[], delayMs = 0): Promise<boolean> {
   try {
     if (await inSandbox()) return false;
     if (!(await listBridges()).length) return false;
-    await kv.rpush(JOBS, { id: crypto.randomUUID(), kind: 'run-command', commandId, args: args.slice(0, 10).map(a => a.slice(0, 200)), at: Date.now() } satisfies BridgeJob);
+    await kv.rpush(JOBS, { id: crypto.randomUUID(), kind: 'run-command', commandId, args: args.slice(0, 10).map(a => a.slice(0, 200)), ...(delayMs > 0 ? { delayMs } : {}), at: Date.now() } satisfies BridgeJob);
     return true;
   } catch {
     return false;
