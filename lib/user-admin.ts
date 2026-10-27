@@ -5,6 +5,7 @@ import { cleanLogin } from './staff-core';
 import { recordAudit } from './audit';
 import { currentStaffLogin } from './staff-actor';
 import { listOpenTrades } from './trades';
+import { KEEP_UNTIL, formatUntil, tradeBlockedNow, untilFromDays } from './restriction';
 import { getOwnerCopies, isTracking, printsBlocked } from './serials';
 import { entryOf } from './serials-core';
 import type { UserProfile, Variant } from './types';
@@ -27,6 +28,8 @@ export function cleanTags(list: string[]): string[] {
 export interface UserFlags {
   /** Cannot make or accept trade offers, and cannot be offered one. */
   noTrading?: boolean;
+  /** Trial 51.3: when the trading block lifts itself (ms). Set from "Lifts after" in saveFlags, never taken from the client. */
+  until?: number;
   /** Left out of the public leaderboard, card owner lists and recent pulls. */
   hideFromBoard?: boolean;
   /** Why (staff only: admins and mods). */
@@ -90,21 +93,24 @@ export async function saveTags(username: string, tags: string[]): Promise<{ ok: 
   return { ok: true, tags: clean };
 }
 
-export async function saveFlags(username: string, flags: UserFlags): Promise<{ ok: true } | { ok: false; error: string }> {
+/** `days` is the "Lifts after" choice for a trading block: 0 none, 1/3/7/30, or KEEP_UNTIL to keep the end a live timed block already has. */
+export async function saveFlags(username: string, flags: UserFlags, days = 0): Promise<{ ok: true } | { ok: false; error: string }> {
   const name = await knownViewer(username);
   if (!name) return { ok: false, error: UNKNOWN_VIEWER };
   const any = !!(flags.noTrading || flags.hideFromBoard);
   const by = any ? await currentStaffLogin() : null;
-  const next: UserFlags | undefined = any ? { noTrading: !!flags.noTrading, hideFromBoard: !!flags.hideFromBoard, reason: (flags.reason ?? '').slice(0, 200), at: Date.now(), ...(by ? { by } : {}) } : undefined;
+  const prev = days === KEEP_UNTIL ? (await getUserProfile(name))?.flags : undefined;
+  const until = !flags.noTrading ? undefined : days === KEEP_UNTIL ? (tradeBlockedNow(prev) ? prev?.until : undefined) : untilFromDays(days);
+  const next: UserFlags | undefined = any ? { noTrading: !!flags.noTrading, ...(until ? { until } : {}), hideFromBoard: !!flags.hideFromBoard, reason: (flags.reason ?? '').slice(0, 200), at: Date.now(), ...(by ? { by } : {}) } : undefined;
   await patchUserProfile(name, p => ({ ...(p ?? blankProfile(name)), flags: next }));
   await setHidden(name, !!flags.hideFromBoard);
-  await recordAudit(name, any ? 'Restrictions set' : 'Restrictions cleared', any ? [flags.noTrading && 'no trading', flags.hideFromBoard && 'hidden from public boards', flags.reason].filter(Boolean).join(' · ') : undefined);
+  await recordAudit(name, any ? 'Restrictions set' : 'Restrictions cleared', any ? [flags.noTrading && (until ? `no trading until ${formatUntil(until)}` : 'no trading'), flags.hideFromBoard && 'hidden from public boards', flags.reason].filter(Boolean).join(' · ') : undefined);
   return { ok: true };
 }
 
 /** True when this viewer is blocked from trading. */
 export async function isTradeBlocked(username: string): Promise<boolean> {
-  try { return !!(await getUserProfile(username))?.flags?.noTrading; } catch { return false; }
+  try { return tradeBlockedNow((await getUserProfile(username))?.flags); } catch { return false; }
 }
 
 // ── Restore points ──

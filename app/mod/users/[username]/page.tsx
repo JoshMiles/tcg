@@ -11,6 +11,7 @@ import { uniqueCount } from '@/lib/collection';
 import { tradesForUser } from '@/lib/trades';
 import { describeItems } from '@/lib/trade-core';
 import { SUGGESTED_TAGS } from '@/lib/user-admin';
+import { formatUntil, liveUntil, tradeBlockedNow } from '@/lib/restriction';
 import { requireStaff } from '@/lib/staff-guard';
 import { ModerationPanel, TagsEditor, TradesPanel, type TradeLine } from '../../../admin/users/[username]/UserPanels';
 import { Chip, PageHeader, Panel, Tile } from '../../../admin/components/ui';
@@ -88,9 +89,9 @@ export default async function ModUserPage({ params }: { params: Promise<{ userna
       <div className="flex flex-wrap items-center gap-4">
         <Avatar src={av ? sizeTwitchAvatar(av, 150) : undefined} name={displayName} className="w-14 h-14 text-xl" />
         <div className="flex flex-wrap items-center gap-1.5">
-          {flags?.noTrading && <Chip tone="red">No trading</Chip>}
+          {tradeBlockedNow(flags) && <Chip tone="red">No trading{liveUntil(flags) ? ` until ${formatUntil(liveUntil(flags)!)}` : ''}</Chip>}
           {flags?.hideFromBoard && <Chip tone="amber">Hidden from boards</Chip>}
-          {!flags?.noTrading && !flags?.hideFromBoard && <Chip tone="green">No restrictions</Chip>}
+          {!tradeBlockedNow(flags) && !flags?.hideFromBoard && <Chip tone="green">No restrictions</Chip>}
           {(profile?.tags ?? []).map(t => <Chip key={t}>{t}</Chip>)}
         </div>
       </div>
@@ -104,7 +105,7 @@ export default async function ModUserPage({ params }: { params: Promise<{ userna
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Restrictions" icon="shield" hint="Stop them trading and/or hide them from the public rankings. The reason is only seen by staff.">
-          <ModerationPanel username={username} initial={{ noTrading: !!flags?.noTrading, hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at, by: flags?.by }} />
+          <ModerationPanel username={username} initial={{ noTrading: tradeBlockedNow(flags), until: liveUntil(flags), hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at, by: flags?.by }} />
         </Panel>
         <Panel title="Tags" icon="note" hint="Labels only staff can see.">
           <TagsEditor username={username} initial={profile?.tags ?? []} suggestions={SUGGESTED_TAGS} />

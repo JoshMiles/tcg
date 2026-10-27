@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Avatar } from '@/app/components/Avatar';
 import { Icon } from '@/app/components/Icon';
 import { getAllCollectionUsers, getUserProfiles } from '@/lib/kv';
+import { tradeBlockedNow } from '@/lib/restriction';
 import { getLastSeen } from '@/lib/stats';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import type { UserProfile } from '@/lib/types';
@@ -37,7 +38,7 @@ export default async function ModUsersPage({ searchParams }: { searchParams: Pro
   // Profiles are read for the rows that decide the list: all of them for "Restricted only" (no index to start from), else just the page.
   const candidates = restrictedOnly ? pool : pool.slice(0, SHOWN);
   const profiles = await getUserProfiles(candidates.map(u => u.username)).catch(() => new Map<string, UserProfile | null>());
-  const rows = candidates.map(u => ({ u, p: profiles.get(u.username) ?? null })).filter(r => !restrictedOnly || r.p?.flags?.noTrading || r.p?.flags?.hideFromBoard);
+  const rows = candidates.map(u => ({ u, p: profiles.get(u.username) ?? null })).filter(r => !restrictedOnly || tradeBlockedNow(r.p?.flags) || r.p?.flags?.hideFromBoard);
   const total = restrictedOnly ? rows.length : pool.length;
   const shown = rows.slice(0, SHOWN);
   const avatars = await getAvatars(shown.map(r => r.u.username));
@@ -74,7 +75,7 @@ export default async function ModUsersPage({ searchParams }: { searchParams: Pro
                       <span className="block text-xs text-gray-500">@{u.username} · {unique} collected · {pullsOf(u)} pull{pullsOf(u) === 1 ? '' : 's'} · {seen ? `seen ${new Date(seen).toLocaleDateString('en-GB', { timeZone: 'UTC', dateStyle: 'medium' })}` : 'never seen'}</span>
                     </span>
                     <span className="ml-auto flex flex-wrap items-center gap-1.5">
-                      {p?.flags?.noTrading && <Chip tone="red">No trading</Chip>}
+                      {tradeBlockedNow(p?.flags) && <Chip tone="red">No trading</Chip>}
                       {p?.flags?.hideFromBoard && <Chip tone="amber">Hidden from boards</Chip>}
                       {(p?.tags ?? []).slice(0, 3).map(t => <Chip key={t}>{t}</Chip>)}
                     </span>

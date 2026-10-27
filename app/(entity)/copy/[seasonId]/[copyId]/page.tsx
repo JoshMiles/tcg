@@ -29,6 +29,7 @@ import { profileHref } from '@/lib/profile-url';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { InfoTip } from '@/app/components/InfoTip';
 import { SITE_URL } from '@/lib/site';
+import { tradeBlockedNow } from '@/lib/restriction';
 
 // Cached per request: generateMetadata and the page both ask for the same copy.
 const load = cache(async (seasonId: string, copyId: string) => {
@@ -71,7 +72,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
   let canOffer = false;
   if (holder) {
     const [ts, profile, theirs] = await Promise.all([getTradeSettings(), getUserProfile(holder).catch(() => null), getUserSettings(holder).catch(() => null)]);
-    canOffer = ts.enabled && !profile?.flags?.noTrading && !theirs?.privateProfile;
+    canOffer = ts.enabled && !tradeBlockedNow(profile?.flags) && !theirs?.privateProfile;
   }
   const [hidden, minted, holoFor, board, backStyle] = await Promise.all([getHiddenUsers().catch(() => new Set<string>()), mintedCounts(season.collectionName), getHoloResolver(), getSeasonLeaderboardCached(season).catch(() => null), cardBackFor(pack, season.name)]);
   // What this very copy is worth: its card's points times the bonus its number earns.

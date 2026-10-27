@@ -3,6 +3,7 @@ import { escrowOwner, isEscrow, entryOf, newestFirst, parseCopyId } from './seri
 import { firstNotHeld, getCopy, getOwnerCopies, isTracking, liveCopiesOfEntry, printLabel, serialPool } from './serials';
 import { getUserSettings } from './user-settings-store';
 import { kv } from './db';
+import { tradeBlockedNow } from './restriction';
 import { getCollection, getPackCards, getPacksForSeason, getSeason, getUserCards, getUserProfile, updateCollection, withCollectionLock, withLock } from './kv';
 import { announceTrade, type EventPools, type TradeAction } from './trade-notify';
 import { currentStaffLogin } from './staff-actor';
@@ -57,7 +58,7 @@ function locked<T>(fn: () => Promise<T>): Promise<T> {
 
 /** Moderation: is this viewer barred from trading? (reads the profile directly; lib/user-admin.ts imports this module) */
 async function blocked(username: string): Promise<boolean> {
-  try { return !!(await getUserProfile(username))?.flags?.noTrading; } catch { return false; }
+  try { return tradeBlockedNow((await getUserProfile(username))?.flags); } catch { return false; }
 }
 
 /** True while the viewer's profile is younger than the "minimum account age" setting (a viewer with no profile counts as new). */
