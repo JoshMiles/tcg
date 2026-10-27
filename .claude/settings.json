@@ -3,7 +3,6 @@
     "deny": [
       "Read(./Old/**)",
       "Read(./olddata.txt)",
-      "Read(./package-lock.json)",
       "Read(./.next/**)"
     ]
   },
