@@ -20,6 +20,7 @@ Use Block trading for trade abuse. Use Hide from public boards for names or prof
 
 1. Look at their recent activity and trades first, so you know what happened.
 2. Flip the switch.
+   For Block trading, pick **Lifts after** (1, 3, 7 or 30 days) to make it end on its own, or leave it on no end. The end date shows on their page.
 3. Write a reason. Only staff see it, and the next person on shift reads it.
 4. Press **Save restrictions**. Nothing applies until you do.
 
