@@ -50,7 +50,7 @@ const variantRank = (v?: Variant) => Math.max(0, VARIANTS.indexOf(v ?? 'regular'
  * at its cap, which together with an oldest event after `from` means the start of the stream has rolled out of it.
  */
 export function buildStreamRecap(events: ActivityEvent[], from: number, to: number, opts: { seasonId?: string; logIsFull?: boolean } = {}): StreamRecap {
-  const inWindow = events.filter(e => e.at >= from && e.at <= to);
+  const inWindow = events.filter(e => e.at >= from && e.at <= to && !e.test); // a test pull (ROADMAP 55.14) is never part of a stream
   // A card granted by webhook (a Mix It Up reward) is a pack opened as far as the stream is concerned.
   const pulls = inWindow.flatMap(e => asPullEvent(e) ?? []);
   const oldest = events.reduce((m, e) => Math.min(m, e.at), Infinity);

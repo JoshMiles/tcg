@@ -57,13 +57,16 @@ export interface DrawTicket {
   entry: number;
   /** A Mix It Up payment was reserved under the same id (lib/mixitup.ts). */
   paid: boolean;
+  /** A simulated pull (ROADMAP 55.14): it is saved to the test collection and counts nowhere. `trace` is the id of its step list. */
+  test?: boolean;
+  trace?: string;
 }
 
 /** What the overlay needs to play the pull. */
 export interface QueuedDraw { packId: string; cardNumber: number; variant: Variant }
 
 /** Rolls a pull for a viewer and stores its ticket under `id`. Null when the active season has nothing to draw. */
-export async function issueDraw(id: string, username: string, paid = false): Promise<QueuedDraw | null> {
+export async function issueDraw(id: string, username: string, paid = false, test?: { trace: string }): Promise<QueuedDraw | null> {
   const active = await getActiveSeasonWithPacks();
   const rolled = active ? rollDraw(active.packs, Math.random, await rarityBoostFor(username).catch(() => 1)) : null;
   if (!active || !rolled) return null;
@@ -71,6 +74,7 @@ export async function issueDraw(id: string, username: string, paid = false): Pro
   const ticket: DrawTicket = {
     username: username.toLowerCase(), collectionName: active.season.collectionName, packId: pack.id, packName: pack.name,
     cardNumber: card.number, cardName: card.name, stars: card.stars, variant, entry: encodeEntry(card.number, variant), paid,
+    ...(test ? { test: true, trace: test.trace } : {}),
   };
   await kv.set(ticketKey(id), ticket, { ex: TICKET_TTL_S });
   return { packId: pack.id, cardNumber: card.number, variant };

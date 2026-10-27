@@ -14,7 +14,7 @@ export const metadata = { title: 'Live Activity · Admin', robots: { index: fals
 
 export default async function ActivityPage() {
   await staffPage('admin');
-  const [{ events, seq }, active] = await Promise.all([getActivity({ limit: 100 }), getActiveSeasonWithPacks()]);
+  const [{ events, seq }, active] = await Promise.all([getActivity({ limit: 100, includeTest: true }), getActiveSeasonWithPacks()]);
 
   const raw = await getAvatars(events.map(e => e.username));
   const avatars = Object.fromEntries(Object.entries(raw).map(([u, url]) => [u, sizeTwitchAvatar(url, 70)]));

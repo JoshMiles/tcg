@@ -1,6 +1,7 @@
 // Mix It Up paid pulls (ROADMAP Track 12): the settings, the message template, how replies are read and when a pull is allowed.
 // Pure (no database, no network), so the settings form, the server and scripts/check-mixitup.mts share it.
 import { CHANNEL_LOGIN } from './site';
+import { cleanLogin } from './staff-core';
 import { checkWebhookUrl } from './webhook-clean';
 import { normalizeRules, type PullRule } from './pull-rules-core';
 
@@ -43,7 +44,11 @@ export interface MixItUpSettings {
   balanceField: string;
   /** Mix It Up commands to run on big pulls (ROADMAP 55.6d). The Paid pulls form does not touch them; the Big pulls form does. */
   pullRules: PullRule[];
+  /** Who "Simulate a chat pull" may pretend to be (ROADMAP 55.14): at most 5 logins. Missing = the streamer's own login only. */
+  testViewers: string[];
 }
+
+export const TEST_VIEWERS_MAX = 5;
 
 export const MESSAGE_VARS = ['username', 'amount', 'currency', 'cardName', 'variant', 'stars', 'packName', 'cardNumber', 'serial'] as const;
 export const DEFAULT_MESSAGE = '{username} opened a pack and pulled {cardName} ({variant}, {stars} stars). {amount} {currency} spent.';
@@ -53,7 +58,7 @@ const NO_ROLE_LIMITS: Record<PullRole, number> = { regular: 0, subscriber: 0, vi
 
 export const DEFAULT_MIXITUP: MixItUpSettings = {
   enabled: false, connection: 'bridge', currencyId: '', balanceUrl: '', deductUrl: '', addUrl: '', viewersUrl: '', secret: '', currency: 'Brie Bucks', cost: 100, limit: 0,
-  roleLimits: { ...NO_ROLE_LIMITS }, message: DEFAULT_MESSAGE, balanceField: 'balance', pullRules: [],
+  roleLimits: { ...NO_ROLE_LIMITS }, message: DEFAULT_MESSAGE, balanceField: 'balance', pullRules: [], testViewers: [CHANNEL_LOGIN],
 };
 
 /** Is there somewhere to send a balance check? Bridge: a chosen currency. Addresses: the balance address. */
@@ -116,6 +121,7 @@ export function normalizeMixItUp(raw: unknown): MixItUpSettings {
     message: text(r.message, MESSAGE_MAX, d.message) || d.message,
     balanceField: text(r.balanceField, 60, d.balanceField) || d.balanceField,
     pullRules: normalizeRules(r.pullRules),
+    testViewers: Array.isArray(r.testViewers) ? [...new Set(r.testViewers.flatMap(v => cleanLogin(v) ?? []))].slice(0, TEST_VIEWERS_MAX) : [...d.testViewers],
   };
 }
 

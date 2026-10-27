@@ -81,7 +81,7 @@ export default async function UserDetailPage({
     getAvatars([username]),
     getUserAudit(username, 30),
     listUserSnapshots(username),
-    getActivity({ limit: 500 }),
+    getActivity({ limit: 500, includeTest: true }),
     getLastSeen(),
     tradesForUser(username).catch(() => ({ incoming: [], outgoing: [], board: [], recent: [] })),
   ]);
@@ -247,7 +247,7 @@ export default async function UserDetailPage({
           <ul className="divide-y divide-gray-800/60 rounded-lg border border-gray-800 overflow-hidden">
             {timeline.map(e => (
               <li key={e.seq} className="px-4 py-2 flex items-center gap-4 text-sm">
-                <span className="text-gray-300 truncate">{plainText(e, nameOf)}</span>
+                <span className="text-gray-300 truncate">{plainText(e, nameOf)}{e.test && <span className="badge badge-xs badge-warning ml-2 align-middle">Test</span>}</span>
                 <span className="ml-auto text-xs text-gray-600 shrink-0">{ago(e.at, now)}</span>
               </li>
             ))}

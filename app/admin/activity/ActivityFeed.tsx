@@ -694,6 +694,7 @@ function EventRow({
         <p className={`${compact ? 'text-[13px] truncate' : 'text-sm leading-snug'} text-gray-300`}>
           <Icon name={icon} className="mr-1.5 text-gray-400" />
           {body}
+          {e.test && <span className="badge badge-xs badge-warning ml-2 align-middle">Test</span>}
           {reason && <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-yellow-300"><Icon name="sparkles" className="w-3 h-3" />{reason}</span>}
         </p>
         {sub && !compact && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}

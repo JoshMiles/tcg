@@ -13,6 +13,8 @@ import { revealDelay } from '@/lib/pull-rules-core';
 import { getMixItUpSettings, claimPaidPull, chargePaidPull, noticeUnpaid, refundPaidPull, firePullRules } from '@/lib/mixitup';
 import { isOverlayRequest } from '@/lib/overlay-key';
 import { consumePullOnSave } from '@/lib/buffs';
+import { testCollectionName } from '@/lib/mixitup-test-core';
+import { noteMade, traceStep } from '@/lib/mixitup-trace';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
@@ -48,6 +50,11 @@ export async function POST(req: NextRequest) {
   if (!ticket) return NextResponse.json({ ok: false, error: 'This pull is not recognised, or it was already saved.' }, { status: 401 });
   const name = ticket.collectionName;
   const entry = ticket.entry;
+  // A simulated pull (ROADMAP 55.14) is saved to the test collection beside the season's, so no reader of the season sees it, and counts nowhere.
+  const test = !!ticket.test;
+  const store = test ? testCollectionName(name) : name;
+  const step = (s: Parameters<typeof traceStep>[1], state: Parameters<typeof traceStep>[2], detail?: string) => traceStep(test ? ticket.trace : undefined, s, state, detail);
+  await step('shown', 'ok', 'The overlay claimed the ticket and started the reveal');
 
   // The overlay's in-memory copy of the collection goes stale whenever something else changes it (an upgrade, a grant, an admin
   // edit), so the pull is appended server-side and the new array is returned for the overlay to resync.
@@ -62,9 +69,9 @@ export async function POST(req: NextRequest) {
     // A paid pull (Mix It Up) is claimed first, once, so a repeated save cannot add a second print on one payment.
     if (ticket.paid) {
       paid = await claimPaidPull(ticketId, username);
-      if (!paid) return NextResponse.json({ ok: false, error: 'This paid pull was already used or has expired.' }, { status: 409 });
+      if (!paid) { await step('charged', 'failed', 'The payment reservation was already used or had expired.'); return NextResponse.json({ ok: false, error: 'This paid pull was already used or has expired.' }, { status: 409 }); }
     }
-    before = await getCollection(name);
+    before = await getCollection(store);
     // The charge comes before the print, so a print never exists without its payment: no confirmation = nothing is saved.
     // The edition number does not exist yet, so the deduct message gets none.
     if (paid && mix) {
@@ -75,12 +82,17 @@ export async function POST(req: NextRequest) {
       });
       if (!charge.applied) {
         await noticeUnpaid(paid, ticket.cardName, charge.error ?? 'not applied');
+        await step('charged', 'failed', `Mix It Up did not confirm the payment (${charge.error ?? 'not applied'}), so nothing was saved.`);
         return NextResponse.json({ ok: true, revoked: true, owned: before[username] ?? [] });
       }
+      await step('charged', 'ok', paid.amount > 0 ? `${paid.amount} ${mix.currency} taken through ${mix.connection === 'bridge' ? 'TCG Bridge' : 'Mix It Up'}` : 'An extra-pack credit paid for it: nothing taken');
+    } else {
+      await step('charged', 'skipped', 'Free pull: nothing charged');
     }
     try {
-      ({ owned, serial, copyId, uid } = await addCollectionEntryWithSerial(name, username, entry, 'pull'));
+      ({ owned, serial, copyId, uid } = await addCollectionEntryWithSerial(store, username, entry, 'pull'));
     } catch (e) {
+      await step('saved', 'failed', e instanceof Error ? e.message : 'The edition could not be saved.');
       // Charged but the print could not be saved: pay it back rather than keep the money for nothing.
       if (paid && mix) await refundPaidPull(mix, paid, ticket.cardName).catch(() => {});
       throw e;
@@ -88,6 +100,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Buffs store the season's id, which is not the collection name the ticket carries.
+  if (test && ticket.trace) {
+    await noteMade(ticket.trace, { username, collectionName: store, entry, cardName: ticket.cardName, paid: !!paid, amount: paid?.credit ? 0 : paid?.amount ?? 0, at: Date.now() });
+  }
+  await step('saved', 'ok', `${ticket.cardName} (${VARIANT_LABELS[decodeEntry(entry).variant]}) went into ${username}'s test collection`);
+
   const seasonId = (await listSeasons().catch(() => [])).find(s => s.collectionName === name)?.id;
   await consumePullOnSave(username, { wasCredit: paid?.credit, seasonId }).catch(() => {});
 
@@ -102,6 +119,7 @@ export async function POST(req: NextRequest) {
     type: 'pull',
     username,
     collectionName: name,
+    ...(test ? { test: true as const } : {}),
     cardNumber,
     cardName: ticket.cardName,
     stars: ticket.stars,
@@ -114,22 +132,33 @@ export async function POST(req: NextRequest) {
     ...(copyId ? { copyId } : {}),
     ...(uid ? { uid } : {}),
   });
-  await recordStreamPull(username);
+  if (!test) await recordStreamPull(username);
 
   // Sent after the response, held open by after() so the function isn't frozen before it goes out. The sandbox is decided
   // now (it is not visible inside after()). Outside a request (scripts) it just runs. The pull rules (Mix It Up commands on big pulls,
   // ROADMAP 55.6d) go here too: the overlay saves a pull as it reveals it, so this is the reveal, and the save never waits on them.
-  if (!(await inSandbox())) {
+  const sandbox = await inSandbox();
+  // The last two steps of a test pull. The payment message is posted by Mix It Up together with the charge, so that is all "chat reply sent" can mean here.
+  const endTest = async () => {
+    if (!test) return;
+    if (sandbox) await step('rules', 'skipped', 'A sandbox queues no commands');
+    const charged = !!paid && !paid.credit && paid.amount > 0;
+    await step('chat', charged ? 'ok' : 'skipped', charged ? 'The payment message went to chat with the charge' : 'Free pull: there is no payment message');
+  };
+  if (!sandbox) {
     const send = async () => {
       await Promise.allSettled([
-        getWebhookSettings().then(settings => fireOutgoing(settings.outgoing.cardPulled, {
+        // The outgoing cardPulled webhook (it may post to Discord or chat) is for real pulls only.
+        test ? Promise.resolve() : getWebhookSettings().then(settings => fireOutgoing(settings.outgoing.cardPulled, {
           username, cardName: ticket.cardName, cardNumber: String(cardNumber), stars: String(ticket.stars), variant, packName: ticket.packName,
         }, 'cardPulled')),
-        firePullRules({ username, cardName: ticket.cardName, stars: ticket.stars, variant, isNew }, revealDelay(revealInMs)),
+        firePullRules({ username, cardName: ticket.cardName, stars: ticket.stars, variant, isNew }, revealDelay(revealInMs))
+          .then(queued => step('rules', queued ? 'ok' : 'skipped', queued ? 'A Mix It Up command was queued for TCG Bridge' : 'No rule matched, or no bridge is paired')),
       ]);
+      await endTest();
     };
     try { after(() => send().catch(() => {})); } catch { await send().catch(() => {}); }
-  }
+  } else await endTest();
 
   return NextResponse.json({ ok: true, owned, serial, uid, serialMult: Math.round(mult * 100) / 100, isNew, firstForViewer });
 }
