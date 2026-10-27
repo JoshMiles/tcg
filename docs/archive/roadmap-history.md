@@ -1427,7 +1427,7 @@ From the Track 44 audits; finding details in `docs/archive/audit-2026-*.md`.
 
 ## Track 47: access hardening (2026-10-26)
 
-From the Track 44 audits; finding details in `docs/archive/audit-2026-*.md`. 47.4 moved to Track 53 (next panel version); 47.10 and 47.11 are still open in `ROADMAP.md`.
+From the Track 44 audits; finding details in `docs/archive/audit-2026-*.md`. 47.4 moved to Track 53 (next panel version); 47.10 is below (Done, #557); 47.11 is still open in `ROADMAP.md`.
 
 - **47.1 A guard on every staff page, checked by verify (Done, #493).** mod-panel M-1 and C1, L-9, L-10; security C-1 (every `route.ts` against an allow-list of public routes); admin C-4 and A-8 (missing `revalidatePath`).
 - **47.2 One moderation rule (Done, #492).** mod-panel M-2, M-3, C2: `canModerate(actor, target, action)` used by every mod action and by `reverseTrade`.
@@ -1437,3 +1437,83 @@ From the Track 44 audits; finding details in `docs/archive/audit-2026-*.md`. 47.
 - **47.7 Small hardening (Done, #497).** public-site L-1, L-5, L-6, L-7 (with U-1), L-8; security L-6, L-10; `lib/captcha-server.ts` uses `clientIp`. security L-2 was left out and became 47.10.
 - **47.8 Profiles tied to the Twitch account ID (Done, #494, #501, #502, #503).** security M-1 and X-3. Decided (Josh, 2026-10-26): a different Twitch account signing in on a login moves the old profile aside (`<login>~<n>`); the old owner returning under a new login is asked on /account before it is restored; the same ID under a changed login moves the profile automatically (no redirect table); no month trial; the bot-pull gap is closed by a nightly Helix check, not a bot change. PR 1 (#494) records the ID on sign-in (`bindAccount`, `acct:ids`, conflicts on Data health). PR 2 (#501) the journalled, resumable `moveAccount` (`lib/account-move.ts`, `acct:moves`, `acct:aside`) behind an admin Move aside button. PR 3 (#502) sign-in moves aside, follows renames, the /account restore notice, the session-ID check in `getSession`. PR 4 (#503) `/api/cron/accounts` nightly Helix check (`acct:helixcheck`). The design document `PLAN-47-8.md` was deleted when 47.8 shipped; it is in the history of #501.
 - **47.9 One rate limiter, and a firewall trial (Done, #498).** security C-2 (`rateLimit` in `prodKv` for login, incoming webhooks and the panel routes) and X-2 (Vercel Firewall log-only rules, set up by hand; the readout is 47.11).
+
+## Track 43: framework upgrade (2026-10-24)
+
+- **43.1 Upgrade Next.js 15.5 to 16.4 (Done, #454).** Turbopack builds, `npm run analyze` on webpack, `ImageResponse` font change accepted; `middleware.ts` left alone for the panel freeze (43.3, still open).
+- **43.2 Page skeletons back (Done, #455).** 16.4 fixed the same-page `?param` hang, so `PendingPage` went and the `loading.tsx` skeletons came back.
+- **43.4 Other packages up to date (Done, #456).** Analytics and Speed Insights 2, `qrcode-generator` 2, `@types/node` to the Vercel Node major.
+- **43.5 TypeScript 7 (Done, #459).** The version bump alone; pin back to 5.9 if a tool ever needs the compiler API.
+
+## Track 47: access hardening, 47.10 (2026-10-27)
+
+- **47.10 Outgoing webhooks: https only, check the resolved address (Done, #557).** security L-2. Decided (Opus, 2026-10-27): saving needs https; stored http addresses keep sending with a Settings warning so a deploy breaks nothing silently; a send resolves DNS and refuses when any answer is private or the lookup fails; redirects are not followed. DNS rebinding between the lookup and the fetch is a documented limit.
+
+## Track 48: KV efficiency (2026-10-26)
+
+- **48.1 Per-request `cache()` on the hot readers (Done, #505).** public-site M-3, C-1.
+- **48.2 Home and dashboard read in parallel, slow parts streamed (Done, #506).** public-site M-4, E-1, L-13; admin A-5.
+- **48.3 Shared 20 s board everywhere (Done, #507).** public-site M-5, C-3; twitch-panel M-8.
+- **48.4 Batch profile and avatar reads (Done, #508).** public-site M-6, C-4; admin A-4, C-2, A-9; mod-panel M-7, C3, L-14, L-15.
+- **48.5 Cheaper polling and sweeps (Done, #509).** admin A-6, A-7, C-1, E-1, U-3; public-site L-10, L-11, L-12; twitch-panel L-6, L-7.
+- **48.6 CDN-cached leaderboard (folded into 40.2f).** There is no public leaderboard JSON to cache; 40.2f step 2 covers caching the board.
+- **48.7 Editions under per-viewer keys (Done, #517, #523).** Decided (Josh, 2026-10-26): one hash per season `coll:<c>` (field = login), migrated on first use under the collection lock with an atomic RENAME, the old blob kept 30 days as `tcg_<c>:old` with a Data health delete button and `scripts/rollback-collections.mts`. PR A (#517) storage, migration and writers (`updateCollection`); PR B (#523) single-viewer readers (`getUserCards`). Shipped off-stream.
+
+## Track 49: mod panel UI, cleanup and polish (2026-10-26)
+
+- **49.1 Honest trade log (Done, #510).** mod-panel M-6, L-3, U1.
+- **49.2 Act on both sides of a trade, season on every row (Done, #512).** mod-panel M-5, L-4, L-5, U2, U3.
+- **49.3 Accessible drawer, mod bar on phones, overview tiles (Done, #515).** mod-panel L-13, U4, L-12, U5, L-2, U6.
+- **49.4 Dead routes and code deleted (Done, #521).** admin A-11, A-12, C-5; security L-12; public-site L-14, C-6; admin A-10, U-2.
+- **49.5 Docs and copy that drift (Done, #516).** mod-panel L-11; public-site L-15, U-4.
+- **49.6 UX polish, site half (Done, #558).** public-site U-2 (`loading.tsx` for profile, dex and edition pages), security U-2 (private profile explainer), U-3 (a clear not-allowed page for staff). The panel half rides with the next panel version (Track 53).
+
+## Track 50: player features and trials (2026-10-27)
+
+50.1, 50.2 and 50.4 ride with the next panel version; 50.3 needs design. Both stay in `ROADMAP.md`.
+
+- **50.5 Alert health and View as public (Done, #535).** `watch:last:<user>` stamped when a watch notice is delivered; `?public=1` honoured only for the owner and only hides.
+- **50.6 Sign out everywhere (Done, #536).** A per-viewer session generation `user:<u>:sessgen`; a cookie below it is refused; a failed read counts as 0 so a KV hiccup signs nobody out.
+- **50.7 Close to complete (Done, #537).** Packs 1 to 3 base cards from finished (at least one owned), linking to the board's new `?give=` filter.
+- **50.8 Duplicates view (Done, #538).** `?tab=collection&view=duplicates`; "Offer on the board" opens `/trade/new?listing=1&give=`.
+- **50.9 Season wrapped (Done, #539).** One more preset in the Share tab for the most recent ended season (top 100 of the snapshot); posting is the existing Discord gallery button, nothing automatic.
+- **50.10 Trial: stream streak badge (Done, #540, one season).** 3 streams in a row; streams counted by `finishStream` (`twitch:streams:done`); only ticketed saved pulls during a live stream count.
+- **50.11 Trade price guide (Done, #541).** Recent trades on `/cards/<n>/copies`, no usernames, bundles skipped.
+- **50.12 Wants share image (Done, #542).** A third Share tab studio, up to 6 cards.
+
+## Track 51: staff and admin tools (2026-10-27)
+
+- **51.1 Staff actions in the Discord admin log (Done, #522).** mod-panel F1, security F-1.
+- **51.2 Trial: mod stream desk (Done, #543, 4 weeks).** mod-panel E1; `/api/admin/overlay-status` also answers mods (read-only). "Pulls paused" means the only-when-live switch is on and the stream is offline.
+- **51.3 Trial: timed restrictions (Done, #544, one season).** mod-panel E2; `flags.until`, lifted lazily by `tradeBlockedNow`.
+- **51.4 Mod guide (Done, #545).** mod-panel F2; wiki topics with `audience: mods` at `/mod/guide`.
+- **51.5 Viewer lookup and per-mod activity (Done, #546).** mod-panel F3 (profile-only viewers from `acct:ids`), F4 (`audit:all` per staff login, 7 days).
+- **51.6 Reports about staff go to admins (Done, #547, #548).** mod-panel F5; computed at read time; the Discord feedback post still names the target (noted, not changed).
+- **51.7 Trial: second approval on big reversals (Done, #549, 2 weeks).** mod-panel E3; big = any Golden edition or 6+ editions across both sides.
+- **51.8 Dashboard health strip and security card (Done, #550).** admin F-3; security U-1; lengths and set/unset only; the emergency login now stores `admin:last-login:<env>`.
+- **51.9 Backup dry run (Done, #551).** admin F-4. Decided (Opus): `scripts/restore-backup.mts --dry-run`, not an admin button (too heavy for a request).
+- **51.10 Trial: weekly admin digest (Done, #552, 4 weeks).** admin E-3; posted to the admin log channel from `/api/cron/weekly`; failed jobs are not stored, so only the backup is checked.
+- **51.11 Users list on the server, secret last used (Done, #553).** admin F-2; security F-3 (`secret:lastused`, throttled per instance).
+- **51.12 Season pre-flight check (Done, #554).** Extends the activation preview; errors marked, nothing blocks.
+- **51.13 Error spike alert (Done, #555).** `stats:h:errors` from `serverError()`; once an hour, alert at max(10, 3x the 24 h average).
+- **51.14 Monthly restore drill (Done, #556).** Decided (Opus): read-only (decrypt the newest backup and `previewRestore` against live data, never a sandbox copy); first Sunday from `/api/cron/weekly`.
+
+## Track 52: UI and UX from the page walk (2026-10-26)
+
+52.16 (panel loading timeout) rides with the next panel version (Track 53).
+
+- **52.1 Readable disabled buttons (Done, #511).**
+- **52.2 Twitch ID label (Done, #513).**
+- **52.3 Counts that agree (Done, #514).**
+- **52.4 Mask the overlay key (Done, #518).**
+- **52.5 One stats page (Done, #520).** `/account` folded into the owner's profile Stats tab; the old season look-back was dropped (raised with Josh).
+- **52.6 Compact profile header (Done, #524).**
+- **52.7 Your offers on the profile Trades tab (Done, #525).**
+- **52.8 FAQ search and Settings jump links (Done, #526).**
+- **52.9 Offer a trade for this edition (Done, #528).**
+- **52.10 Labelled dex values (Done, #529).**
+- **52.11 Editions list and the Collectors link (Done, #530).**
+- **52.12 Trade builder on phones (Done, #531).**
+- **52.13 Slimmer admin sidebar (Done, #532).**
+- **52.14 Danger placement and the No sound chip (Done, #533).**
+- **52.15 Mod viewer tools (Done, #534).**
