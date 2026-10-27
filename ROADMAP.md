@@ -61,7 +61,7 @@ The file holds the extension's CORS rules, which stay as submitted while panel 0
 
 Josh: connecting Mix It Up is confusing, there are too few settings, and Cheesygidds rewards viewers from the Stream Deck a lot, which the site cannot take today. Read `docs/admin/mixitup.md` first.
 
-**Where it stands (2026-10-27).** Mix It Up calls the site on seven incoming webhooks (`/api/webhooks/pull`, `command`, `show-card`, `grant-card`, `collection`, `stream`, `queue` for the overlay), all on the one incoming secret. The site calls Mix It Up on up to four outgoing addresses (balance, deduct, add, chat viewers; public https only, so Mix It Up on the streamer's PC needs a tunnel). Setup is spread over Admin Settings > Webhooks (the incoming secret), the Mix It Up page's Paid pulls form and the Copy setup cards; nothing shows whether Mix It Up has ever reached the site. Buffs reach players only through trainer cards and achievements; the one live lever is "Extra pulls this stream" on the Mix It Up page. The Stream Deck runs Mix It Up commands through Mix It Up's Developer API (the Mix It Up plugin from the Elgato store, Developer API service switched on in Mix It Up), so a Stream Deck button is a Mix It Up command that calls one of our webhooks. Order: 55.0 (site side, #581), 55.6a (#582), 55.6b (#584), 55.6c, 55.6d, 55.7 (the page), the 55.1 wizard (health merged as #579; it opens from 55.7's Connection tab), 55.2, 55.8 to 55.11 (the app features Josh picked), 55.12 and 55.13 (staff tools in the app), 55.3, 55.5, and 55.4 once Josh picks. One PR per item unless it says otherwise.
+**Where it stands (2026-10-27).** Mix It Up calls the site on seven incoming webhooks (`/api/webhooks/pull`, `command`, `show-card`, `grant-card`, `collection`, `stream`, `queue` for the overlay), all on the one incoming secret. The site calls Mix It Up on up to four outgoing addresses (balance, deduct, add, chat viewers; public https only, so Mix It Up on the streamer's PC needs a tunnel). Setup is spread over Admin Settings > Webhooks (the incoming secret), the Mix It Up page's Paid pulls form and the Copy setup cards; nothing shows whether Mix It Up has ever reached the site. Buffs reach players only through trainer cards and achievements; the one live lever is "Extra pulls this stream" on the Mix It Up page. The Stream Deck runs Mix It Up commands through Mix It Up's Developer API (the Mix It Up plugin from the Elgato store, Developer API service switched on in Mix It Up), so a Stream Deck button is a Mix It Up command that calls one of our webhooks. Order: 55.0 (site side, #581), 55.6a (#582), 55.6b (#584), 55.6c (#586), 55.6d, 55.6e (the look and the start-up updater), 55.7 (the page), the 55.1 wizard (health merged as #579; it opens from 55.7's Connection tab), 55.2, 55.8 to 55.11 (the app features Josh picked), 55.12 and 55.13 (staff tools in the app), 55.3, 55.5, and 55.4 once Josh picks. One PR per item unless it says otherwise.
 
 **From Mix It Up's source (github.com/MixItUpBot/Desktop, read 2026-10-27).**
 - Mix It Up has no action that sends a custom answer back to an HTTP request. The site's paid-pull calls (balance, deduct, add, viewers) expect a Mix It Up command to answer with JSON, which stock Mix It Up cannot do, so those addresses can only work through something in between. See 55.0.
@@ -161,6 +161,30 @@ Josh (2026-10-27): a small app the streamer opens when streaming, built first, s
 - The app reports Mix It Up's commands (`GET /api/commands`, name and id; check the controller in github.com/MixItUpBot/Desktop) in `hello` and every 5 minutes; the site keeps the list in `mixitup:bridge`.
 - Rules on the Mix It Up page: rarity, variant or "new to the dex" picks a command from that list (up to 10 rules; the first match wins). The app runs only an id it reported itself. Fire and forget: a pull never waits on it.
 - Checks: a rule matches once per pull, an unknown id is refused by the app, no job when no bridge is paired.
+
+**55.6e A nicer look and a start-up updater (M). Next after 55.6d.** Josh (2026-10-27): make the app look nicer, and show something while it updates, like Discord's updater when it opens. It goes before 55.7, because every later item adds screens.
+- **Start-up window:**
+  - A small frameless window, about 300 x 360, opens first on every launch: the app icon with a gentle pulse, and one status line underneath:
+    - "Checking for updates"
+    - "Downloading update 0.x.y" with a progress bar (electron-updater's `download-progress`)
+    - "Installing update", then the app restarts itself (`quitAndInstall(true, true)`; the installer is oneClick NSIS, so it runs silently)
+    - "Starting"
+  - Then it closes and the main window opens, or only the tray when started minimised.
+  - No internet, or a check slower than 8 s, skips the update and starts anyway, with a small "Couldn't check for updates" note in the main window.
+  - A failed download starts the current version and retries on the 6-hour timer that already exists.
+  - Updates found while running keep today's "ready, restart to update" in the window.
+- **The look:**
+  - The site's `cheesy` daisyUI colours copied into the renderer CSS as variables (read `app/globals.css`), dark like the site, with the site's fonts if they are bundled locally (no web font fetch at runtime).
+  - A left rail with Status, Settings and About (later items add Staff and Activity).
+  - Each link (Site, Mix It Up, OBS) as a card with a coloured status dot, a one-line state in words, and its actions on the card.
+  - Lucide icons as inline SVG (no emoji), a custom title bar with minimise and close-to-tray, and a tidy jobs table.
+  - The renderer stays plain HTML, CSS and JS: no framework, no bundler.
+- **Icons:**
+  - The app icon and the three tray icons redrawn from the site's brand mark (`app/admin/components/BrandMark.tsx`), so they read at 16 px.
+  - Connected, partly and offline stay clearly different, by more than colour alone (a small badge shape).
+- **Checks:**
+  - The start-up flow's states as a pure state machine fed fake updater events in `bridge/scripts/check.ts`: no update, an update with progress, offline, a slow check, a failed download.
+  - Opus looks at screenshots of each window state before merge: the agent launches the app from source and saves them in the PR.
 
 ### 55.7 A better Mix It Up page (Ready, M to L)
 Josh (2026-10-27): the Mix It Up page should look better and be more useful. Today it is three tabs (Paid pulls, which also holds TCG Bridge pairing and the connection switch; Commands; Log) under a row of health chips. Read `docs/admin.md` (admin UX conventions) and `docs/admin/mixitup.md` first. After 55.6b (it touches the same chips).
