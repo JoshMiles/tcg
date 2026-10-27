@@ -1,4 +1,4 @@
-// The window: draws the state main.js sends and sends the three actions back. Text only (textContent), never HTML.
+// The window: draws the state main.js sends and sends the actions back. Text only (textContent), never HTML.
 const $ = id => document.getElementById(id);
 const SITE_TEXT = { connecting: 'Connecting', connected: 'Connected', offline: 'Cannot reach the site, trying again', revoked: 'Pair again' };
 
@@ -10,6 +10,7 @@ const ago = ms => {
 
 let state = null;
 let obsFormFilled = false;
+let nameFilled = false;
 
 function overlayText(o, scene) {
   if (!o.found) return 'Not found. Add the overlay as a browser source in OBS (the address is in Admin > Settings > OBS Overlay).';
@@ -44,6 +45,9 @@ function render() {
   $('unpair').hidden = !state.paired;
   $('autostart').checked = state.startWithWindows;
   $('update').textContent = state.update;
+  $('alerts').checked = state.alerts;
+  $('updated').hidden = !state.updatedTo;
+  $('updated-version').textContent = state.updatedTo;
   if (!state.paired) {
     if (!$('site').value) $('site').value = state.site;
     $('pair-note').textContent = svc && svc.site === 'revoked'
@@ -63,6 +67,13 @@ function render() {
   $('mix-version').textContent = found ? svc.mix.version : '-';
   $('mix-currency').textContent = svc && svc.currency ? svc.currency : 'The site chooses it; shown after the first job';
   $('mix-help').hidden = found;
+  $('mix-start').hidden = found;
+  $('mix-path').textContent = state.mixItUp.path;
+  $('mix-autostart').checked = state.mixItUp.startWithBridge;
+  if (!nameFilled && svc && svc.channel) { // the channel name from the site, once; later renders must not overwrite what is being typed
+    nameFilled = true;
+    if (!$('test-name').value) $('test-name').value = svc.channel.toLowerCase();
+  }
   renderObs(svc && svc.obs, state.obsSettings);
   const jobs = svc ? svc.jobs : [];
   $('no-jobs').hidden = jobs.length > 0;
@@ -99,6 +110,39 @@ $('obs-form').addEventListener('submit', e => { e.preventDefault(); void saveObs
 $('obs-forget').addEventListener('click', () => { void saveObs(''); });
 $('unpair').addEventListener('click', () => window.bridge.unpair());
 $('autostart').addEventListener('change', e => window.bridge.setStartWithWindows(e.target.checked));
+
+$('alerts').addEventListener('change', e => window.bridge.setAlerts(e.target.checked));
+$('mix-autostart').addEventListener('change', e => window.bridge.setStartMixItUp(e.target.checked));
+$('updated-link').addEventListener('click', () => window.bridge.openRelease());
+$('updated-dismiss').addEventListener('click', () => window.bridge.dismissUpdated());
+
+// A button that runs an action in the app and writes the answer, in words, next to it.
+function action(buttonId, resultId, call) {
+  const button = $(buttonId);
+  const result = $(resultId);
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    result.className = 'result';
+    result.textContent = 'Working...';
+    try {
+      const r = await call();
+      result.textContent = r.text;
+      result.className = 'result ' + (r.ok ? 'ok' : 'fail');
+    } catch {
+      result.textContent = 'Something went wrong';
+      result.className = 'result fail';
+    }
+    button.disabled = false;
+  });
+}
+action('test-mix', 'test-mix-result', () => window.bridge.testMixItUp($('test-name').value));
+action('test-chat', 'test-chat-result', () => window.bridge.testChat());
+action('test-obs', 'test-obs-result', () => window.bridge.testObs());
+action('mix-start', 'mix-start-result', () => window.bridge.startMixItUp());
+action('mix-choose', 'mix-start-result', () => window.bridge.chooseMixItUp());
+action('open-logs', 'help-result', () => window.bridge.openLogs());
+action('copy-diagnostics', 'help-result', () => window.bridge.copyDiagnostics());
+action('check-update', 'update-result', () => window.bridge.checkUpdate());
 
 window.bridge.onState(s => { state = s; render(); });
 window.bridge.getState().then(s => { state = s; render(); });

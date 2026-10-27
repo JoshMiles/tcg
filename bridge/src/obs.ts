@@ -132,6 +132,25 @@ export class ObsWatcher {
     return names.length;
   }
 
+  /** Runs the overlay check now (the window's "Check OBS") and returns what it found. Throws ObsError in words. */
+  async checkNow(): Promise<ObsState> {
+    if (!this.config.enabled) throw new ObsError('OBS is switched off in TCG Bridge');
+    if (!this.obs || !this.state.connected) throw new ObsError(`TCG Bridge is not connected to OBS${this.state.error ? ` (${this.state.error})` : ''}`);
+    clearTimeout(this.checkTimer);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([this.check(), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('timeout')), 4000); })]);
+    } catch {
+      throw new ObsError('OBS did not answer the check');
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!this.state.connected) throw new ObsError('Lost the connection to OBS');
+    if (this.state.error) throw new ObsError(this.state.error);
+    this.queueSend();
+    return this.state;
+  }
+
   // ── The connection loop ──
 
   private async loop(signal: AbortSignal): Promise<void> {

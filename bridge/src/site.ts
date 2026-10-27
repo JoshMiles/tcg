@@ -46,9 +46,11 @@ export class SiteClient {
     return r;
   }
 
-  async hello(currencies: BridgeCurrency[], mixItUpVersion: string): Promise<void> {
+  /** The site answers with the channel name and the chosen currency's id; an older site sends neither. */
+  async hello(currencies: BridgeCurrency[], mixItUpVersion: string): Promise<{ channel: string; currencyId: string }> {
     const r = await this.call('/api/bridge/hello', { version: mixItUpVersion, currencies }, AbortSignal.timeout(15_000));
     if (r.status !== 200) throw new SiteError(r.status, `hello: the site answered ${r.status}`);
+    return { channel: typeof r.json.channel === 'string' ? r.json.channel : '', currencyId: typeof r.json.currencyId === 'string' ? r.json.currencyId : '' };
   }
 
   /** OBS facts: `{ type: 'stream', live }` or `{ type: 'obs', connected, scene, overlay }`. */
