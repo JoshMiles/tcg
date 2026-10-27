@@ -3,13 +3,16 @@ import { revalidatePath } from 'next/cache';
 import { requireStaff } from '@/lib/staff-guard';
 import { currentStaffLogin } from '@/lib/staff-actor';
 import { requireAdmin } from '@/lib/admin-guard';
-import { closeDeletion, getFeedback, updateFeedback } from '@/lib/feedback';
+import { roleCan } from '@/lib/staff-core';
+import { closeDeletion, getFeedback, getFeedbackFor, updateFeedback } from '@/lib/feedback';
 import { deleteViewerAccount } from '@/lib/account-deletion';
 
 /** Sets the status and/or writes the reply on one suggestion or problem report. The sender gets a bell notice. Mods may use it. */
 export async function updateFeedbackAction(id: string, formData: FormData): Promise<void> {
-  await requireStaff('mod');
-  if ((await getFeedback(id))?.kind === 'deletion') await requireAdmin(); // handling a deletion request is for admins
+  const staff = await requireStaff('mod');
+  const item = await getFeedbackFor(id, { login: staff.login, admin: roleCan(staff.role, 'admin') });
+  if (!item) return; // gone, or it names this mod (hidden from them)
+  if (item.kind === 'deletion') await requireAdmin(); // handling a deletion request is for admins
   const reply = formData.get('reply');
   await updateFeedback(id, { status: formData.get('status'), reply: typeof reply === 'string' ? reply : undefined }, await currentStaffLogin());
   revalidatePath('/admin/feedback');

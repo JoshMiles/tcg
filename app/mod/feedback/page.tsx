@@ -1,5 +1,6 @@
 import { requireStaff } from '@/lib/staff-guard';
 import { listFeedback } from '@/lib/feedback';
+import { roleCan } from '@/lib/staff-core';
 import { FEEDBACK_KINDS, FEEDBACK_LIMITS, isStatus, type FeedbackKind } from '@/lib/feedback-core';
 import { PageHeader } from '../../admin/components/ui';
 import { FeedbackInbox } from '../../admin/feedback/FeedbackInbox';
@@ -12,11 +13,11 @@ export const instant = false;
 export const metadata = { title: 'Feedback · Mod', robots: { index: false } };
 
 export default async function ModFeedbackPage({ searchParams }: { searchParams: Promise<{ kind?: string; status?: string }> }) {
-  await requireStaff('mod');
+  const staff = await requireStaff('mod');
   const sp = await searchParams;
   const kind = (FEEDBACK_KINDS as string[]).includes(sp.kind ?? '') ? (sp.kind as FeedbackKind) : undefined;
   const status = isStatus(sp.status) ? sp.status : undefined;
-  const all = await listFeedback();
+  const all = await listFeedback({}, { login: staff.login, admin: roleCan(staff.role, 'admin') }); // items that name this mod are left out
   const items = all.filter(i => (!kind || i.kind === kind) && (!status || i.status === status));
   const waiting = (k: FeedbackKind) => all.filter(i => i.kind === k && i.status === 'new').length;
   return (

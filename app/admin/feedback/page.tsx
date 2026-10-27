@@ -17,7 +17,7 @@ export default async function AdminFeedbackPage({ searchParams }: { searchParams
   const kind = (FEEDBACK_KINDS as string[]).includes(sp.kind ?? '') ? (sp.kind as FeedbackKind) : undefined;
   const status = isStatus(sp.status) ? sp.status : undefined;
   const all = await listFeedback();
-  const items = all.filter(i => (!kind || i.kind === kind) && (!status || i.status === status));
+  const items = all.filter(i => (!kind || i.kind === kind) && (!status || i.status === status)).sort((a, b) => Number(!!b.aboutStaff) - Number(!!a.aboutStaff)); // about staff first (stable)
   const waiting = (k: FeedbackKind) => all.filter(i => i.kind === k && i.status === 'new').length;
   return (
     <div className="space-y-6">

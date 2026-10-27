@@ -30,7 +30,7 @@ export default async function ModLayout({ children }: { children: React.ReactNod
               <span className="block text-[9px] text-gray-500 font-bold uppercase tracking-[0.18em] mt-0.5">Mod panel</span>
             </span>
           </Link>
-          <ModNav newFeedback={await countNewFeedback().catch(() => 0)} />
+          <ModNav newFeedback={await countNewFeedback({ login: staff.login, admin: roleCan(staff.role, 'admin') }).catch(() => 0)} />
           <div className="ml-auto flex items-center gap-3 shrink-0">
             {/* Back to the site viewers see (staff are signed in as viewers too, so nothing changes about their login). */}
             <Link href="/" title="Back to the public site" aria-label="Back to the public site" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white"><Icon name="home" /><span className="hidden sm:inline">Public site</span></Link>

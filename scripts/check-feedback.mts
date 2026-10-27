@@ -239,5 +239,39 @@ eq((await notes()).length, 0, 'no notice before staff act');
   eq((await F.listFeedback({ kind: 'report', status: 'new' })).every(i => i.kind === 'report'), true, 'the Reports filter works');
 }
 
+// ── items about staff (ROADMAP 51.6) ──
+{
+  const tag = Math.random().toString(36).slice(2, 6);
+  const [modA, modB, adm, viewer] = [`fbma_${tag}`, `fbmb_${tag}`, `fbad_${tag}`, `fbv_${tag}`];
+  const { addStaff } = await import('../lib/staff');
+  const { saveUserProfile } = await import('../lib/kv');
+  const actor = { login: 'joshmiles', role: 'super' as const };
+  for (const [l, r] of [[modA, 'mod'], [modB, 'mod'], [adm, 'admin']] as const) ok((await addStaff(actor, l, r)).ok, `${l} added as staff`);
+  const logins = [modA, modB, adm];
+  eq(C.staffNamedIn({ user: viewer, title: 'x', body: `${modA.toUpperCase()} was rude, not ${modA}x`, target: undefined }, logins), [modA], 'a whole-word, case-insensitive mention counts; a longer word does not');
+  eq(C.staffNamedIn({ user: viewer, title: 'x', body: 'nothing', target: modB }, logins), [modB], 'a report target counts');
+  eq(C.staffNamedIn({ user: modA, title: 'x', body: `I am ${modA}`, target: undefined }, logins), [], 'the sender is never about themselves');
+  await saveUserProfile({ username: modA, displayName: modA, createdAt: 1 });
+  await saveUserProfile({ username: adm, displayName: adm, createdAt: 1 });
+  const now2 = Date.UTC(2026, 9, 20, 12);
+  const rep1 = await F.submitReport(viewer, { target: modA, reason: 'other', details: 'SECRET about the mod' }, now2);
+  const fb1 = await F.submitFeedback(viewer, { kind: 'idea', title: 'Idea', body: `${modA} should do X`, includeDevice: false }, undefined, now2);
+  const rep2 = await F.submitReport(viewer, { target: adm, reason: 'other', details: 'about the admin, long enough' }, now2);
+  const plain = await F.submitFeedback(viewer, { kind: 'idea', title: 'Plain', body: 'about nobody here', includeDevice: false }, undefined, now2);
+  if (!rep1.ok || !fb1.ok || !rep2.ok || !plain.ok) throw new Error('setup failed');
+  const ids = (reader?: { login: string; admin: boolean }) => F.listFeedback({ user: viewer }, reader).then(l => l.map(i => i.id));
+  const [all, forA, forB, forAdm] = await Promise.all([ids(), ids({ login: modA, admin: false }), ids({ login: modB, admin: false }), ids({ login: adm, admin: true })]);
+  eq(all.length, 4, 'no reader sees everything');
+  ok(!forA.includes(rep1.item.id) && !forA.includes(fb1.item.id) && forA.includes(rep2.item.id) && forA.includes(plain.item.id), 'a mod does not see items naming them, only those');
+  eq(forB.length, 4, 'another mod sees all four');
+  eq(forAdm.length, 4, 'an admin sees all four, including the one about themselves');
+  eq((await F.listFeedback({ user: viewer })).filter(i => i.aboutStaff).map(i => i.id).sort(), [rep1.item.id, fb1.item.id, rep2.item.id].sort(), 'the three staff items carry aboutStaff');
+  ok((await F.getFeedbackFor(rep1.item.id, { login: modA, admin: false })) === null, 'a mod cannot fetch an item about them by id');
+  ok((await F.getFeedbackFor(rep1.item.id, { login: modB, admin: false }))?.aboutStaff?.[0] === modA, 'another mod can');
+  const cA = await F.countNewFeedback({ login: modA, admin: false }), cB = await F.countNewFeedback({ login: modB, admin: false });
+  eq(cB - cA, 2, 'the mod count leaves out the two items about that mod');
+  eq(await F.countNewFeedback({ login: adm, admin: true }), await F.countNewFeedback(), 'the admin count is the full count');
+}
+
 server.close();
 console.log('feedback checks passed');

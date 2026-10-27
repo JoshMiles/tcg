@@ -3,8 +3,10 @@ import { notify } from './trade-notify';
 import { notifyFeedback } from './discord';
 import { getActiveSeasonWithPacks, getCollection, getUserProfile } from './kv';
 import { getBuildInfo, formatVersion } from './version';
+import { listStaff } from './staff';
+import { SUPER_ADMINS } from './staff-core';
 import {
-  FEEDBACK_LIMITS, REPORT_REASON_LABELS, cleanMeta, dayKey, expired, isStatus, noticeText, multiLine, oneLine,
+  FEEDBACK_LIMITS, REPORT_REASON_LABELS, cleanMeta, dayKey, expired, feedbackVisibleTo, isStatus, noticeText, multiLine, oneLine, staffNamedIn,
   type FeedbackInput, type FeedbackItem, type ReportInput, type FeedbackKind, type FeedbackStatus,
 } from './feedback-core';
 
@@ -59,11 +61,32 @@ async function loadMany(ids: string[]): Promise<FeedbackItem[]> {
 
 export interface FeedbackFilter { kind?: FeedbackKind; status?: FeedbackStatus; user?: string }
 
+/** Who is reading the inbox. Staff readers pass this so items that name them are left out (ROADMAP 51.6); `admin` readers see everything. */
+export interface FeedbackReader { login: string; admin: boolean }
+
+/** Every staff login (the staff list plus the fixed super admins), small enough to read per request. */
+async function staffLogins(): Promise<string[]> {
+  return [...(await listStaff()).map(s => s.login), ...SUPER_ADMINS.map(s => s.login)];
+}
+
+/** Sets `aboutStaff` on each item (worked out now, never stored); with a reader, drops the items they may not see. */
+async function forReader(items: FeedbackItem[], reader?: FeedbackReader): Promise<FeedbackItem[]> {
+  const logins = await staffLogins();
+  const marked = items.map(i => { const a = staffNamedIn(i, logins); return a.length ? { ...i, aboutStaff: a } : i; });
+  return reader ? marked.filter(i => feedbackVisibleTo(i, reader)) : marked;
+}
+
+/** One item for a staff reader, or null when it is gone or names them. */
+export async function getFeedbackFor(id: string, reader: FeedbackReader): Promise<FeedbackItem | null> {
+  const item = await getFeedback(id);
+  return item ? (await forReader([item], reader))[0] ?? null : null;
+}
+
 /** Newest first. The sweep runs here, so the admin page keeps the store tidy without a cron. */
-export async function listFeedback(filter: FeedbackFilter = {}): Promise<FeedbackItem[]> {
+export async function listFeedback(filter: FeedbackFilter = {}, reader?: FeedbackReader): Promise<FeedbackItem[]> {
   await sweepFeedback().catch(() => 0);
   const ids = (await kv.lrange<string>(LIST, 0, FEEDBACK_LIMITS.listCap - 1).catch(() => [] as string[])) ?? [];
-  return (await loadMany(ids)).filter(i =>
+  return (await forReader(await loadMany(ids), reader)).filter(i =>
     (!filter.kind || i.kind === filter.kind) && (!filter.status || i.status === filter.status) && (!filter.user || i.user === filter.user.toLowerCase()));
 }
 
@@ -120,9 +143,11 @@ export async function renameFeedbackOf(from: string, to: string): Promise<number
   return mine.length;
 }
 
-/** How many items still wait for staff (a set size, so cheap enough for every admin page). */
-export async function countNewFeedback(): Promise<number> {
-  return Number(await kv.scard(NEW_SET).catch(() => 0)) || 0;
+/** How many items still wait for staff (a set size, so cheap enough for every admin page). A mod gets the count without the items that name them. */
+export async function countNewFeedback(reader?: FeedbackReader): Promise<number> {
+  if (!reader || reader.admin) return Number(await kv.scard(NEW_SET).catch(() => 0)) || 0;
+  const ids = (await kv.smembers<string[]>(NEW_SET).catch(() => [] as string[])) ?? [];
+  return (await forReader(await loadMany(ids), reader)).length;
 }
 
 export type UpdateResult = { ok: true; item: FeedbackItem } | { ok: false; error: string };
