@@ -30,6 +30,20 @@ export async function recordAudit(username: string, action: string, detail?: str
   } catch { /* best effort */ }
 }
 
+const DAY = 24 * 60 * 60 * 1000;
+
+/** Pure: audit entries per staff login within the last `days` days (entries without `by` are skipped). */
+export function countByStaff(entries: AuditEntry[], now: number, days = 7): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const e of entries) if (e.by && e.at >= now - days * DAY) out[e.by] = (out[e.by] ?? 0) + 1;
+  return out;
+}
+
+/** Actions per staff login over the last 7 days, from `audit:all` (one `lrange`). Capped at the newest ALL_CAP entries, so a very busy week undercounts. */
+export async function getStaffActionCounts(): Promise<Record<string, number>> {
+  try { return countByStaff((await kv.lrange<AuditEntry>('audit:all', 0, ALL_CAP - 1)) ?? [], Date.now()); } catch { return {}; }
+}
+
 export async function getUserAudit(username: string, limit = 50): Promise<AuditEntry[]> {
   try {
     return (await kv.lrange<AuditEntry>(`audit:user:${username.toLowerCase()}`, 0, limit - 1)) ?? [];
