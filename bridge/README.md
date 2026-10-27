@@ -44,7 +44,7 @@ npm run typecheck   # tsc --noEmit
 npm run check       # fake Mix It Up, fake OBS and fake site, no Electron needed
 npm start           # build, then run the app
 npm run dist        # build the installer into release/ (not committed)
-npm run icons       # redraw the app icon and tray PNGs from build/*.svg
+npm run icons       # redraw the app icon and tray PNGs from the site's icon (public/brand/icon.png)
 ```
 
 `npm start -- --demo-startup` (ignored in the installed app) walks the start-up window through its states, then shows the window with made-up data; add `--shots=<folder>` to save a PNG of each and quit. `src/demo.ts` holds it and is left out of the installer.
@@ -54,6 +54,6 @@ npm run icons       # redraw the app icon and tray PNGs from build/*.svg
 - `src/site.ts`, `src/mixitup.ts`, `src/obs.ts`, `src/jobs.ts`, `src/service.ts`, `src/settings.ts`, `src/alerts.ts`, `src/selftest.ts`, `src/launch.ts`, `src/log.ts`, `src/diagnostics.ts`, `src/update.ts`, `src/startup.ts`: plain TypeScript with no Electron imports, so the checks run under Node.
 - `src/main.ts`, `src/preload.ts` and `src/splash-preload.ts`: the Electron glue (tray, windows, auto start, updates, encrypted token).
 - `renderer/`: the main window (`index.html`, `style.css`, `renderer.js`) and the start-up window (`splash.*`), plain HTML, CSS and JS with no framework and no network fetches. Colours are the site's cheesy theme as CSS variables. Fonts are the site's own, Fredoka and Nunito, bundled in `renderer/fonts/` (SIL OFL 1.1, licence files beside them). Icons are Lucide as inline SVG; licences in `renderer/LICENSES.txt`.
-- `build/icon.svg` and `build/tray.svg`: the sources for the app icon and tray icons; `scripts/make-icons.ts` writes the PNGs (the installer turns `build/icon.png` into the Windows icon).
+- `scripts/make-icons.ts` writes the app icon and the tray icons from the site's own icon, `public/brand/icon.png`, adding the status badge to each tray icon (the installer turns `build/icon.png` into the Windows icon).
 
 To release: bump `version` in `package.json`, merge, then push a tag `bridge-v<version>`. `.github/workflows/bridge.yml` builds the installer on `windows-latest` and attaches it to a release of that tag.
