@@ -3,6 +3,7 @@
 // written; if Mix It Up does not confirm the charge, no print is made, and if the print then cannot be written the charge is refunded.
 import { kv, inSandbox } from './db';
 import { sendWebhook } from './webhook-send';
+import { noteOutgoing, outKindOf } from './mixitup-health';
 import { getActiveSeason, withLock } from './kv';
 import { getLiveStatus } from './twitch-live';
 import { notifySystem } from './discord';
@@ -46,7 +47,12 @@ export async function callMixItUp(url: string, payload: Record<string, unknown>,
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
     signal: AbortSignal.timeout(TIMEOUT_MS), cache: 'no-store',
   }, doFetch);
-  if (!sent.ok) return { ok: false, status: 0, body: null, error: sent.error };
+  const kind = outKindOf(payload.action);
+  if (!sent.ok) {
+    if (kind) await noteOutgoing(kind, false, sent.error);
+    return { ok: false, status: 0, body: null, error: sent.error };
+  }
+  if (kind) await noteOutgoing(kind, sent.res.ok, `HTTP ${sent.res.status}`);
   const raw = await sent.res.text().catch(() => '');
   let body: unknown = null;
   try { body = raw ? JSON.parse(raw) : null; } catch { /* a plain-text answer is fine */ }
