@@ -9,7 +9,7 @@ import { MixItUpClient } from '../src/mixitup';
 import { cleanObsAddress, isOverlayUrl, ObsWatcher } from '../src/obs';
 import { BridgeService } from '../src/service';
 import { FileSettingsStore } from '../src/settings';
-import { FakeObs } from './fake-obs';
+import { FakeObs, PW_123 } from './fake-obs';
 import { cleanSite, pair, SiteClient, SiteError, type BridgeJob, type BridgeResult } from '../src/site';
 
 const CUR = '11111111-2222-3333-4444-555555555555';
@@ -142,7 +142,7 @@ async function main() {
   // ── OBS: a fake obs-websocket v5 server, driven through the real service ──
   async function obsChecks() {
     const fake = new FakeObs();
-    fake.password = 'pw-123';
+    fake.auth = PW_123.auth;
     const overlay = { inputName: 'TCG Overlay', inputKind: 'browser_source', url: `${siSrv.url}/overlay.html?key=SECRETKEY` };
     const other = { inputName: 'Other', inputKind: 'browser_source', url: 'https://example.com/overlay.html' };
     const cam = { sceneItemId: 1, sourceName: 'Cam', sceneItemEnabled: true, isGroup: false };

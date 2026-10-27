@@ -1,15 +1,17 @@
 // A fake obs-websocket v5 server for the checks: Hello with an authentication challenge, Identify, the requests TCG Bridge makes and
 // pushed events, over the JSON subprotocol. State is plain data the checks change, then they push the matching event.
-import { createHash } from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
 
 export interface FakeItem { sceneItemId: number; sourceName: string; sceneItemEnabled: boolean; isGroup: boolean }
 export interface FakeInput { inputName: string; inputKind: string; url: string }
 
-const sha = (s: string) => createHash('sha256').update(s).digest('base64');
+/** The check's OBS password and its Identify answer for salt-xyz and challenge-abc. */
+export const PW_123 = { password: 'pw-123', auth: 'l+q2NVkIrqXctqVgzSSk1ALU9QSI2ZcEk1pnAactsmo=' };
 
 export class FakeObs {
-  password = '';
+  /** The Identify answer OBS expects (base64 sha256 of base64 sha256 of password + salt, then + challenge), worked out once for
+   *  PW_123 with the fixed salt and challenge below; empty = OBS has no password. A fixed vector keeps password hashing out of this file. */
+  auth = '';
   streaming = false;
   scene = 'Gameplay';
   scenes: Record<string, FakeItem[]> = {};
@@ -52,11 +54,11 @@ export class FakeObs {
     const salt = 'salt-xyz';
     this.clients.add(ws);
     ws.on('close', () => this.clients.delete(ws));
-    ws.send(JSON.stringify({ op: 0, d: { obsWebSocketVersion: '5.5.0', rpcVersion: 1, ...(this.password ? { authentication: { challenge, salt } } : {}) } }));
+    ws.send(JSON.stringify({ op: 0, d: { obsWebSocketVersion: '5.5.0', rpcVersion: 1, ...(this.auth ? { authentication: { challenge, salt } } : {}) } }));
     ws.on('message', raw => {
       const msg = JSON.parse(String(raw)) as { op: number; d: Record<string, unknown> };
       if (msg.op === 1) {
-        if (this.password && msg.d.authentication !== sha(sha(this.password + salt) + challenge)) return void ws.close(4009, 'Authentication failed.');
+        if (this.auth && msg.d.authentication !== this.auth) return void ws.close(4009, 'Authentication failed.');
         this.identified++;
         this.subscriptions.push(Number(msg.d.eventSubscriptions));
         ws.send(JSON.stringify({ op: 2, d: { negotiatedRpcVersion: 1 } }));
