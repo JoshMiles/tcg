@@ -54,6 +54,7 @@ function run(cmd) {
     case 'lpop': { const l = store.get(key) || []; return l.shift() ?? null; }
     case 'rpop': { const l = store.get(key) || []; return l.pop() ?? null; }
     case 'incr': { const n = Number(store.get(key) || 0) + 1; store.set(key, String(n)); return n; }
+    case 'incrby': { const n = Number(store.get(key) || 0) + Number(rest[0]); store.set(key, String(n)); return n; }
     case 'decr': { const n = Number(store.get(key) || 0) - 1; store.set(key, String(n)); return n; }
     case 'lrange': { const l = store.get(key) || []; const [a, b] = rest.map(Number); return l.slice(Number(key === undefined ? 0 : a), b < 0 ? l.length + b + 1 : b + 1); }
     case 'ltrim': return 'OK';

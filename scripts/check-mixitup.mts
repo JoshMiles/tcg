@@ -8,6 +8,7 @@ const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED:
 const c = await import('../lib/mixitup-core');
 const m = await import('../lib/mixitup');
 const kvLib = await import('../lib/kv');
+const { kv } = await import('../lib/db');
 
 // ── Pure: settings ──
 const d = c.normalizeMixItUp(null);
@@ -30,11 +31,17 @@ ok(blocks.length === 1 && blocks[0].command === '!showoff' && blocks[0].body.inc
 // ── Pure: message, replies, windows ──
 ok(c.renderMessage('{username} paid {amount} {currency} {nope}!', { username: 'ann', amount: 100, currency: 'Brie Bucks' }) === 'ann paid 100 Brie Bucks !', 'placeholders fill and unknown ones vanish');
 ok(c.renderMessage('x'.repeat(900), {}).length === c.MESSAGE_MAX, 'the message is capped');
+ok(c.renderReply('{username}: {cost} {nope} left {left}.', { username: 'ann', cost: '100' }) === 'ann: 100 left.', 'renderReply drops a placeholder with no value and tidies the gap');
+ok(c.renderReply('  hi   {username} !', { username: 'ann' }) === 'hi ann!' && c.renderReply('{username}', { username: 0 }) === '0', 'renderReply tidies spaces and keeps a zero');
+ok(c.renderReply('x'.repeat(900), {}).length === c.REPLY_MAX, 'a reply is capped at 400 characters');
+const rep = c.normalizeMixItUp({ replies: { queued: ' Go {username} ', bogus: 'x', no_packs: 'y'.repeat(900) }, reply_limit_reached: 'No more.', reply_queued: '' });
+ok(!('queued' in rep.replies) && rep.replies.limit_reached === 'No more.' && rep.replies.no_packs?.length === c.REPLY_MAX && !('bogus' in rep.replies), 'replies are trimmed, capped and keyed; a blank form field clears a saved one');
+ok(c.refusalMessage('limit_reached', { cost: 1, currency: 'x', limit: 2, replies: {} }, 'ann') === 'ann, you have used all 2 pulls for this stream.' && c.normalizeMixItUp(null).replies && Object.keys(c.normalizeMixItUp(null).replies).length === 0, 'blank replies keep the default text');
 ok(c.parseBalance({ balance: 250 }, 'balance') === 250 && c.parseBalance({ balance: '1,250' }, 'balance') === 1250 && c.parseBalance({ coins: 7.9 }, 'coins') === 7, 'balances are read from a number or numeric text');
 ok(c.parseBalance({ balance: -1 }, 'balance') === null && c.parseBalance({}, 'balance') === null && c.parseBalance('x', 'balance') === null && c.parseBalance({ balance: 'lots' }, 'balance') === null, 'a missing or bad balance is null');
 ok(c.replyApplied(200, null) && c.replyApplied(200, { ok: true }) && !c.replyApplied(200, { success: false }) && !c.replyApplied(200, { applied: 'false' }) && !c.replyApplied(500, {}), 'a reply counts as paid only when 2xx and not false');
 ok(c.streamKey(1700000000000) === 's1700000000000' && c.streamKey(null, Date.UTC(2026, 9, 16, 23, 59)) === 'd2026-10-16', 'the window is the stream, else the UTC day');
-ok(c.decide({ balance: 200, cost: 100, pending: 2 }) && !c.decide({ balance: 199, cost: 100, pending: 2 }), 'the balance must cover every pull in flight');
+ok(c.decide({ balance: 200, owed: 200 }) && !c.decide({ balance: 199, owed: 200 }), 'the balance must cover every pull in flight');
 
 // ── A fake Mix It Up ──
 const balances: Record<string, number> = { ann: 250, bob: 50, cat: 1000, dan: 1000, eve: 1000 };
@@ -113,6 +120,50 @@ await m.releasePaidPull('x1');
 ok((await m.reservePaidPull(lim, 'dan', 'x3', fake)).ok, 'releasing the reservation gave the pull back');
 await m.releasePaidPull('x1');
 ok(!(await m.reservePaidPull(lim, 'dan', 'x4', fake)).ok, 'releasing twice does not give back more than was taken');
+
+// ── Price per role (ROADMAP 55.4b) ──
+const rp = c.normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', cost: 100, limit: 0, priceByRole: { subscriber: 60, vip: 0, bogus: 5 } });
+ok(rp.priceByRole.subscriber === 60 && rp.priceByRole.vip === 0 && !('bogus' in rp.priceByRole), 'role prices are kept, and 0 is a price');
+ok(c.normalizeMixItUp({ ...rp, priceByRole_subscriber: '', priceByRole_vip: ' 25 ' }).priceByRole.vip === 25 && !('subscriber' in c.normalizeMixItUp({ ...rp, priceByRole_subscriber: '' }).priceByRole), 'a blank form field clears a role price');
+ok(!c.cleanMixItUpInput({ priceByRole_vip: '-1' }).ok && !c.cleanMixItUpInput({ priceByRole_subscriber: '2.5' }).ok && c.cleanMixItUpInput({ priceByRole_subscriber: '' }).ok, 'a role price must be a whole number, 0 or more, or blank');
+ok(c.pullPrice(rp, { role: 'regular' }) === 100 && c.pullPrice(rp, { role: 'subscriber' }) === 60 && c.pullPrice(rp, { role: ['subscriber', 'vip'] }) === 0 && c.pullPrice(rp, { role: ['subscriber', 'moderator'] }) === 60 && c.pullPrice({ cost: 100, priceByRole: {} }, { role: 'vip' }) === 100, 'pullPrice: role price, else base, the lower when a viewer has both');
+const sub1 = await m.reservePaidPull(rp, 'eve', 'rp1', fake, 'subscriber');
+ok(sub1.ok && sub1.price === 60 && sub1.balance === 1000, 'a subscriber is quoted the subscriber price');
+const subClaim = await m.claimPaidPull('rp1', 'eve');
+ok(subClaim && subClaim.amount === 60, 'the claim carries the stored price');
+calls.length = 0;
+await m.chargePaidPull(rp, subClaim!, { cardName: 'X', variant: 'Regular', stars: 1, packName: 'B', cardNumber: 1 }, fake);
+ok(calls.length === 1 && calls[0].action === 'deduct' && calls[0].amount === 60, 'the subscriber price is what is charged');
+// A price change after queueing changes nothing: the reservation holds its own price, and so does a refund.
+const sub2 = await m.reservePaidPull(rp, 'eve', 'rp2', fake, 'subscriber');
+const claim2 = await m.claimPaidPull('rp2', 'eve');
+const repriced = { ...rp, cost: 500, priceByRole: { subscriber: 300 } };
+calls.length = 0;
+await m.chargePaidPull(repriced, claim2!, { cardName: 'X', variant: 'Regular', stars: 1, packName: 'B', cardNumber: 1 }, fake);
+ok(sub2.ok && claim2!.amount === 60 && calls[0].amount === 60, 'a price change after queueing does not change what is charged');
+await m.refundPaidPull({ ...repriced, addUrl: 'https://hook.example/add' }, claim2!, 'X', fake);
+ok(calls[calls.length - 1].action === 'add' && calls[calls.length - 1].amount === 60, 'a refund pays back the stored price');
+// In-flight pulls add their own prices: eve has 1000, subscriber 400, regular 100.
+const mixed = { ...rp, priceByRole: { subscriber: 400 } };
+ok((await m.reservePaidPull(mixed, 'eve', 'if1', fake, 'subscriber')).ok && (await m.reservePaidPull(mixed, 'eve', 'if2', fake, 'subscriber')).ok && (await m.reservePaidPull(mixed, 'eve', 'if3', fake)).ok, 'two 400 pulls and a 100 pull (900) fit a 1000 balance');
+const if4 = await m.reservePaidPull(mixed, 'eve', 'if4', fake, 'subscriber');
+ok(!if4.ok && if4.reason === 'insufficient_balance' && /costs 400/.test(if4.message), 'the next one is refused using its own price, and the reply shows it');
+for (const id of ['if1', 'if2', 'if3']) await m.releasePaidPull(id);
+ok(Number((await kv.get('mixitup:pending:eve')) ?? 0) <= 0, 'releasing returns each pull\'s own price to the in-flight sum');
+// A price of 0: no balance check, no deduct, and the pull still counts toward the limit.
+const freeVip = { ...rp, roleLimits: { ...rp.roleLimits, vip: 1 }, priceByRole: { vip: 0 } };
+calls.length = 0;
+const v1 = await m.reservePaidPull(freeVip, 'zed', 'z1', fake, 'vip');
+ok(v1.ok && v1.price === 0 && v1.left === 0 && calls.length === 0, 'a price of 0 asks nobody for a balance and counts toward the limit');
+const v1c = await m.claimPaidPull('z1', 'zed');
+const v1r = await m.chargePaidPull(freeVip, v1c!, { cardName: 'X', variant: 'Regular', stars: 1, packName: 'B', cardNumber: 1 }, fake);
+ok(v1r.applied && calls.length === 0, 'a price of 0 sends no deduct');
+const v2 = await m.reservePaidPull(freeVip, 'zed', 'z2', fake, 'vip');
+ok(!v2.ok && v2.reason === 'limit_reached', 'a free pull still used the viewer\'s limit');
+// A reservation stored before role prices has no price and uses the current base price.
+await kv.set('mixitup:pay:old1', { username: 'eve', stream: 'x', at: Date.now() });
+const old = await m.claimPaidPull('old1', 'eve');
+ok(old && old.amount === (await m.getMixItUpSettings()).cost, 'an old reservation without a price uses the current cost');
 
 // ── Log ──
 const log = await m.getMixItUpLog();

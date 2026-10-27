@@ -109,12 +109,12 @@ ok(p.filterLog(mixed, 'out').every(x => ['balance', 'deduct', 'add', 'test'].inc
 const refusals = p.filterLog([...mixed, e('revoked', false, 'x', now)], 'refused');
 ok(refusals.length === 5 && refusals.some(x => x.what === 'revoked') && refusals.some(x => x.what === 'command' && !x.ok), 'Refusals: refused, revoked and failed commands');
 
-// ── Refusal previews ──
-const pv = c.refusalPreviews({ cost: 100, currency: 'Brie Bucks', limit: 3 });
-ok(pv.length === 4 && pv[0].text.includes('100 Brie Bucks') && pv[0].text.includes('you have 99'), 'the not-enough sentence uses the price, with a balance just short');
-ok(pv[1].text.includes('all 3 pulls'), 'the limit sentence uses the limit');
-ok(c.refusalPreviews({ cost: 5, currency: 'x', limit: 0 })[1].text.includes('all 3 pulls'), 'a limit of 0 previews a sample of 3');
-ok(pv.every(x => x.text.startsWith('cheesyviewer,') && x.label), 'every sentence names the sample viewer and has a label');
+// ── Reply previews ──
+const sm = c.replySample({ cost: 100, currency: 'Brie Bucks', limit: 3 });
+ok(c.renderReply(c.REPLY_DEFAULTS.insufficient_balance, sm).includes('100 Brie Bucks and you have 99'), 'the not-enough sentence uses the price, with a balance just short');
+ok(c.renderReply(c.REPLY_DEFAULTS.limit_reached, sm).includes('all 3 pulls'), 'the limit sentence uses the limit');
+ok(c.renderReply(c.REPLY_DEFAULTS.limit_reached, c.replySample({ cost: 5, currency: 'x', limit: 0 })).includes('all 3 pulls'), 'a limit of 0 previews a sample of 3');
+ok(c.REPLY_KEYS.every(k => c.REPLY_LABELS[k] && c.renderReply(c.REPLY_DEFAULTS[k], sm)), 'every reply has a label and renders');
 
 // ── The setup wizard (55.1): which steps are done, and where it opens ──
 const wz = await import('../lib/mixitup-wizard');

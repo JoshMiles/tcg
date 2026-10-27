@@ -49,6 +49,15 @@ ok(r.ok === true && r.message === 'Opening a pack for bob_1' && r.balance === 75
 r = await post(pull, 'pull', { username: 'bob_1' });
 ok(r.left === 1, 'left counts down');
 
+// ── Edited replies (ROADMAP 55.4a): a saved custom text comes back from the route; a blank one keeps today's ──
+const plain = await m.getMixItUpSettings();
+await m.saveMixItUpSettings(c.normalizeMixItUp({ ...plain, replies: { queued: '{username} gets a pack, {left} left, {nope}!', limit_reached: 'No more, {username}.', insufficient_balance: '   ' } }));
+r = await post(pull, 'pull', { username: 'bob_1' });
+ok(r.message === 'bob_1 gets a pack, 0 left,!' && r.left === 0, `a custom queued reply is used and filled (got ${JSON.stringify(r)})`);
+r = await post(pull, 'pull', { username: 'bob_1' });
+ok(r.reason === 'limit_reached' && r.message === 'No more, bob_1.', `a custom refusal is used, the reason is unchanged (got ${JSON.stringify(r)})`);
+await m.saveMixItUpSettings(plain);
+
 // ── requestId: a repeat answers the first result and queues nothing ──
 const before = await queued();
 const a = await post(pull, 'pull', { username: 'cat_1', requestId: 'run-1' });
