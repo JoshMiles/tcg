@@ -43,6 +43,7 @@ interface FormState {
   scope: BuffScope;
   achievementId: string;
   points: number;
+  streamDeck: boolean;
 }
 
 const EMPTY_FORM: FormState = {
@@ -55,6 +56,7 @@ const EMPTY_FORM: FormState = {
   scope: 'self',
   achievementId: BUFF_ACHIEVEMENT_KINDS[0].kind,
   points: POINTS_DEFAULT,
+  streamDeck: false,
 };
 
 // One-click starting points: they only fill the form, nothing is saved until Create buff.
@@ -77,6 +79,7 @@ function defToForm(def: BuffDef): FormState {
     scope: def.type === 'grant-achievement' ? 'self' : def.scope,
     achievementId: def.achievementId ?? BUFF_ACHIEVEMENT_KINDS[0].kind,
     points: def.points ?? POINTS_DEFAULT,
+    streamDeck: !!def.streamDeck,
   };
 }
 
@@ -127,6 +130,7 @@ export function BuffEditorClient({
         scope: form.type === 'grant-achievement' ? 'self' : form.scope,
         achievementId: form.achievementId,
         points: form.points,
+        streamDeck: form.type !== 'grant-achievement' && form.streamDeck,
       };
       const res = editingId ? await updateBuffAction(editingId, payload) : await createBuffAction(payload);
       if (!res.ok) {
@@ -222,6 +226,7 @@ export function BuffEditorClient({
                         <Chip tone={b.scope === 'community' ? 'purple' : 'amber'}>{b.scope === 'community' ? 'Community' : 'Personal'}</Chip>
                         <Chip tone="gray">{BUFF_TYPE_LABELS[b.type]}</Chip>
                         <Chip tone="gray">Stack: {b.stack}</Chip>
+                        {b.streamDeck && <Chip tone="gray">Stream Deck</Chip>}
                       </div>
                       <p className="text-xs text-gray-400">{describeBuffDef(b)}</p>
                       {inUseCount > 0 && (
@@ -455,6 +460,13 @@ export function BuffEditorClient({
               <option value="reject">Reject use while active (keep the card)</option>
             </select>
           </fieldset>}
+
+          {form.type !== 'grant-achievement' && (
+            <label className="flex items-start gap-2 text-sm text-gray-300 cursor-pointer">
+              <input type="checkbox" className="checkbox checkbox-sm mt-0.5" checked={form.streamDeck} onChange={e => setForm(f => ({ ...f, streamDeck: e.target.checked }))} />
+              <span>Stream Deck: let a Mix It Up button apply this buff (Mix It Up page, Stream Deck tab). Off, the buff answers nothing.</span>
+            </label>
+          )}
 
           <div className="pt-2 flex items-center justify-end gap-2">
             {editingId && (

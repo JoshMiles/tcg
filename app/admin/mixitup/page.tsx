@@ -18,6 +18,8 @@ import { CommandsPanel } from './CommandsPanel';
 import { ConnectionTab } from './ConnectionTab';
 import { MixItUpConfig } from './MixItUpConfig';
 import { MixItUpLog } from './MixItUpLog';
+import { StreamDeckTab } from './StreamDeckTab';
+import { getBuffDefs } from '@/lib/buffs';
 import { Overview, CHIP_STYLE } from './Overview';
 import { PullRules } from './PullRules';
 import { recentTests } from '@/lib/mixitup-test';
@@ -36,6 +38,7 @@ const TABS: (PageTab & { hint: string })[] = [
   { id: 'paid', label: 'Paid pulls', icon: 'coins', hint: 'Viewers pay Brie Bucks for packs: prices, limits and messages' },
   { id: 'bigpulls', label: 'Big pulls', icon: 'sparkles', hint: 'Run a Mix It Up command when a big card is pulled' },
   { id: 'commands', label: 'Commands', icon: 'chat', hint: 'Chat commands such as !showoff and !stats: one webhook, replies built from variables' },
+  { id: 'streamdeck', label: 'Stream Deck', icon: 'gamepad', hint: 'Buttons that apply a buff, give extra pulls or a free pack: one Mix It Up command each' },
   { id: 'log', label: 'Log', icon: 'list', hint: 'The last requests to and refusals for Mix It Up' },
 ];
 
@@ -95,6 +98,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
       {tab === 'paid' && <MixItUpConfig settings={settings} />}
       {tab === 'bigpulls' && <PullRules rules={settings.pullRules} commands={bridge.commands} />}
       {tab === 'commands' && <CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} />}
+      {tab === 'streamdeck' && <StreamDeckTab buffs={await getBuffDefs()} url={`${SITE_URL}/api/webhooks/buff`} secret={(await getWebhookSettings()).incomingSecret} />}
       {tab === 'log' && <MixItUpLog log={await mergedLog()} filter={pickLogFilter(filter)} now={now} />}
     </div>
   );
