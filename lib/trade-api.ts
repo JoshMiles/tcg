@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession, isSameOrigin, type Session } from './session';
 import type { TradeResult } from './trades';
+import { recordServerError } from './error-spike';
 
 /** The logged-in viewer for a trade endpoint, or the error response to return. Who they are comes from the signed session only. */
 export async function requireViewer(req: Request): Promise<{ session: Session } | { response: NextResponse }> {
@@ -13,6 +14,7 @@ export async function requireViewer(req: Request): Promise<{ session: Session } 
 /** A 503 for an unexpected failure: the cause goes to the log, the browser gets a fixed friendly sentence. */
 export function serverError(e: unknown, where: string, message: string): NextResponse {
   console.error(`[${where}]`, e instanceof Error ? e.message : e);
+  recordServerError(); // hourly count for the error spike alert (lib/error-spike.ts)
   return NextResponse.json({ error: message }, { status: 503 });
 }
 

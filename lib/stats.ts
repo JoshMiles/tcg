@@ -9,7 +9,7 @@ export type Metric = 'pull' | 'newCard' | 'newViewer' | 'upgrade' | 'trade' | 'g
 export const METRICS: Metric[] = ['pull', 'newCard', 'newViewer', 'upgrade', 'trade', 'grant', 'v:reverse', 'v:full', 'v:shiny'];
 
 const pad = (n: number) => String(n).padStart(2, '0');
-const hourKey = (t: number) => { const d = new Date(t); return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}${pad(d.getUTCHours())}`; };
+export const hourKey = (t: number) => { const d = new Date(t); return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}${pad(d.getUTCHours())}`; };
 const dayKey = (t: number) => hourKey(t).slice(0, 8);
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
