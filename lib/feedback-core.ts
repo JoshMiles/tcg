@@ -56,6 +56,8 @@ export interface FeedbackItem {
   repliedBy?: string;
   /** When the status first left 'new', for the retention sweep. */
   resolvedAt?: number;
+  /** Staff logins this item names (ROADMAP 51.6). Worked out when the item is read (never stored), so old items are covered. */
+  aboutStaff?: string[];
 }
 
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g;
@@ -167,4 +169,18 @@ export function parseReportInput(raw: unknown): ReportInput {
   if (reason === 'other' && details.length < FEEDBACK_LIMITS.reportDetailsMin) return { ok: false, error: `Tell us a little more (at least ${FEEDBACK_LIMITS.reportDetailsMin} characters).` };
   const link = cleanReportLink(o.link);
   return { ok: true, value: { target: t, reason, details, ...(link ? { link } : {}) } };
+}
+
+// Items about staff (ROADMAP 51.6)
+
+/** Staff logins an item names: the reported person, or a whole-word, case-insensitive mention in its text. The sender is never "about" themselves. */
+export function staffNamedIn(item: Pick<FeedbackItem, 'user' | 'target' | 'title' | 'body' | 'expected'>, staffLogins: string[]): string[] {
+  const text = `${item.title} ${item.body} ${item.expected ?? ''}`.toLowerCase();
+  return [...new Set(staffLogins.map(l => l.toLowerCase()))].filter(l => /^[a-z0-9_]+$/.test(l) && l !== item.user &&
+    (item.target === l || new RegExp(`(?<![a-z0-9_])${l}(?![a-z0-9_])`).test(text)));
+}
+
+/** Admins see everything (nobody is above them, so an item about an admin is shown to admins too). A mod never sees an item that names them. */
+export function feedbackVisibleTo(item: Pick<FeedbackItem, 'aboutStaff'>, viewer: { login: string; admin: boolean }): boolean {
+  return viewer.admin || !item.aboutStaff?.includes(viewer.login.toLowerCase());
 }
