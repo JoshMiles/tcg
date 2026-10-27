@@ -19,7 +19,9 @@ const FILTERS: { id: Filter; label: string; signedIn?: boolean }[] = [
  * `data-wanted`, `data-new`, `data-spare` ("1" or "0"), `data-gain`, `data-created` and `data-expires`. We toggle `hidden` and the CSS
  * `order` instead of re-rendering, so every listing keeps its buttons and state.
  */
-export function BoardToolbar({ total, signedIn }: { total: number; signedIn: boolean }) {
+export function BoardToolbar({ total, signedIn, give = [] }: { total: number; signedIn: boolean; /** From `?give=`: show only listings that give one of these cards (the profile's "Close to complete" link). */ give?: { number: number; name: string }[] }) {
+  const [giveOn, setGiveOn] = useState(give.length > 0);
+  const giveKey = give.map(g => g.number).join(',');
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [sort, setSort] = useState<Sort>('newest');
@@ -32,6 +34,7 @@ export function BoardToolbar({ total, signedIn }: { total: number; signedIn: boo
     for (const el of items) {
       const d = el.dataset;
       const match = (!needle || (d.search ?? '').includes(needle))
+        && (!giveOn || giveKey.split(',').some(n => (d.give ?? '').includes(`,${n},`)))
         && (filter === 'all' || (filter === 'take' && d.take === '1') || (filter === 'wanted' && d.wanted === '1') || (filter === 'new' && d.new === '1') || (filter === 'spare' && d.spare === '1'));
       el.hidden = !match;
       if (match) count++;
@@ -40,10 +43,16 @@ export function BoardToolbar({ total, signedIn }: { total: number; signedIn: boo
     [...items].sort((a, b) => sort === 'expiring' ? num(a, 'expires') - num(b, 'expires') : sort === 'gain' ? num(b, 'gain') - num(a, 'gain') : num(b, 'created') - num(a, 'created'))
       .forEach((el, i) => { el.style.order = String(i); });
     setShown(count);
-  }, [q, filter, sort, total]);
+  }, [q, filter, sort, total, giveOn, giveKey]);
 
   return (
     <div className="space-y-3">
+      {give.length > 0 && (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-200">
+          <span>{giveOn ? 'Showing listings that give' : 'Listings that give'} {give.map(g => g.name).join(', ')}</span>
+          <button type="button" onClick={() => setGiveOn(on => !on)} className="font-semibold underline hover:text-white">{giveOn ? 'Show the whole board' : 'Filter again'}</button>
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-56 max-w-sm">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none"><Icon name="search" /></span>

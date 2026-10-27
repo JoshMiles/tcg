@@ -18,6 +18,7 @@ import { getUserSettings } from '@/lib/user-settings-store';
 import { bestMatches, matchTrade, type MatchViewer } from '@/lib/trade-match';
 import { profileHref } from '@/lib/profile-url';
 import { BoardToolbar } from './BoardToolbar';
+import { parseGive } from '@/lib/close-to-complete';
 
 // @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
 // Remove this opt-out after verifying the segment passes validation without it.
@@ -31,8 +32,8 @@ const user = (name: string) => (
 
 type TabId = 'mine' | 'board' | 'history';
 
-export default async function TradePage({ searchParams }: { searchParams: Promise<{ season?: string; tab?: string }> }) {
-  const { season: seasonParam, tab: tabParam } = await searchParams;
+export default async function TradePage({ searchParams }: { searchParams: Promise<{ season?: string; tab?: string; give?: string }> }) {
+  const { season: seasonParam, tab: tabParam, give: giveParam } = await searchParams;
   const [session, { season, seasons }, settings] = await Promise.all([getSession(), getActive(seasonParam), getTradeSettings()]);
   await sweepTrades(); // refund anything that has run out of time before showing it
 
@@ -190,7 +191,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
             <p className="rind rounded-2xl p-6 text-center text-sm text-gray-400">{session ? 'Nothing on the board right now. Post a listing and let others come to you.' : 'Nothing on the board right now. Log in with Twitch to post a listing, or check back soon.'}</p>
           ) : (
             <>
-              <BoardToolbar total={board.length} signedIn={!!session} />
+              <BoardToolbar total={board.length} signedIn={!!session} give={parseGive(giveParam).map(n => ({ number: n, name: nameOf(n) ?? `#${n}` }))} />
               <div className="flex flex-col gap-3">
                 {board.map(t => {
                   const lack = firstMissing(owned, t.get);
@@ -205,6 +206,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
                       data-wanted={m.offersWanted.length > 0 ? '1' : '0'}
                       data-new={m.offersNew.length > 0 ? '1' : '0'}
                       data-spare={m.asksOnlySpares ? '1' : '0'}
+                      data-give={`,${t.give.map(i => i.cardNumber).join(',')},`}
                       data-gain={m.gain}
                       data-created={t.createdAt}
                       data-expires={t.expiresAt}
