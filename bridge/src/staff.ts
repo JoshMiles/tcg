@@ -1,6 +1,7 @@
 // The Staff tab's logic (ROADMAP 55.12): what the window asks for, checked and sent to the site's /api/bridge/staff, plus the two things that
 // stay on this PC (a viewer's Brie Bucks from Mix It Up, and the OBS scene). Plain TypeScript, no Electron: the checks run it with a fake site.
 import { Unauthorized, type SiteClient } from './site';
+import { siteUrl } from './notices';
 import type { MixItUpClient } from './mixitup';
 import type { ObsWatcher } from './obs';
 
@@ -16,7 +17,7 @@ export interface StaffDeps {
 }
 
 /** The only actions the window may send; anything else is turned away here before it reaches the site. */
-const ACTIONS = new Set(['gift', 'show-collection', 'show-card', 'grant', 'stream-extra', 'trading', 'block', 'unblock']);
+const ACTIONS = new Set(['gift', 'show-collection', 'show-card', 'grant', 'stream-extra', 'trading', 'block', 'unblock', 'backup']);
 const NAME = /^[a-z0-9_]{2,25}$/;
 const USERS_TTL_MS = 5 * 60_000;
 
@@ -29,7 +30,7 @@ export function cleanStaffAction(raw: Record<string, unknown>): Record<string, u
   const action = clean(raw.action, 30);
   if (!ACTIONS.has(action)) return null;
   const out: Record<string, unknown> = { action };
-  if (action !== 'stream-extra' && action !== 'trading') {
+  if (action !== 'stream-extra' && action !== 'trading' && action !== 'backup') {
     const username = cleanViewer(raw.username);
     if (!username) return null;
     out.username = username;
@@ -58,6 +59,9 @@ export class StaffTools {
         case 'do': return await this.act(req);
         case 'scene': return await this.scene(req.name);
         case 'open-admin': return this.openAdmin(req.name);
+        case 'activity': return await this.read('activity');
+        case 'search': return await this.read('search', clean(req.q, 60));
+        case 'open': return this.open(req.href);
         default: return { ok: false, text: 'Unknown request.' };
       }
     } catch (e) {
@@ -118,6 +122,14 @@ export class StaffTools {
     await this.d.obs.setScene(name);
     const r = await this.d.client.staff({ action: 'scene', name }).catch(() => null);
     return { ok: true, text: r?.ok ? `Switched to ${name}.` : `Switched to ${name} (the site did not log it).` };
+  }
+
+  /** A search result's admin page (Quick search): only a path under /admin on the paired site's own address. */
+  private open(href: unknown): StaffReply {
+    const url = typeof href === 'string' && /^\/admin(\/|\?|#|$)/.test(href) ? siteUrl(this.d.client.base, href) : null;
+    if (!url) return { ok: false, text: 'That is not an admin page.' };
+    void this.d.openExternal(url);
+    return { ok: true, text: 'Opened in your browser.' };
   }
 
   /** The viewer's page in the admin site, in the default browser. Only the paired site's address, only a valid name. */

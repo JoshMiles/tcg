@@ -4,6 +4,7 @@
 import { kv, inSandbox } from './db';
 import { sendWebhook } from './webhook-send';
 import { noteOutgoing, outKindOf } from './mixitup-health';
+import { noteRefusal } from './bridge-notice';
 import { bridgePullStart, bridgeRunCommand, callBridge, feedOn } from './bridge';
 import { feedOf, matchRule, pullArgs, shoutText, type PullFacts } from './pull-rules-core';
 import { getActiveSeason, withLock } from './kv';
@@ -56,6 +57,7 @@ export async function firePullRules(pull: PullFacts, delayMs = 0, eventId?: stri
 export interface MixItUpLogEntry { at: number; username: string; what: 'balance' | 'deduct' | 'add' | 'test' | 'revoked' | 'refused' | 'command' | 'watchdog' | 'check'; ok: boolean; detail: string }
 export async function logMixItUp(e: Omit<MixItUpLogEntry, 'at'>): Promise<void> {
   try { await kv.lpush(LOG, { ...e, at: Date.now() }); await kv.ltrim(LOG, 0, 19); } catch { /* the log never breaks a pull */ }
+  if (e.what === 'refused') await noteRefusal(e.detail.split(':')[0].trim(), e.username); // a staff notice, throttled (55.13)
 }
 export async function getMixItUpLog(): Promise<MixItUpLogEntry[]> {
   try { return (await kv.lrange<MixItUpLogEntry>(LOG, 0, 19)) ?? []; } catch { return []; }

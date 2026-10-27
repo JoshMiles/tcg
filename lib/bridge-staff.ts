@@ -5,6 +5,12 @@
 import { revalidatePath } from 'next/cache';
 import { cleanUsername, parseVariant } from '@/app/admin/actions/form-helpers';
 import { recordAudit } from './audit';
+import { runBackup } from './backup';
+import { formatBytes } from './data-health';
+import { reportBackup } from './system-notices';
+import { categoryOf, plainText } from './activity-view';
+import { paletteRecords } from './palette-items';
+import { rankItems } from './palette';
 import type { BridgeToken } from './bridge';
 import { getActivity } from './activity';
 import { getActiveSeasonWithPacks, getAllCollectionUsers, getUserCards } from './kv';
@@ -87,6 +93,20 @@ export async function runStaffAction(pc: BridgeToken, body: Record<string, unkno
       revalidatePath('/admin/mixitup');
       return done(true, `${user} can pull again.`);
     }
+    case 'backup': { // the same backup as Admin Settings > Back up now (ROADMAP 55.13)
+      try {
+        const run = await runBackup();
+        await reportBackup(run);
+        await audit(null, 'Backup taken', `${run.name}, ${formatBytes(run.bytes)}`);
+        revalidatePath('/admin/settings');
+        return done(true, `Backup saved: ${run.keys} keys, ${formatBytes(run.bytes)}.`);
+      } catch (e) {
+        const why = e instanceof Error && e.message ? e.message : 'Backup failed.';
+        await reportBackup({ error: why });
+        await audit(null, 'Backup failed', why.slice(0, 200));
+        return done(false, why);
+      }
+    }
     case 'scene': { // the app has already switched the scene in OBS; this is the audit line
       const name = typeof body.name === 'string' ? body.name.slice(0, 80) : '';
       if (!name) return done(false, 'No scene was named.');
@@ -111,6 +131,18 @@ export async function runStaffRead(what: string | null, q: string): Promise<Reco
       const needle = q.trim().toLowerCase().replace(/^#/, '');
       const cards = (await getActiveSeasonWithPacks().catch(() => null))?.packs.flatMap(p => p.cards) ?? [];
       return { cards: !needle ? [] : cards.filter(c => c.name.toLowerCase().includes(needle) || String(c.number) === needle).slice(0, 15).map(c => ({ number: c.number, name: c.name })) };
+    }
+    case 'activity': { // the dashboard's recent activity: pulls, grants and trades, newest first
+      const events = (await getActivity({ limit: 200 })).events.filter(e => ['pulls', 'grants', 'trades'].includes(categoryOf(e))).slice(0, 15);
+      return { events: events.map(e => ({ at: e.at, text: plainText(e, () => undefined) })) };
+    }
+    case 'search': { // the admin palette's records (viewers, packs, seasons) plus the active season's cards, each with its admin page
+      const needle = q.trim().toLowerCase().replace(/^#/, '');
+      if (!needle) return { results: [] };
+      const found: { label: string; hint: string; href: string }[] = rankItems((await paletteRecords()).items, q, 8).filter(i => i.href).map(i => ({ label: i.label, hint: i.hint ?? i.group, href: i.href! }));
+      const packs = (await getActiveSeasonWithPacks().catch(() => null))?.packs ?? [];
+      for (const p of packs) for (const c of p.cards) if (c.name.toLowerCase().includes(needle) || String(c.number) === needle) found.push({ label: c.name, hint: `Card #${c.number}`, href: `/admin/packs/${p.pack.id}` });
+      return { results: found.slice(0, 12) };
     }
     case 'viewer': {
       const user = cleanUsername(q);

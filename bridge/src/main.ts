@@ -15,6 +15,7 @@ import { MixItUpClient } from './mixitup';
 import { cleanObsAddress, ObsWatcher } from './obs';
 import { checkObs, sendTestChat, testMixItUp, type TestResult } from './selftest';
 import { BridgeService, type TrayLevel } from './service';
+import { cleanNotice, NOTICE_KINDS, type NoticeKind } from './notices';
 import { StaffTools } from './staff';
 import { FileSettingsStore, defaults, type Settings } from './settings';
 import { cleanSite, pair, SiteClient, Unauthorized, type QueueRow } from './site';
@@ -90,6 +91,7 @@ const appState = (): object => demoState ?? ({
   mixItUp: { startWithBridge: settings.startMixItUp, path: settings.mixItUpPath || defaultMixItUpPath() },
   tools: { feed: settings.feed, summary: settings.summary, startObs: settings.startObs, obsPath: settings.obsPath || defaultObsPath() },
   staff,
+  notices: settings.notices,
   control: { error: control?.error ?? '', paused, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
   appVersion: app.getVersion(),
   update: updateText(update),
@@ -166,7 +168,7 @@ function connect(): void {
   const obs = new ObsWatcher({ site: settings.site, report: body => site.report(body) }, obsConfig());
   alerts = new Alerts();
   ledger ??= new Ledger(join(app.getPath('userData'), 'ledger.json'));
-  service = new BridgeService({ client: site, mix: new MixItUpClient(), obs, onChange: push, log, ledger, backupDir: backupDir(), sinks: { feed: showPull, summary: showSummary } });
+  service = new BridgeService({ client: site, mix: new MixItUpClient(), obs, onChange: push, log, ledger, backupDir: backupDir(), sinks: { feed: showPull, summary: showSummary, notice: showNotice } });
   staffTools = new StaffTools({ client: site, mix: new MixItUpClient(), obs, currencyId: () => service?.state.currencyId ?? '', openExternal: url => shell.openExternal(url) });
   service.start();
   push();
@@ -238,6 +240,17 @@ function showPull(raw: unknown): void {
   const item = cleanFeed(raw, settings.site);
   if (!item || !feedWin || feedWin.isDestroyed()) return;
   feedWin.webContents.send('feed-item', { item, play: shouldPlay(item.stars, settings.feed), volume: settings.feed.volume });
+}
+
+/** A staff notice from the site (55.13): a Windows notification that opens its page in the browser. Only on a staff PC, only a kind that is switched on, only a link on the paired site. */
+function showNotice(raw: unknown): void {
+  const n = staff ? cleanNotice(raw, settings.site, settings.notices) : null;
+  if (!n) return;
+  log(`Notice (${n.kind}): ${n.title}`);
+  if (!Notification.isSupported()) return;
+  const note = new Notification({ title: n.title, body: n.text });
+  note.on('click', () => { void shell.openExternal(n.url); });
+  note.show();
 }
 
 /** The end of stream summary: a Windows notification and the summary window. Only when the switch is on. */
@@ -318,6 +331,7 @@ function createTray(): void {
   tray.setContextMenu(trayMenu());
 }
 
+const ADMIN_LINKS = [{ label: 'Dashboard', path: '/admin' }, { label: 'Mix It Up', path: '/admin/mixitup' }, { label: 'Overlay Editor', path: '/admin/overlay' }, { label: 'Users', path: '/admin/users' }];
 const sceneList = (): string[] => service?.obs.sceneNames() ?? [];
 
 /** Pauses or opens trading from the Staff tab or the tray (55.12). Pausing asks first, in a Windows dialog, so a mis-click cannot stop trading. */
@@ -348,6 +362,7 @@ function staffMenu(): MenuItemConstructorOptions[] {
   return [
     { label: 'Pause trading', type: 'checkbox', checked: tradingPaused, click: () => { void setTrading(!tradingPaused); } },
     { label: 'Switch scene', enabled: sceneList().length > 0, submenu: sceneList().map(name => ({ label: name, click: () => { void staffTools?.run({ op: 'scene', name }).then(r => log(`Staff: scene ${name}: ${r.ok ? 'ok' : 'failed'}, ${r.text}`)); } })) },
+    { label: 'Admin', submenu: ADMIN_LINKS.map(l => ({ label: l.label, click: () => { void staffTools?.run({ op: 'open', href: l.path }); } })) },
   ];
 }
 
@@ -528,6 +543,12 @@ function setupIpc(): void {
     settings = { ...settings, feed: cleanFeedSettings(raw, settings.feed) };
     await store.save(settings);
     applyFeedWindow();
+    push();
+  });
+  ipcMain.handle('set-notice', async (_e, kind: unknown, on: unknown) => {
+    if (!NOTICE_KINDS.some(k => k === kind)) return;
+    settings = { ...settings, notices: { ...settings.notices, [kind as NoticeKind]: !!on } };
+    await store.save(settings);
     push();
   });
   ipcMain.handle('set-summary', async (_e, on: boolean) => {
