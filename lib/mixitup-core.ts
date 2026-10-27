@@ -131,10 +131,11 @@ export function cleanHappyHourInput(raw: { minutes?: unknown; kind?: unknown; pe
  * the reservation, so a settings change or a happy hour ending while the pack waits on the overlay changes nothing. `happyHour` is passed
  * in (this stays pure); one whose `endsAt` has passed at `now` is ignored.
  */
-export function pullPrice(s: Pick<MixItUpSettings, 'cost' | 'priceByRole'>, o: { role?: PullRole | readonly PullRole[]; happyHour?: HappyHour | null; now?: number }): number {
+export function pullPrice(s: Pick<MixItUpSettings, 'cost' | 'priceByRole'>, o: { role?: PullRole | readonly PullRole[]; happyHour?: HappyHour | null; now?: number; packPrice?: number }): number {
   const roles: readonly PullRole[] = Array.isArray(o.role) ? o.role : o.role ? [o.role as PullRole] : [];
   const prices = roles.flatMap(r => { const p = (s.priceByRole as Record<string, number | undefined> | undefined)?.[r]; return typeof p === 'number' ? [p] : []; });
-  const price = prices.length ? Math.min(...prices) : s.cost;
+  // A pack's own price (55.4f) beats a role price, which beats the base price.
+  const price = typeof o.packPrice === 'number' && o.packPrice >= 1 ? o.packPrice : prices.length ? Math.min(...prices) : s.cost;
   const h = activeHappyHour(o.happyHour, o.now ?? Date.now());
   if (!h) return price;
   return h.kind === 'free' ? 0 : Math.floor((price * (100 - h.percent) + 99) / 100);
@@ -280,7 +281,21 @@ export function streamKey(startedAtMs: number | null, now = Date.now()): string 
   return startedAtMs ? `s${startedAtMs}` : `d${new Date(now).toISOString().slice(0, 10)}`;
 }
 
-export type RefusalReason = 'insufficient_balance' | 'limit_reached' | 'mixitup_unavailable' | 'bad_balance' | 'blocked' | 'cooldown' | 'queue_full';
+export type RefusalReason = 'insufficient_balance' | 'limit_reached' | 'mixitup_unavailable' | 'bad_balance' | 'blocked' | 'cooldown' | 'queue_full' | 'unknown_pack';
+
+export const PACK_ARG_MAX = 60;
+/** The `pack` the pull webhook sent: trimmed, 60 characters at most. Empty (or not text) = no pack asked for. */
+export const cleanPackArg = (v: unknown): string => (typeof v === 'string' ? v.trim().slice(0, PACK_ARG_MAX) : '');
+
+/** The pack a viewer typed (ROADMAP 55.4f): the first exact name (any case), else the one pack whose name starts with it. Null = none, or several. */
+export function pickPack<T extends { name: string }>(packs: readonly T[], typed: string): T | null {
+  const want = typed.trim().toLowerCase();
+  if (!want) return null;
+  const exact = packs.find(p => p.name.trim().toLowerCase() === want);
+  if (exact) return exact;
+  const starts = packs.filter(p => p.name.trim().toLowerCase().startsWith(want));
+  return starts.length === 1 ? starts[0] : null;
+}
 
 // ── Chat replies (ROADMAP 55.4a) ──
 /** The replies staff can edit, with today's text as the default. To add one later, add its key and text here and its label below. */
@@ -292,12 +307,13 @@ export const REPLY_DEFAULTS = {
   no_packs: 'There is no active season with packs to open.',
   cooldown: '{username}, wait {wait} seconds before your next pack.',
   queue_full: '{username}, the pack queue is full. Try again in a moment.',
+  unknown_pack: '{username}, there is no pack called that. Packs: {packs}.',
 } as const;
 export type ReplyKey = keyof typeof REPLY_DEFAULTS;
 export const REPLY_KEYS = Object.keys(REPLY_DEFAULTS) as ReplyKey[];
 export const REPLY_MAX = 400;
 /** The placeholders a reply can use. One with no value in the moment (no limit, no balance) is dropped. */
-export const REPLY_VARS = ['username', 'cost', 'currency', 'balance', 'limit', 'left', 'wait'] as const;
+export const REPLY_VARS = ['username', 'cost', 'currency', 'balance', 'limit', 'left', 'wait', 'packs'] as const;
 
 /** Fills {placeholders}; one with no value is dropped and the gap it leaves tidied. Capped at REPLY_MAX characters. */
 export function renderReply(template: string, values: Record<string, string | number | undefined>): string {
@@ -321,15 +337,15 @@ export function refusalMessage(reason: RefusalReason, s: Pick<MixItUpSettings, '
 }
 
 export const REPLY_LABELS: Record<ReplyKey, string> = {
-  queued: 'Pull queued', insufficient_balance: 'Not enough currency', limit_reached: 'Pull limit reached', mixitup_unavailable: 'Mix It Up did not answer', no_packs: 'No packs to open', cooldown: 'Wait between packs', queue_full: 'Pack queue full',
+  queued: 'Pull queued', insufficient_balance: 'Not enough currency', limit_reached: 'Pull limit reached', mixitup_unavailable: 'Mix It Up did not answer', no_packs: 'No packs to open', cooldown: 'Wait between packs', queue_full: 'Pack queue full', unknown_pack: 'Pack not found',
 };
 export const REFUSAL_LABELS: Record<string, string> = {
-  insufficient_balance: 'Not enough currency', limit_reached: 'Pull limit reached', mixitup_unavailable: 'Mix It Up did not answer', bad_balance: 'Balance could not be read', blocked: 'Blocked by staff', cooldown: 'Wait between packs', queue_full: 'Pack queue full',
+  insufficient_balance: 'Not enough currency', limit_reached: 'Pull limit reached', mixitup_unavailable: 'Mix It Up did not answer', bad_balance: 'Balance could not be read', blocked: 'Blocked by staff', cooldown: 'Wait between packs', queue_full: 'Pack queue full', unknown_pack: 'Pack not found',
 };
 
 /** Sample values for the live preview of the replies, from the price and limit being typed. A limit of 0 never refuses, so a sample of 3 shows. */
 export const replySample = (s: Pick<MixItUpSettings, 'cost' | 'currency' | 'limit'>) =>
-  ({ username: 'cheesyviewer', cost: s.cost.toLocaleString(), currency: s.currency, balance: Math.max(0, s.cost - 1).toLocaleString(), limit: s.limit > 0 ? s.limit : 3, left: 2, wait: 12 });
+  ({ username: 'cheesyviewer', cost: s.cost.toLocaleString(), currency: s.currency, balance: Math.max(0, s.cost - 1).toLocaleString(), limit: s.limit > 0 ? s.limit : 3, left: 2, wait: 12, packs: 'Base, Jungle, Fossil' });
 
 /** Can this balance cover every pull in flight, this one included? `owed` is the sum of their stored prices and already counts this pull. */
 export function decide(o: { balance: number; owed: number }): boolean {

@@ -4,6 +4,7 @@ import { Icon } from '@/app/components/Icon';
 import { PageTabs, pickTab, type PageTab } from '../components/PageTabs';
 import { PageHeader } from '../components/ui';
 import { kv } from '@/lib/db';
+import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { currentStreamKey, getMixItUpLog, getMixItUpSettings } from '@/lib/mixitup';
 import { healthChips, readMixItUpHealth } from '@/lib/mixitup-health';
 import { needsSetup, pickLogFilter, statusCards, streamNumbers } from '@/lib/mixitup-page';
@@ -111,7 +112,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
           <ConnectionTab settings={settings} bridge={bridge} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never', staff: !!b.staff, by: b.by ?? '' }))} blocks={blocks.map(b => ({ username: b.username, by: b.by, scope: b.streamKey ? 'this stream' : 'until lifted' }))} />
         </div>
       )}
-      {tab === 'paid' && <MixItUpConfig settings={settings} happyHour={await happyHourView(now)} />}
+      {tab === 'paid' && <MixItUpConfig settings={settings} happyHour={await happyHourView(now)} packs={((await getActiveSeasonWithPacks())?.packs ?? []).filter(p => p.cards.length > 0).map(p => ({ id: p.pack.id, name: p.pack.name, price: p.pack.price }))} />}
       {tab === 'bigpulls' && <PullRules rules={settings.pullRules} commands={bridge.commands} obs={{ scenes: obs?.scenes ?? [], sources: obs?.sources ?? [] }} watchdog={settings.overlayWatchdog} />}
       {tab === 'chat' && <ChatBucks chat={settings.chat} check={await readLedgerCheck()} when={timeAgo} />}
       {tab === 'commands' &&<CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} />}

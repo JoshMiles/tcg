@@ -45,7 +45,7 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
   const go = (i: number) => `/admin/mixitup/setup?step=${STEPS[i].id}`;
   const [incoming, outgoing, obsCard] = cards;
   const bridgeMode = settings.connection === 'bridge';
-  const pack = incomingSetup(`${SITE_URL}/api/webhooks/pull`, secret, { username: '$username' });
+  const pack = incomingSetup(`${SITE_URL}/api/webhooks/pull`, secret, { username: '$username', pack: '$allargs' });
 
   return (
     <div className="space-y-6">
@@ -79,7 +79,7 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
           <Panel title="Make the !pack command" icon="chat" hint="Mix It Up tells the site when someone types !pack. The secret is already made for you and sits in the body below.">
             <ol className="list-decimal pl-5 space-y-1 text-xs text-gray-400">
               <li>In Mix It Up make a Chat Command <strong>!pack</strong> and add a <strong>Web Request</strong> action: method POST, content type JSON.</li>
-              <li>Paste the address and the body below.</li>
+              <li>Paste the address and the body below. <code>$allargs</code> is what the viewer typed after !pack (<code>!pack Base</code> opens the Base pack); empty means the usual random pack.</li>
               <li>Add a <strong>Webhook Response</strong> action (JSON to special identifiers) and a <strong>Chat Message</strong> that says the <code>message</code> field (it also has <code>left</code> and <code>balance</code> when known).</li>
               <li>Optional: add <code>"requestId"</code> to the body with a value that is different on every run of the command (not a fixed word, or every !pack after the first would be ignored). A retried request then never opens a second pack.</li>
             </ol>

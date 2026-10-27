@@ -39,7 +39,7 @@ export interface ChangeSet {
 export const packToInput = (p: Pack): PackInput => ({
   name: p.name, coverImageUrl: p.coverImageUrl, active: p.active, weight: p.weight, accentColor: p.accentColor, tearBorderColor: p.tearBorderColor,
   holoMinStars: p.holoMinStars, cardTime: p.cardTime, cooldownTime: p.cooldownTime, soundVolume: p.soundVolume, upgradesEnabled: p.upgradesEnabled,
-  variantWeights: { ...p.variantWeights }, upgradeCosts: { ...p.upgradeCosts }, disabledVariants: [...(p.disabledVariants ?? [])],
+  variantWeights: { ...p.variantWeights }, upgradeCosts: { ...p.upgradeCosts }, disabledVariants: [...(p.disabledVariants ?? [])], price: p.price ?? 0,
 });
 
 export const cardToWork = (c: Card): WorkCard => {
@@ -160,7 +160,7 @@ export interface ReviewLine { scope: string; field: string; from: string; to: st
 const FIELD_LABELS: Record<string, string> = {
   name: 'Name', coverImageUrl: 'Cover', active: 'In draws', weight: 'Draw weight', accentColor: 'Accent colour', tearBorderColor: 'Tear colour', holoMinStars: 'Holo from stars',
   cardTime: 'Card time', cooldownTime: 'Cooldown', soundVolume: 'Volume', upgradesEnabled: 'Variants and upgrades', variantWeights: 'Version weights', upgradeCosts: 'Upgrade costs',
-  disabledVariants: 'Versions off', number: 'Number', imageUrl: 'Art', fullArtImageUrl: 'Full art', stillUrl: 'Still frame', fullArtStillUrl: 'Full art still', soundUrl: 'Sound',
+  disabledVariants: 'Versions off', price: 'Price per pull', number: 'Number', imageUrl: 'Art', fullArtImageUrl: 'Full art', stillUrl: 'Still frame', fullArtStillUrl: 'Full art still', soundUrl: 'Sound',
   stars: 'Stars', probability: 'Odds', kind: 'Kind', buffId: 'Buff',
 };
 export const fieldLabel = (k: string) => FIELD_LABELS[k] ?? k;

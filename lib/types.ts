@@ -49,6 +49,8 @@ export interface Pack {
   variantWeights: VariantWeights;
   upgradeCosts: UpgradeCosts;
   disabledVariants?: OptionalVariant[];   // never rolled and skipped by upgrades in this pack
+  /** What a paid pull of this pack costs (ROADMAP 55.4f), a whole number from 1. Absent = no override (role price or the base price). */
+  price?: number;
   /** Retired: hidden from the library and never drawn, but its cards stay (viewer collections point at them). */
   archived?: boolean;
   archivedAt?: number;
