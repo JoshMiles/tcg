@@ -1,7 +1,9 @@
 'use client';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
+import { presetHref, type PresetSpec } from '@/lib/mixitup-presets';
 
 const secondary = 'btn btn-sm btn-outline';
 
@@ -15,8 +17,18 @@ export function AutoRefresh({ ms = 3000 }: { ms?: number }) {
   return <p className="text-xs text-gray-500">This page checks every few seconds.</p>;
 }
 
+/** Download for Mix It Up (ROADMAP 55.5): the staff-only route builds the file with the real secret in it. */
+export function DownloadPreset({ spec }: { spec: PresetSpec }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <a href={presetHref(spec)} download className={secondary}><Icon name="download" />Download for Mix It Up</a>
+      <p className="text-xs text-gray-500 min-w-0 flex-1">The file holds your incoming secret: do not share it. If it leaks, <Link href="/admin/settings?tab=webhooks" className="link">make a new secret</Link>.</p>
+    </div>
+  );
+}
+
 /** A Copy setup card: the address and body of one Web Request action, each with a Copy button. */
-export function CopyCard({ title, url, body, note }: { title: string; url: string; body: string; note?: string }) {
+export function CopyCard({ title, url, body, note, download }: { title: string; url: string; body: string; note?: string; download?: PresetSpec }) {
   const copy = (t: string) => { try { void navigator.clipboard.writeText(t); } catch { /* clipboard blocked */ } };
   return (
     <div className="rounded-xl border border-gray-800 bg-gray-950/50 p-4 space-y-3">
@@ -36,6 +48,7 @@ export function CopyCard({ title, url, body, note }: { title: string; url: strin
           <button type="button" onClick={() => copy(body)} className={`${secondary} self-start`}><Icon name="copy" />Copy</button>
         </div>
       </div>
+      {download && <DownloadPreset spec={download} />}
     </div>
   );
 }

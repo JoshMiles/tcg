@@ -1,8 +1,13 @@
 import type { MixItUpSettings } from './mixitup-core';
+import { COMMAND_ACTIONS, type CommandActionId } from './commands-core';
+import type { PresetSpec } from './mixitup-presets';
 
 // Paste-ready text for the Mix It Up page. Nothing here calls Mix It Up.
 
 const pretty = (v: unknown) => JSON.stringify(v, null, 2);
+
+/** A different number on every run of a Mix It Up command (Mix It Up's $randomnumber<min>:<max>, new each time it is read), so a retry of one request is answered once and a new run is not mistaken for a repeat (ROADMAP 55.3). */
+export const REQUEST_ID = '$randomnumber1:2000000000';
 
 export interface CommandSetup {
   /** The chat word, with the !. */
@@ -11,17 +16,21 @@ export interface CommandSetup {
   body: string;
   /** The reply field a Chat Message should say. */
   replyField: 'message';
+  /** What the Download for Mix It Up link needs. */
+  preset: PresetSpec;
 }
 
 /** One block per switched-on command. The body is what Mix It Up posts to the command webhook. */
-export function commandSetups(commands: { name: string; enabled: boolean }[], webhookUrl: string, secret: string): CommandSetup[] {
+export function commandSetups(commands: { name: string; enabled: boolean; aliases?: string[]; action?: CommandActionId }[], webhookUrl: string, secret: string): CommandSetup[] {
   return commands.filter(c => c.enabled && c.name.trim()).map(c => {
     const name = c.name.trim();
+    const fields = { command: name, username: '$username', args: '$allargs' };
     return {
       command: `!${name}`,
       url: webhookUrl,
-      body: pretty({ secret, command: name, username: '$username', args: '$allargs' }),
+      body: pretty({ secret, ...fields }),
       replyField: 'message' as const,
+      preset: { kind: 'chat' as const, name, path: 'command' as const, fields, aliases: c.aliases?.map(a => a.trim()).filter(Boolean), reply: [...new Set(['message', ...(c.action ? COMMAND_ACTIONS[c.action].vars.map(v => v.name) : [])])] },
     };
   });
 }

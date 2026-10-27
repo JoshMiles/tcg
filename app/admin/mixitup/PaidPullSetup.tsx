@@ -14,7 +14,7 @@ export function PaidPullSetup({ settings }: { settings: MixItUpSettings }) {
     <section className="card rounded-2xl overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-800">
         <h2 className="font-semibold text-white flex items-center gap-2"><Icon name="link" className="text-yellow-400" />Copy setup</h2>
-        <p className="text-xs text-gray-500 mt-0.5">The two requests this site sends. Mix It Up answers in the HTTP reply (a Webhook Response action).</p>
+        <p className="text-xs text-gray-500 mt-0.5">The two requests this site sends. The address must answer in the HTTP reply (Mix It Up has no action that does; use TCG Bridge or a small service of your own).</p>
       </div>
       <div className="px-6 py-5 space-y-5 text-sm text-gray-300">
         <div className="space-y-2">
