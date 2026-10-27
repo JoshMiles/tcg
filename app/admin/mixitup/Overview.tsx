@@ -47,8 +47,8 @@ export function Card({ card }: { card: StatusCard }) {
 }
 
 /** Mix It Up → Overview: three status cards, this stream's numbers, quick actions and the last five log rows. */
-export function Overview({ cards, numbers, recent, setup, setupLabel, streamExtra, obsPaired, login, now, testViewers, paidOn, sandbox, tests }: {
-  cards: StatusCard[]; numbers: StreamNumbers; recent: MixItUpLogEntry[]; setup: boolean; setupLabel: string; streamExtra: number; obsPaired: boolean; login: string; now: number;
+export function Overview({ cards, numbers, recent, setup, setupLabel, streamExtra, paused, pauseChat, obsPaired, login, now, testViewers, paidOn, sandbox, tests }: {
+  cards: StatusCard[]; numbers: StreamNumbers; recent: MixItUpLogEntry[]; setup: boolean; setupLabel: string; streamExtra: number; paused: boolean; pauseChat: boolean; obsPaired: boolean; login: string; now: number;
   testViewers: string[]; paidOn: boolean; sandbox: boolean; tests: RecentTestRow[];
 }) {
   const more = numbers.partial ? 'at least' : undefined;
@@ -78,7 +78,7 @@ export function Overview({ cards, numbers, recent, setup, setupLabel, streamExtr
       </Panel>
 
       <Panel title="Quick actions" icon="zap" hint="Each one shows its answer right here.">
-        <OverviewActions obsPaired={obsPaired} streamExtra={streamExtra} login={login} />
+        <OverviewActions obsPaired={obsPaired} streamExtra={streamExtra} paused={paused} pauseChat={pauseChat} login={login} />
       </Panel>
 
       <Panel title="Test pulls" icon="flask" hint="Pretend a test viewer typed !pack in chat and watch every step: the balance check, the charge, the overlay, the save and the rules. The edition is kept apart from the real collection and counts nowhere.">

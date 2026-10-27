@@ -5,7 +5,7 @@ import { PendingButton } from '@/app/components/PendingButton';
 import type { ActionResult } from '../action-types';
 import { fieldClass } from '../components/ui';
 import { ObsRefresh } from '../settings/ObsRefresh';
-import { sendTestMessageAction, setStreamExtraAction, testBalanceAction } from './overview-actions';
+import { sendTestMessageAction, setPausedAction, setStreamExtraAction, testBalanceAction } from './overview-actions';
 
 const btn = 'btn btn-sm btn-outline';
 
@@ -27,8 +27,9 @@ export function Quick({ title, text, icon, label, pendingLabel, run }: { title: 
 }
 
 /** The Overview's quick actions. Each shows its answer inline, so nothing leaves the page. */
-export function OverviewActions({ obsPaired, streamExtra, login }: { obsPaired: boolean; streamExtra: number; login: string }) {
+export function OverviewActions({ obsPaired, streamExtra, paused, pauseChat, login }: { obsPaired: boolean; streamExtra: number; paused: boolean; pauseChat: boolean; login: string }) {
   const [extra, setExtra] = useActionState(setStreamExtraAction, null);
+  const [pause, setPause] = useActionState(setPausedAction, null);
   return (
     <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
       <Quick title="Test a balance check" text={`Asks Mix It Up for ${login}'s balance. Nothing is charged.`} icon="coins" label="Check my balance" pendingLabel="Asking…" run={testBalanceAction} />
@@ -40,7 +41,14 @@ export function OverviewActions({ obsPaired, streamExtra, login }: { obsPaired: 
           <ObsRefresh />
         </div>
       )}
-      <form action={setExtra} className="space-y-2">
+      <form action={setPause} className="space-y-2">
+        <p className="text-sm font-semibold text-white">Pause pulls</p>
+        <p className="text-xs text-gray-500">{paused ? <><strong className="text-amber-200">Paused now.</strong> A paid pull or !pack answers &quot;Packs are paused, back soon&quot; and nothing is charged.</> : 'Open. Pause to turn away new pulls without switching Mix It Up off. Pulls already waiting still play.'}</p>
+        <label className="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" name="chat" defaultChecked={pauseChat} className="checkbox checkbox-xs" />Say it in chat when this changes (needs TCG Bridge)</label>
+        <PendingButton name="intent" value={paused ? 'resume' : 'pause'} className={btn}><Icon name={paused ? 'play' : 'pause'} />{paused ? 'Resume pulls' : 'Pause pulls'}</PendingButton>
+        <Result state={pause} />
+      </form>
+      <form action={setExtra}className="space-y-2">
         <p className="text-sm font-semibold text-white">Extra pulls this stream</p>
         <p className="text-xs text-gray-500">{streamExtra > 0 ? <>On now: <strong className="text-white">+{streamExtra}</strong> for everyone.</> : 'None for this stream.'} Adds pulls for every viewer on top of their limit until the stream ends. A limit of 0 stays unlimited.</p>
         <div className="flex items-end gap-2">

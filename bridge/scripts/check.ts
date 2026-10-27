@@ -1,13 +1,14 @@
 // TCG Bridge checks: a fake Mix It Up Developer API and a fake TCG site, both local HTTP servers, driven through the real service.
 // Run from bridge/: npm run check   (or from the repo root: npx tsx bridge/scripts/check.ts). No Electron needed.
 import assert from 'node:assert/strict';
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { createServer, request as httpRequest, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { EventEmitter } from 'node:events';
 import type { ChildProcess } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Alerts, snapshotOf, type Snapshot } from '../src/alerts';
+import { buttonUrl, ControlServer, Hotkeys, newControlKey, noHotkeys, parseButton, type ControlAction } from '../src/control';
 import { commandWait } from '../src/jobs';
 import { diagnosticsText } from '../src/diagnostics';
 import { defaultMixItUpPath, isMixItUpExe, startMixItUp } from '../src/launch';
@@ -725,12 +726,93 @@ async function main() {
   assert.equal((await store.load()).site, 'https://cheesytcg.app');
   assert.equal((await store.load()).startWithWindows, true);
   assert.deepEqual([(await store.load()).alerts, (await store.load()).startMixItUp, (await store.load()).mixItUpPath, defaults().lastSeenVersion], [true, false, '', ''], 'alerts on, starting Mix It Up off');
-  const full = { site: 'https://example.test', token: 'secret-token', pairedAs: 'PC', startWithWindows: false, obsEnabled: true, obsAddress: 'ws://localhost:4456', obsPassword: 'obs-secret', obsStartReplay: true, alerts: false, startMixItUp: true, mixItUpPath: 'C:\\Mix\\MixItUp.exe', lastSeenVersion: '0.2.0' };
+  const full = { site: 'https://example.test', token: 'secret-token', pairedAs: 'PC', startWithWindows: false, obsEnabled: true, obsAddress: 'ws://localhost:4456', obsPassword: 'obs-secret', obsStartReplay: true, alerts: false, startMixItUp: true, mixItUpPath: 'C:\\Mix\\MixItUp.exe', lastSeenVersion: '0.2.0', controlKey: 'abcdefghij0123456789', hotkeys: { refresh: 'Ctrl+Alt+R', pause: '', lastBuff: 'Ctrl+Alt+B' } };
   await store.save(full);
   const saved = readFileSync(join(dir, 'settings.json'), 'utf8');
   assert.ok(!saved.includes('secret-token') && !saved.includes('obs-secret'));
   assert.deepEqual(await store.load(), full);
   rmSync(dir, { recursive: true, force: true });
+
+  // control from the PC (55.9): the Stream Deck server
+  {
+    const key = newControlKey();
+    assert.match(key, /^[A-Za-z0-9_-]{16,64}$/);
+    assert.notEqual(key, newControlKey(), 'a new key each time');
+    const seen: ControlAction[] = [];
+    const ctl = new ControlServer(key, async a => { seen.push(a); return a.action === 'refresh' ? { ok: true, text: 'Refreshing' } : { ok: false, text: 'Nope' }; }, 0);
+    await ctl.start();
+    assert.equal(ctl.error, '');
+    const port = ctl.listeningPort;
+    assert.ok(port > 0);
+    const get = (path: string, headers: Record<string, string> = {}) => fetch(`http://127.0.0.1:${port}${path}`, { headers });
+    assert.deepEqual(parseButton('buff/abc%20d'), { action: 'buff', id: 'abc d' });
+    assert.equal(parseButton('nonsense'), null);
+    assert.equal(parseButton('buff'), null);
+    assert.equal(buttonUrl(key, 'pause', port), `http://127.0.0.1:${port}/${key}/pause`);
+    const ok = await get(`/${key}/refresh`);
+    assert.deepEqual([ok.status, await ok.text(), seen.length], [200, 'Refreshing', 1], 'a button runs its action');
+    assert.equal((await get(`/${key}/pause`)).status, 422, 'a refused action answers 422');
+    assert.equal((await get(`/${key}/launch-missiles`)).status, 404, 'an unknown action is refused');
+    assert.equal((await get('/wrong-key-wrong-key/refresh')).status, 404, 'the key is required');
+    assert.equal((await get('/refresh')).status, 404, 'no key, no action');
+    assert.equal((await get(`/${key}/refresh`, { Origin: 'https://evil.example' })).status, 403, 'a web page is refused');
+    assert.equal((await get(`/${key}/refresh`, { 'Sec-Fetch-Site': 'cross-site' })).status, 403, 'a browser fetch is refused');
+    const viaName = await new Promise<number>(resolve => { // fetch cannot set Host
+      const r = httpRequest({ host: '127.0.0.1', port, path: `/${key}/refresh`, headers: { Host: 'evil.example' } }, res => { res.resume(); resolve(res.statusCode ?? 0); });
+      r.end();
+    });
+    assert.equal(viaName, 403, 'a name pointed at this PC is refused');
+    assert.equal((await fetch(`http://127.0.0.1:${port}/${key}/refresh`, { method: 'POST' })).status, 405, 'GET only');
+    assert.equal(seen.length, 2, 'refused requests ran nothing');
+    await assert.rejects(fetch(`http://${Object.values((await import('node:os')).networkInterfaces()).flat().find(i => i && i.family === 'IPv4' && !i.internal)?.address ?? '203.0.113.1'}:${port}/${key}/refresh`, { signal: AbortSignal.timeout(1500) }), 'not reachable from the network');
+    const taken = new ControlServer(key, async () => ({ ok: true, text: '' }), port);
+    await taken.start();
+    assert.match(taken.error, /used by another program/, 'a taken port is reported');
+    await ctl.stop();
+  }
+
+  // control from the PC (55.9): global hotkeys
+  {
+    const regs = new Map<string, () => void>();
+    const clash = new Set(['Ctrl+Alt+X']);
+    const reg = {
+      register: (a: string, cb: () => void) => { if (a === 'bogus') throw new Error('bad'); if (clash.has(a)) return false; regs.set(a, cb); return true; },
+      unregister: (a: string) => { regs.delete(a); },
+    };
+    const pressed: string[] = [];
+    const hk = new Hotkeys(reg, n => pressed.push(n));
+    assert.deepEqual(hk.apply(noHotkeys()), {}, 'empty hotkeys register nothing');
+    assert.equal(regs.size, 0);
+    const errs = hk.apply({ refresh: 'Ctrl+Alt+R', pause: 'Ctrl+Alt+X', lastBuff: 'bogus' });
+    assert.deepEqual(Object.keys(errs).sort(), ['lastBuff', 'pause']);
+    assert.match(errs.pause!, /Another program/);
+    assert.match(errs.lastBuff!, /not a shortcut/);
+    regs.get('Ctrl+Alt+R')!();
+    assert.deepEqual(pressed, ['refresh'], 'a press runs its action');
+    assert.match(hk.apply({ refresh: 'Ctrl+Alt+R', pause: 'ctrl+alt+r', lastBuff: '' }).pause ?? '', /Already used/, 'the same shortcut twice is refused');
+    hk.apply({ refresh: 'Ctrl+Alt+Q', pause: '', lastBuff: '' });
+    assert.deepEqual([...regs.keys()], ['Ctrl+Alt+Q'], 'applying again drops the old shortcuts');
+    hk.stop();
+    assert.equal(regs.size, 0);
+  }
+
+  // control from the PC (55.9): the site client's action and queue calls
+  {
+    const calls: string[] = [];
+    const s = await listen((req, res, body) => {
+      calls.push(`${req.method} ${req.url} ${req.headers.authorization ?? ''}`);
+      if (req.headers.authorization !== `Bearer ${TOKEN}`) return send(res, 401, { error: 'no' });
+      if (req.url === '/api/bridge/queue') return send(res, 200, { rows: [{ id: 'a', kind: 'pull', username: 'alice', pack: 'Base', waitedS: 4 }] });
+      send(res, 200, { ok: true, message: `did ${JSON.parse(body).action}`, paused: true });
+    });
+    const c = new SiteClient(s.url, TOKEN, '0.7.0');
+    assert.deepEqual(await c.action({ action: 'pause' }), { ok: true, message: 'did pause', paused: true });
+    assert.deepEqual((await c.queue()).map(r => r.username), ['alice']);
+    const bad = new SiteClient(s.url, 'wrong', '0.7.0');
+    await assert.rejects(bad.action({ action: 'pause' }), /Pair again/);
+    await assert.rejects(bad.queue(), /Pair again/);
+    s.server.close();
+  }
 
   miSrv.server.close();
   siSrv.server.close();

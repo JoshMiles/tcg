@@ -31,6 +31,7 @@
     <symbol id="i-key-round" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
     <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
     <symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-keyboard" viewBox="0 0 24 24"><path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/></symbol>
     <symbol id="i-triangle-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
   </svg>
 
@@ -47,6 +48,7 @@
     <div class="body">
       <nav class="rail" aria-label="Sections">
         <button type="button" class="rail-btn" data-tab="status" aria-current="page"><svg class="i"><use href="#i-activity"/></svg><span>Status</span></button>
+        <button type="button" class="rail-btn" data-tab="control"><svg class="i"><use href="#i-keyboard"/></svg><span>Control</span></button>
         <button type="button" class="rail-btn" data-tab="settings"><svg class="i"><use href="#i-settings"/></svg><span>Settings</span></button>
         <button type="button" class="rail-btn" data-tab="about"><svg class="i"><use href="#i-info"/></svg><span>About</span></button>
         <div class="rail-foot"><span id="rail-dot" class="dot bad"></span><span id="rail-text">Not connected</span></div>
@@ -164,6 +166,54 @@
                 <thead><tr><th>Time</th><th>Job</th><th>Viewer</th><th>Result</th></tr></thead>
                 <tbody></tbody>
               </table>
+            </section>
+          </div>
+        </section>
+
+        <!-- Control from the PC -->
+        <section data-panel="control" hidden>
+          <p id="control-unpaired" class="muted" hidden>Pair TCG Bridge first (Status page).</p>
+          <div id="control" hidden>
+            <section class="card">
+              <h2 class="plain-title">Pause pulls</h2>
+              <label class="switch-row"><span><b>Pulls are paused</b><small id="control-last">Paid pulls and !pack answer "Packs are paused, back soon".</small></span><input id="control-pause" class="switch" type="checkbox"></label>
+              <p id="control-pause-result" class="result" role="status"></p>
+            </section>
+            <section class="card">
+              <h2 class="plain-title">Stream Deck buttons</h2>
+              <p class="muted small">In the Stream Deck app add a "Website" action, paste the address, and tick "GET request in background". The address has a secret key in it: do not share it. Only this PC can use it.</p>
+              <p id="control-error" class="bad-text" role="alert"></p>
+              <table id="control-buttons"><tbody></tbody></table>
+              <p id="control-copy-result" class="result" role="status"></p>
+            </section>
+            <section class="card">
+              <h2 class="plain-title">Hotkeys</h2>
+              <p class="muted small">Work anywhere in Windows. Type a shortcut like Ctrl+Alt+R; leave empty for none.</p>
+              <form id="hotkey-form">
+                <label>Refresh the overlay <input id="hk-refresh" type="text" spellcheck="false" autocomplete="off" maxlength="40"></label>
+                <p id="hk-refresh-error" class="bad-text" role="alert"></p>
+                <label>Pause or resume pulls <input id="hk-pause" type="text" spellcheck="false" autocomplete="off" maxlength="40"></label>
+                <p id="hk-pause-error" class="bad-text" role="alert"></p>
+                <label>Last buff again <input id="hk-lastBuff" type="text" spellcheck="false" autocomplete="off" maxlength="40"></label>
+                <p id="hk-lastBuff-error" class="bad-text" role="alert"></p>
+                <div class="row"><button type="submit" class="btn">Save hotkeys</button></div>
+              </form>
+            </section>
+            <section class="card">
+              <details id="queue-box" class="more">
+                <summary>Pull queue</summary>
+                <p id="queue-empty" class="muted">Nothing waiting.</p>
+                <table id="queue" hidden>
+                  <thead><tr><th>Who</th><th>Pack</th><th>Waiting</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+                <div class="row tools">
+                  <button type="button" id="queue-skip" class="btn plain">Skip next pull</button>
+                  <button type="button" id="queue-clear" class="btn plain">Clear queue</button>
+                </div>
+                <p id="queue-result" class="result" role="status"></p>
+                <p class="muted small">A skipped or cleared paid pull is refunded.</p>
+              </details>
             </section>
           </div>
         </section>

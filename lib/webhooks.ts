@@ -159,6 +159,11 @@ export async function queueLength(): Promise<number> {
   return kv.llen('webhooks:queue');
 }
 
+/** What is waiting, the one the overlay takes next first. */
+export async function peekQueue(): Promise<QueuedEvent[]> {
+  return (await kv.lrange<QueuedEvent>('webhooks:queue', 0, -1)).reverse();
+}
+
 /** Drops everything waiting in the queue; returns how many events were discarded. */
 export async function clearQueue(): Promise<number> {
   const n = await queueLength();

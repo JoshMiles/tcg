@@ -22,6 +22,11 @@ contextBridge.exposeInMainWorld('bridge', {
   openLogs: (): Result => ipcRenderer.invoke('open-logs'),
   copyDiagnostics: (): Result => ipcRenderer.invoke('copy-diagnostics'),
   checkUpdate: (): Result => ipcRenderer.invoke('check-update'),
+  setPause: (on: boolean): Result => ipcRenderer.invoke('pause', !!on),
+  copyButton: (i: number): Result => ipcRenderer.invoke('copy-button', Number(i)),
+  setHotkeys: (map: Record<string, string>): Promise<Record<string, string>> => ipcRenderer.invoke('set-hotkeys', map),
+  getQueue: (): Promise<{ ok: boolean; text: string; rows: { id: string; kind: string; username: string; pack: string; waitedS: number }[] }> => ipcRenderer.invoke('queue'),
+  queueDo: (what: 'skip' | 'clear'): Result => ipcRenderer.invoke('queue-do', what),
   openRelease: (): Promise<void> => ipcRenderer.invoke('open-release'),
   dismissUpdated: (): Promise<void> => ipcRenderer.invoke('dismiss-updated'),
 });

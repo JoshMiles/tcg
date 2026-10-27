@@ -5,6 +5,8 @@ export interface BridgeJob { id: string; kind: string; username?: string; amount
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeCurrency { id: string; name: string }
 export interface BridgeCommand { id: string; name: string }
+export interface SiteAction { ok: boolean; message: string; paused?: boolean; buffs?: { id: string; name: string }[] }
+export interface QueueRow { id: string; kind: string; username: string; pack: string; waitedS: number }
 
 /** The token was revoked (or never valid): stop polling and ask for a new pairing. */
 export class Unauthorized extends Error { constructor() { super('Pair again'); } }
@@ -66,6 +68,22 @@ export class SiteClient {
     const r = await this.call('/api/bridge/poll', { version: this.version }, AbortSignal.any([signal, AbortSignal.timeout(45_000)]));
     if (r.status !== 200) throw new SiteError(r.status, `poll: the site answered ${r.status}`);
     return Array.isArray(r.json.jobs) ? (r.json.jobs as BridgeJob[]) : [];
+  }
+
+  /** One thing from the PC (ROADMAP 55.9): a button, a hotkey, the tray menu or the queue panel. `status` also answers `paused` and `buffs`. */
+  async action(body: Record<string, unknown>): Promise<SiteAction> {
+    const r = await this.call('/api/bridge/action', body, AbortSignal.timeout(15_000));
+    if (r.status !== 200) throw new SiteError(r.status, `The site answered ${r.status}`);
+    return { ok: r.json.ok === true, message: typeof r.json.message === 'string' ? r.json.message : '', ...(typeof r.json.paused === 'boolean' ? { paused: r.json.paused } : {}), ...(Array.isArray(r.json.buffs) ? { buffs: (r.json.buffs as SiteAction['buffs'])!.filter(b => typeof b?.id === 'string' && typeof b?.name === 'string') } : {}) };
+  }
+
+  /** The overlay queue, the next pull first. */
+  async queue(): Promise<QueueRow[]> {
+    const res = await fetch(this.base + '/api/bridge/queue', { headers: { authorization: `Bearer ${this.token}` }, signal: AbortSignal.timeout(10_000) });
+    if (res.status === 401) throw new Unauthorized();
+    if (res.status !== 200) throw new SiteError(res.status, `The site answered ${res.status}`);
+    const json = (await res.json().catch(() => ({}))) as { rows?: QueueRow[] };
+    return Array.isArray(json.rows) ? json.rows : [];
   }
 
   /** 'late' = the site had already given up on this job (409). */
