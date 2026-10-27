@@ -12,14 +12,14 @@ export type OutKind = 'balance' | 'deduct' | 'add' | 'viewers';
 export interface OutResult { at: number; ok: boolean; detail: string }
 
 /** What staff call each incoming route. */
-const ROUTE_NAMES: Record<string, string> = {
+export const ROUTE_NAMES: Record<string, string> = {
   '/api/webhooks/pull': '!pack', '/api/webhooks/command': 'chat commands', '/api/webhooks/show-card': 'show-off',
   '/api/webhooks/grant-card': 'card reward', '/api/webhooks/collection': 'collection', '/api/webhooks/stream': 'stream start/end',
 };
-const routeName = (route: string) => ROUTE_NAMES[route] ?? route.replace('/api/webhooks/', '');
+export const routeName = (route: string) => ROUTE_NAMES[route] ?? route.replace('/api/webhooks/', '');
 
 const OUT_LABELS: Record<OutKind, string> = { balance: 'Balance address', deduct: 'Deduct address', add: 'Add address', viewers: 'Chat viewers address' };
-const OUT_KINDS = Object.keys(OUT_LABELS) as OutKind[];
+export const OUT_KINDS = Object.keys(OUT_LABELS) as OutKind[];
 
 /** The `action` of a call to Mix It Up, when it is one of the four that are tracked (a `test` is not). */
 export const outKindOf = (action: unknown): OutKind | null => OUT_KINDS.find(k => k === action) ?? null;
@@ -61,6 +61,18 @@ export function obsChip(obs: ObsSnapshot | null | undefined, now: number): Healt
   return { tone: 'ok', text: `OBS: overlay visible in ${obs.scene}` };
 }
 
+/** One address's line: not set, set and not used yet, working, or failing with the reason. An empty deduct address is the balance address. Pure. */
+export function outLine(kind: OutKind, urls: Record<OutKind, string>, health: MixItUpHealth, now: number, ago: (at: number, now: number) => string): HealthChip {
+  const label = OUT_LABELS[kind];
+  const viaBalance = kind === 'deduct' && !urls.deduct && !!urls.balance;
+  const r = health.out[kind];
+  if (!urls[kind] && !viaBalance) return { tone: 'muted', text: `${label}: not set` };
+  if (!r) return { tone: 'muted', text: `${label}: ${viaBalance ? 'uses the balance address, not used yet' : 'set, not used yet'}` };
+  return r.ok
+    ? { tone: 'ok', text: `${label}: working (${ago(r.at, now)})` }
+    : { tone: 'bad', text: `${label}: failing, ${r.detail} (${ago(r.at, now)})` };
+}
+
 /**
  * The status row: when Mix It Up last reached the site, any wrong secret, and one chip per address the site calls. In bridge mode
  * (`bridge` given: when a bridge last polled, or null, and what it last saw in OBS) one TCG Bridge chip and the OBS chip replace
@@ -84,15 +96,6 @@ export function healthChips(health: MixItUpHealth, urls: Record<OutKind, string>
     if (obs) chips.push(obs);
     return chips;
   }
-  for (const kind of OUT_KINDS) {
-    const label = OUT_LABELS[kind];
-    const viaBalance = kind === 'deduct' && !urls.deduct && !!urls.balance; // an empty deduct address is the balance address
-    const r = health.out[kind];
-    if (!urls[kind] && !viaBalance) chips.push({ tone: 'muted', text: `${label}: not set` });
-    else if (!r) chips.push({ tone: 'muted', text: `${label}: ${viaBalance ? 'uses the balance address, not used yet' : 'set, not used yet'}` });
-    else chips.push(r.ok
-      ? { tone: 'ok', text: `${label}: working (${ago(r.at, now)})` }
-      : { tone: 'bad', text: `${label}: failing, ${r.detail} (${ago(r.at, now)})` });
-  }
+  for (const kind of OUT_KINDS) chips.push(outLine(kind, urls, health, now, ago));
   return chips;
 }
