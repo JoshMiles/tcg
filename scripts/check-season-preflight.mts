@@ -22,7 +22,9 @@ ok(zero.length === 1 && zero[0].level === 'warning' && /0 odds/.test(zero[0].mes
 const allZero = run([pack()], [card(1, { probability: 0 }), card(2, { probability: 0 })]);
 ok(allZero.length === 1 && allZero[0].level === 'error' && /every card has 0 odds/.test(allZero[0].message), 'all cards at 0 odds is one error');
 const gap = run([pack()], [card(1), card(3, { stars: 3 })]);
-ok(gap.length === 1 && gap[0].level === 'warning' && /2-star tier\./.test(gap[0].message), 'an empty star tier below the top one is a warning');
+ok(gap.length === 1 && gap[0].level === 'note' && /2-star tier\./.test(gap[0].message), 'an empty star tier below the top one is a note');
+const noted = run([pack()], [card(1, { imageUrl: '' }), card(3, { stars: 3 })]);
+ok(noted.length === 2 && noted[0].level === 'warning' && noted[1].level === 'note', 'notes are listed after warnings');
 ok(run([pack({ upgradesEnabled: true, variantWeights: { regular: 0, reverse: 0, full: 0, shiny: 0 } as Pack['variantWeights'] })], [card(1)]).some(i => i.level === 'error' && /variant weight/.test(i.message)), 'all variant weights at 0 is an error');
 const past = run([pack()], [card(1)], { ...season, endsAt: Date.now() - 1000 });
 ok(past.length === 1 && past[0].level === 'warning' && /end date/.test(past[0].message), 'a past end date is a warning');
