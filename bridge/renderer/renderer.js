@@ -9,6 +9,31 @@ const ago = ms => {
 };
 
 let state = null;
+let obsFormFilled = false;
+
+function overlayText(o, scene) {
+  if (!o.found) return 'Not found. Add the overlay as a browser source in OBS (the address is in Admin > Settings > OBS Overlay).';
+  if (!o.inProgram) return `${o.sourceName} exists but is not in the current scene (${scene})`;
+  if (!o.visible) return `${o.sourceName} is in ${scene} but hidden`;
+  return `${o.sourceName} is visible in ${scene}`;
+}
+
+function renderObs(obs, saved) {
+  if (!obsFormFilled && saved) { // fill the form once; later renders must not overwrite what is being typed
+    obsFormFilled = true;
+    $('obs-on').checked = saved.enabled;
+    $('obs-address').value = saved.address;
+    $('obs-password').placeholder = saved.hasPassword ? '(saved, type to replace)' : '';
+  }
+  $('obs-forget').hidden = !(saved && saved.hasPassword);
+  const on = !!(obs && obs.enabled);
+  const up = on && obs.connected;
+  $('obs-dot').className = 'dot ' + (up ? 'ok' : on ? '' : 'warn');
+  $('obs-state').textContent = !on ? 'Off' : up ? 'Connected' : `Not connected${obs && obs.error ? ` (${obs.error})` : ''}`;
+  $('obs-scene').textContent = up && obs.scene ? obs.scene : '-';
+  $('obs-stream').textContent = up ? (obs.streaming === null ? '-' : obs.streaming ? 'Live' : 'Not streaming') : '-';
+  $('obs-overlay').textContent = up ? overlayText(obs.overlay, obs.scene) : '-';
+}
 
 function render() {
   if (!state) return;
@@ -38,6 +63,7 @@ function render() {
   $('mix-version').textContent = found ? svc.mix.version : '-';
   $('mix-currency').textContent = svc && svc.currency ? svc.currency : 'The site chooses it; shown after the first job';
   $('mix-help').hidden = found;
+  renderObs(svc && svc.obs, state.obsSettings);
   const jobs = svc ? svc.jobs : [];
   $('no-jobs').hidden = jobs.length > 0;
   $('jobs').hidden = jobs.length === 0;
@@ -63,6 +89,14 @@ $('pair-form').addEventListener('submit', async e => {
   if (r.ok) $('code').value = '';
   else $('pair-error').textContent = r.error || 'Pairing failed';
 });
+async function saveObs(password) {
+  $('obs-error').textContent = '';
+  const r = await window.bridge.setObs($('obs-on').checked, $('obs-address').value, password);
+  if (r.ok) { $('obs-password').value = ''; $('obs-address').value = $('obs-address').value.trim(); }
+  else $('obs-error').textContent = r.error || 'Could not save';
+}
+$('obs-form').addEventListener('submit', e => { e.preventDefault(); void saveObs($('obs-password').value || undefined); });
+$('obs-forget').addEventListener('click', () => { void saveObs(''); });
 $('unpair').addEventListener('click', () => window.bridge.unpair());
 $('autostart').addEventListener('change', e => window.bridge.setStartWithWindows(e.target.checked));
 

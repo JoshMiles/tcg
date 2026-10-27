@@ -1,8 +1,9 @@
 // One job from the site run against Mix It Up. The kinds are fixed; nothing here fetches an address a job names.
 import { MixItUpClient, MixItUpDown, MixItUpError, type MixItUpUser } from './mixitup';
+import { ObsError, type ObsWatcher } from './obs';
 import type { BridgeJob, BridgeResult } from './site';
 
-export const KINDS = ['balance', 'deduct', 'add', 'viewers', 'say'] as const;
+export const KINDS = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh'] as const;
 export const isKnownKind = (k: unknown): boolean => typeof k === 'string' && (KINDS as readonly string[]).includes(k);
 
 const LOGIN = /^[a-z0-9_]{1,25}$/;
@@ -11,12 +12,16 @@ const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 class Refused extends Error {}
 
 /** Runs a known job and says how it went. Never throws. */
-export async function runJob(job: BridgeJob, mix: MixItUpClient): Promise<BridgeResult> {
+export async function runJob(job: BridgeJob, mix: MixItUpClient, obs: ObsWatcher): Promise<BridgeResult> {
   try {
+    if (job.kind === 'obs-refresh') {
+      await obs.refresh();
+      return { id: job.id, ok: true };
+    }
     return { id: job.id, ok: true, ...(await run(job, mix)) };
   } catch (e) {
     if (e instanceof MixItUpDown) return { id: job.id, ok: false, error: e.message };
-    if (e instanceof MixItUpError || e instanceof Refused) return { id: job.id, ok: false, error: e.message };
+    if (e instanceof MixItUpError || e instanceof Refused || e instanceof ObsError) return { id: job.id, ok: false, error: e.message };
     return { id: job.id, ok: false, error: 'TCG Bridge hit an unexpected error' };
   }
 }

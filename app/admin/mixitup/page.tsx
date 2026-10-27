@@ -14,7 +14,7 @@ import { CommandsPanel } from './CommandsPanel';
 import { MixItUpConfig } from './MixItUpConfig';
 import { MixItUpLog } from './MixItUpLog';
 import { BridgeCard } from './BridgeCard';
-import { listBridges, readBridge } from '@/lib/bridge';
+import { listBridges, readBridge, readObs } from '@/lib/bridge';
 
 // @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
 // Remove this opt-out after verifying the segment passes validation without it.
@@ -46,7 +46,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
     <div className="space-y-6">
       <PageHeader title="Mix It Up" subtitle={TABS.find(t => t.id === tab)?.hint} />
       <ul className="flex flex-wrap gap-2" aria-label="Mix It Up connection">
-        {healthChips(await readMixItUpHealth(), { balance: settings.balanceUrl, deduct: settings.deductUrl, add: settings.addUrl, viewers: settings.viewersUrl }, Date.now(), timeAgo, settings.connection === 'bridge' ? { at: bridge.at } : undefined).map(c => (
+        {healthChips(await readMixItUpHealth(), { balance: settings.balanceUrl, deduct: settings.deductUrl, add: settings.addUrl, viewers: settings.viewersUrl }, Date.now(), timeAgo, settings.connection === 'bridge' ? { at: bridge.at, obs: await readObs() } : undefined).map(c => (
           <li key={c.text} className={`badge badge-sm h-auto py-1 gap-1 whitespace-normal ${CHIP_STYLE[c.tone].badge}`}>
             <Icon name={CHIP_STYLE[c.tone].icon} /> {c.text}
           </li>

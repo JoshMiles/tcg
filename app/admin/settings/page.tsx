@@ -18,6 +18,9 @@ import { AccessConfig } from './AccessConfig';
 import { getAccessLog, getAccessSettings, listTesters } from '@/lib/access';
 import { ScoringForm, type ScoringGroupConfig } from './ScoringForm';
 import { CopyBlock, LiveGates, OverlayTest } from './OverlayPanels';
+import { ObsRefresh } from './ObsRefresh';
+import { listBridges, readObs } from '@/lib/bridge';
+import { obsChip } from '@/lib/mixitup-health';
 import { getWebhookSettings, getWebhookFailures } from '@/lib/webhooks';
 import { getDiscordLog, getDiscordSettings } from '@/lib/discord';
 import { ENV_GROUPS, checkEnv, readEnv, summarizeEnv } from '@/lib/env-health';
@@ -103,6 +106,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const outgoingOn = Object.values(webhookSettings.outgoing).filter(w => w.enabled && w.url).length;
   const discordOn = discordSettings.enabled && discordSettings.channels.some(c => c.enabled && !!c.url);
   const checklist = extensionChecklist(SITE_URL);
+  const [bridges, obsSnap] = tab === 'overlay' ? await Promise.all([listBridges(), readObs()]) : [[], null];
+  const obsLine = obsChip(obsSnap, Date.now());
 
   return (
     <div className="space-y-6">
@@ -140,6 +145,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             </Panel>
             <Panel title="Connection" icon="radio" hint="The overlay checks in every 10 seconds, so this and the sidebar show whether it is open.">
               <OverlayStatus />
+              {obsLine && (
+                <p className={`text-sm flex items-center gap-1.5 ${obsLine.tone === 'ok' ? 'text-green-300' : obsLine.tone === 'bad' ? 'text-red-300' : 'text-amber-200'}`}>
+                  <Icon name={obsLine.tone === 'ok' ? 'checkCircle' : obsLine.tone === 'bad' ? 'alert' : 'warning'} />{obsLine.text}
+                </p>
+              )}
+              {bridges.length > 0 && <ObsRefresh />}
               <p className="text-xs text-gray-500 leading-relaxed">
                 To also show when you&apos;re <strong className="text-gray-300">live</strong>, open the browser source&apos;s properties in OBS and set <strong className="text-gray-300">Page permissions</strong> to{' '}
                 <em className="text-gray-300">“Read access to OBS status information”</em>. Without it the overlay still reports as connected, but its stream status stays unknown.

@@ -6,8 +6,10 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { MixItUpClient } from '../src/mixitup';
+import { cleanObsAddress, isOverlayUrl, ObsWatcher } from '../src/obs';
 import { BridgeService } from '../src/service';
 import { FileSettingsStore } from '../src/settings';
+import { FakeObs } from './fake-obs';
 import { cleanSite, pair, SiteClient, SiteError, type BridgeJob, type BridgeResult } from '../src/site';
 
 const CUR = '11111111-2222-3333-4444-555555555555';
@@ -78,6 +80,7 @@ function fakeSite() {
     jobs: [] as BridgeJob[],
     hellos: [] as { version: string; currencies: { id: string; name: string }[] }[],
     results: [] as BridgeResult[],
+    reports: [] as Record<string, unknown>[],
     resultAttempts: 0,
     polls: 0,
     pollMode: 'ok' as 'ok' | '401' | '500',
@@ -88,6 +91,7 @@ function fakeSite() {
     if (req.url === '/api/bridge/pair') return json.code === 'ABCD-EFGH' ? send(res, 200, { token: TOKEN }) : send(res, 401, { error: 'That code is wrong or has expired.' });
     if (req.headers.authorization !== `Bearer ${TOKEN}`) return send(res, 401, { error: 'Unknown token' });
     if (req.url === '/api/bridge/hello') { s.hellos.push(json); return send(res, 200, { ok: true }); }
+    if (req.url === '/api/bridge/report') { s.reports.push(json); return send(res, 200, { ok: true }); }
     if (req.url === '/api/bridge/poll') {
       s.polls++;
       if (s.pollMode === '401') return send(res, 401, { error: 'Unknown token' });
@@ -118,15 +122,147 @@ async function main() {
   const siSrv = await listen(si.handler);
   const mix = new MixItUpClient(miSrv.url, 1000);
   let changes = 0;
+  const client = new SiteClient(siSrv.url, TOKEN, '0.0.0');
+  const obsOff = { enabled: false, address: 'ws://127.0.0.1:4455', password: '' };
+  const obs = new ObsWatcher({ site: siSrv.url, report: b => client.report(b), backoffMs: { min: 10, max: 40 }, debounceMs: 30, reportMs: 20, heartbeatMs: 200 }, obsOff);
   const svc = new BridgeService({
-    client: new SiteClient(siSrv.url, TOKEN, '0.0.0'), mix, onChange: () => { changes++; },
+    client, mix, obs, onChange: () => { changes++; },
     mixCheckMs: 50, backoffMs: { min: 10, max: 40 }, retryMs: 5,
   });
+  type ObsReport = { connected: boolean; scene: string; overlay: { found: boolean; inProgram: boolean; visible: boolean; sourceName: string } };
+  const obsReports = () => si.s.reports.filter(r => r.type === 'obs') as unknown as ObsReport[];
+  const lastObs = () => obsReports().at(-1);
+  const streamReports = () => si.s.reports.filter(r => r.type === 'stream').map(r => r.live);
   const resultOf = async (j: BridgeJob): Promise<BridgeResult> => {
     si.s.jobs.push(j);
     await waitFor(`result of ${j.kind}`, () => si.s.results.some(r => r.id === j.id));
     return si.s.results.find(r => r.id === j.id)!;
   };
+
+  // ── OBS: a fake obs-websocket v5 server, driven through the real service ──
+  async function obsChecks() {
+    const fake = new FakeObs();
+    fake.password = 'pw-123';
+    const overlay = { inputName: 'TCG Overlay', inputKind: 'browser_source', url: `${siSrv.url}/overlay.html?key=SECRETKEY` };
+    const other = { inputName: 'Other', inputKind: 'browser_source', url: 'https://example.com/overlay.html' };
+    const cam = { sceneItemId: 1, sourceName: 'Cam', sceneItemEnabled: true, isGroup: false };
+    const ov = { sceneItemId: 2, sourceName: 'TCG Overlay', sceneItemEnabled: true, isGroup: false };
+    fake.inputs = [other, overlay];
+    fake.scenes = { Gameplay: [cam, ov], 'Just Chatting': [cam] };
+    await fake.listen();
+    const address = `ws://127.0.0.1:${fake.port}`;
+    const checks = () => fake.requests.filter(r => r === 'GetCurrentProgramScene').length;
+    assert.equal(cleanObsAddress(' ws://localhost:4455/ '), 'ws://localhost:4455');
+    for (const bad of ['ws://example.com:4455', 'ws://127.0.0.1', 'wss://127.0.0.1:4455', 'ws://127.0.0.1:0', 'ws://127.0.0.1:99999', 'ws://127.0.0.1.evil.com:4455']) assert.equal(cleanObsAddress(bad), null, bad);
+    assert.ok(isOverlayUrl('https://www.cheesytcg.app/overlay.html?key=abc', 'https://cheesytcg.app'));
+    assert.ok(!isOverlayUrl('https://cheesytcg.app/admin', 'https://cheesytcg.app'));
+    assert.ok(!isOverlayUrl('https://evil.example/overlay.html', 'https://cheesytcg.app'));
+
+    // the wrong password is named, the tray says "partly", and the site hears OBS is switched on but unreachable
+    await svc.reconfigureObs({ enabled: true, address, password: 'nope' });
+    await waitFor('wrong password', () => svc.state.obs.error === 'Wrong OBS WebSocket password');
+    assert.equal(svc.state.tray, 'partly');
+    await waitFor('site told OBS is unreachable', () => lastObs()?.connected === false);
+
+    // the right password: connected, stream and overlay reported, and neither the key nor the password leaves the PC
+    await svc.reconfigureObs({ enabled: true, address, password: 'pw-123' });
+    await waitFor('connected', () => svc.state.obs.connected && svc.state.obs.overlay.found);
+    await waitFor('first snapshot', () => lastObs()?.connected === true);
+    assert.deepEqual(lastObs(), { type: 'obs', connected: true, scene: 'Gameplay', overlay: { found: true, inProgram: true, visible: true, sourceName: 'TCG Overlay' } });
+    assert.deepEqual(streamReports(), [false], 'the stream state is reported once on connect');
+    assert.equal(svc.state.tray, 'connected');
+    assert.equal(fake.subscriptions.at(-1), 4 | 8 | 64 | 128, 'scenes, inputs, outputs and scene items only');
+    const wire = JSON.stringify(si.s.reports);
+    assert.ok(!wire.includes('SECRETKEY') && !wire.includes('pw-123') && !wire.includes('127.0.0.1:'), 'no key, password or address is sent');
+
+    // stream start and stop
+    fake.streaming = true;
+    fake.emit('StreamStateChanged', { outputActive: true, outputState: 'OBS_WEBSOCKET_OUTPUT_STARTING' });
+    fake.emit('StreamStateChanged', { outputActive: true, outputState: 'OBS_WEBSOCKET_OUTPUT_STARTED' });
+    await waitFor('stream live', () => streamReports().at(-1) === true);
+    fake.emit('StreamStateChanged', { outputActive: false, outputState: 'OBS_WEBSOCKET_OUTPUT_STOPPING' });
+    fake.emit('StreamStateChanged', { outputActive: false, outputState: 'OBS_WEBSOCKET_OUTPUT_STOPPED' });
+    await waitFor('stream ended', () => streamReports().at(-1) === false);
+    assert.deepEqual(streamReports(), [false, true, false], 'only started and stopped count');
+
+    // a burst of events is one check; a quiet OBS is still reported now and then (the heartbeat)
+    const checksBefore = checks();
+    for (let i = 0; i < 5; i++) fake.emit('SceneItemEnableStateChanged', { sceneName: 'Gameplay', sceneItemId: 2, sceneItemEnabled: true });
+    await waitFor('burst checked', () => checks() > checksBefore);
+    await new Promise(r => setTimeout(r, 120));
+    assert.equal(checks(), checksBefore + 1, 'debounced to one check');
+    const beats = obsReports().length;
+    await waitFor('heartbeat', () => obsReports().length > beats);
+
+    // a scene change is reported: the overlay exists but is not in the current scene
+    fake.scene = 'Just Chatting';
+    fake.emit('CurrentProgramSceneChanged', { sceneName: 'Just Chatting' });
+    await waitFor('scene change', () => lastObs()?.scene === 'Just Chatting');
+    assert.deepEqual(lastObs()!.overlay, { found: true, inProgram: false, visible: false, sourceName: 'TCG Overlay' });
+    fake.scene = 'Gameplay';
+    fake.emit('CurrentProgramSceneChanged', { sceneName: 'Gameplay' });
+    await waitFor('back on Gameplay', () => lastObs()?.scene === 'Gameplay' && lastObs()?.overlay.visible === true);
+
+    // in the scene but hidden
+    ov.sceneItemEnabled = false;
+    fake.emit('SceneItemEnableStateChanged', { sceneName: 'Gameplay', sceneItemId: 2, sceneItemEnabled: false });
+    await waitFor('hidden', () => lastObs()?.overlay.inProgram === true && lastObs()?.overlay.visible === false);
+    ov.sceneItemEnabled = true;
+
+    // inside a group (one level): visible only when the group and the source are both enabled
+    const group = { sceneItemId: 3, sourceName: 'Group', sceneItemEnabled: true, isGroup: true };
+    fake.scenes.Gameplay = [cam, group];
+    fake.groups = { Group: [{ sceneItemId: 1, sourceName: 'TCG Overlay', sceneItemEnabled: true, isGroup: false }] };
+    fake.emit('SceneItemEnableStateChanged', { sceneName: 'Gameplay', sceneItemId: 3, sceneItemEnabled: true });
+    await waitFor('group', () => lastObs()?.overlay.inProgram === true && lastObs()?.overlay.visible === true);
+    group.sceneItemEnabled = false;
+    fake.emit('SceneItemEnableStateChanged', { sceneName: 'Gameplay', sceneItemId: 3, sceneItemEnabled: false });
+    await waitFor('group hidden', () => lastObs()?.overlay.inProgram === true && lastObs()?.overlay.visible === false);
+    fake.scenes.Gameplay = [cam, ov];
+    fake.groups = {};
+    fake.emit('SceneItemEnableStateChanged', { sceneName: 'Gameplay', sceneItemId: 2, sceneItemEnabled: true });
+    await waitFor('plain again', () => lastObs()?.overlay.visible === true);
+
+    // obs-refresh presses "Refresh cache of current page" on the overlay source, and only on it
+    const refreshed = await resultOf(job('obs-refresh'));
+    assert.equal(refreshed.ok, true);
+    assert.deepEqual(fake.pressed, [{ inputName: 'TCG Overlay', propertyName: 'refreshnocache' }]);
+
+    // the overlay source is missing: reported, and the refresh says so
+    fake.inputs = [other];
+    fake.emit('InputRemoved', { inputName: 'TCG Overlay' });
+    await waitFor('overlay missing', () => lastObs()?.overlay.found === false);
+    assert.equal(lastObs()!.overlay.sourceName, '');
+    const missing = await resultOf(job('obs-refresh'));
+    assert.deepEqual([missing.ok, missing.error], [false, 'The overlay browser source was not found in OBS']);
+    assert.equal(fake.pressed.length, 1);
+    fake.inputs = [other, overlay];
+    fake.emit('InputCreated', { inputName: 'TCG Overlay' });
+    await waitFor('overlay back', () => lastObs()?.overlay.found === true);
+
+    // OBS closes and comes back: the site hears it, a refresh is answered at once, and the watcher reconnects by itself
+    const identified = fake.identified;
+    await fake.close();
+    await waitFor('OBS lost', () => !svc.state.obs.connected && svc.state.tray === 'partly');
+    await waitFor('site told OBS is gone', () => lastObs()?.connected === false);
+    const goneT0 = Date.now();
+    const gone = await resultOf(job('obs-refresh'));
+    assert.deepEqual([gone.ok, gone.error], [false, 'TCG Bridge is not connected to OBS']);
+    assert.ok(Date.now() - goneT0 < 1000);
+    await fake.listen();
+    await waitFor('reconnected to OBS', () => svc.state.obs.connected && fake.identified > identified);
+    await waitFor('back in the site', () => lastObs()?.connected === true && lastObs()?.overlay.visible === true);
+    assert.equal(svc.state.tray, 'connected');
+
+    // switching OBS off in the app: the site hears it, and the tray stops caring
+    await svc.reconfigureObs({ enabled: false, address, password: '' });
+    assert.equal(svc.state.obs.enabled, false);
+    await waitFor('site told OBS is off', () => lastObs()?.connected === false);
+    assert.equal(svc.state.tray, 'connected');
+    const off = await resultOf(job('obs-refresh'));
+    assert.deepEqual([off.ok, off.error], [false, 'OBS is switched off in TCG Bridge']);
+    await fake.close();
+  }
 
   // pairing and the site address
   assert.equal(await pair(siSrv.url, 'ABCD-EFGH', 'STREAM-PC'), TOKEN);
@@ -162,6 +298,14 @@ async function main() {
   const say = await resultOf(job('say', { text: 'hello chat' }));
   assert.equal(say.ok, true);
   assert.deepEqual(mi.chat[1], { Message: 'hello chat', SendAsStreamer: false });
+
+  // OBS is off by default: the refresh job is answered at once and the tray ignores OBS
+  const offT0 = Date.now();
+  const offRefresh = await resultOf(job('obs-refresh'));
+  assert.deepEqual([offRefresh.ok, offRefresh.error], [false, 'OBS is switched off in TCG Bridge']);
+  assert.ok(Date.now() - offT0 < 1000);
+  assert.equal(svc.state.tray, 'connected');
+  assert.equal(svc.state.obs.enabled, false);
 
   // deduct refused when short: never negative, no adjust sent
   const puts = () => mi.calls.filter(c => c.method === 'PUT').length;
@@ -230,6 +374,8 @@ async function main() {
   await new Promise<void>(r => miSrv.server.listen(Number(new URL(miSrv.url).port), '127.0.0.1', r));
   await waitFor('hello after Mix It Up returns', () => si.s.hellos.length > hellosBefore);
 
+  await obsChecks();
+
   // a revoked token: the loop stops and says "Pair again"
   si.s.pollMode = '401';
   await waitFor('revoked', () => svc.state.site === 'revoked');
@@ -240,15 +386,17 @@ async function main() {
   assert.equal(si.s.polls, polls, 'no polling after a 401');
   assert.ok(changes > 0);
 
-  // settings: the token is never written in plain text
+  // settings: the token and the OBS password are never written in plain text
   const dir = mkdtempSync(join(tmpdir(), 'tcg-bridge-'));
   const cipher = { encrypt: async (s: string) => Buffer.from(s.split('').reverse().join('')), decrypt: async (b: Buffer) => b.toString().split('').reverse().join('') };
   const store = new FileSettingsStore(dir, cipher);
   assert.equal((await store.load()).site, 'https://cheesytcg.app');
   assert.equal((await store.load()).startWithWindows, true);
-  await store.save({ site: 'https://example.test', token: 'secret-token', pairedAs: 'PC', startWithWindows: false });
-  assert.ok(!readFileSync(join(dir, 'settings.json'), 'utf8').includes('secret-token'));
-  assert.deepEqual(await store.load(), { site: 'https://example.test', token: 'secret-token', pairedAs: 'PC', startWithWindows: false });
+  const full = { site: 'https://example.test', token: 'secret-token', pairedAs: 'PC', startWithWindows: false, obsEnabled: true, obsAddress: 'ws://localhost:4456', obsPassword: 'obs-secret' };
+  await store.save(full);
+  const saved = readFileSync(join(dir, 'settings.json'), 'utf8');
+  assert.ok(!saved.includes('secret-token') && !saved.includes('obs-secret'));
+  assert.deepEqual(await store.load(), full);
   rmSync(dir, { recursive: true, force: true });
 
   miSrv.server.close();

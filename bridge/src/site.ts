@@ -1,5 +1,5 @@
 // The TCG site's bridge API (app/api/bridge/*). The only address this file ever fetches is the paired site.
-export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say';
+export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh';
 export interface BridgeJob { id: string; kind: string; username?: string; amount?: number; currencyId?: string; text?: string; at?: number }
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeCurrency { id: string; name: string }
@@ -49,6 +49,12 @@ export class SiteClient {
   async hello(currencies: BridgeCurrency[], mixItUpVersion: string): Promise<void> {
     const r = await this.call('/api/bridge/hello', { version: mixItUpVersion, currencies }, AbortSignal.timeout(15_000));
     if (r.status !== 200) throw new SiteError(r.status, `hello: the site answered ${r.status}`);
+  }
+
+  /** OBS facts: `{ type: 'stream', live }` or `{ type: 'obs', connected, scene, overlay }`. */
+  async report(body: Record<string, unknown>): Promise<void> {
+    const r = await this.call('/api/bridge/report', body, AbortSignal.timeout(10_000));
+    if (r.status !== 200) throw new SiteError(r.status, `report: the site answered ${r.status}`);
   }
 
   /** Holds up to 25 s on the site's side. */
