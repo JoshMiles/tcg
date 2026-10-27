@@ -1,11 +1,12 @@
 import qrcode from 'qrcode-generator';
+import { SITE_URL } from './site';
 
 /** A QR code as a grid of dark modules (client-safe; used by the flip card's back and the share image). Null if the text cannot be encoded. */
 export function qrModules(text: string, origin?: string): { size: number; dark: (r: number, c: number) => boolean } | null {
   try {
     const q = qrcode(0, 'M');
-    // `origin` (the address the page is served from) replaces the link's own, so a local or preview build never points at production.
-    q.addData(origin ? origin + text.slice(new URL(text).origin.length) : text);
+    // `origin` (the address the page is served from) replaces the site's own, so a local or preview build never points at production; other links are left alone.
+    q.addData(origin && text.startsWith(SITE_URL + '/') ? origin + text.slice(SITE_URL.length) : text);
     q.make();
     return { size: q.getModuleCount(), dark: (r, c) => q.isDark(r, c) };
   } catch { return null; }
