@@ -221,7 +221,7 @@ export function cleanMixItUpInput(raw: Record<string, unknown>): { ok: true; set
     s[key] = t.url;
   }
   if (typeof raw.cooldownSeconds === 'string' && raw.cooldownSeconds.trim() !== '' && !/^\d+$/.test(raw.cooldownSeconds.trim())) return { ok: false, message: `The cooldown must be a whole number of seconds, 0 to ${COOLDOWN_MAX}.` };
-  if (typeof raw.queueCap === 'string' && raw.queueCap.trim() !== '' && !/^d+$/.test(raw.queueCap.trim())) return { ok: false, message: `The queue cap must be a whole number, 0 to ${QUEUE_CAP_MAX}.` };
+  if (typeof raw.queueCap === 'string' && raw.queueCap.trim() !== '' && !/^\d+$/.test(raw.queueCap.trim())) return { ok: false, message: `The queue cap must be a whole number, 0 to ${QUEUE_CAP_MAX}.` };
   const cost = Number(raw.cost);
   if (raw.cost !== undefined && (!Number.isFinite(cost) || cost < 1)) return { ok: false, message: 'The price per pack must be 1 or more.' };
   for (const role of PRICED_ROLES) {
