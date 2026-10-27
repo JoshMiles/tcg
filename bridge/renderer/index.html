@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'">
+  <title>TCG Bridge</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>TCG Bridge</h1>
+    <span id="version" class="muted"></span>
+  </header>
+
+  <section id="pairing" hidden>
+    <h2>Pair with the site</h2>
+    <p id="pair-note" class="muted">On the site, open Admin > Mix It Up > Paid pulls and press "Pair TCG Bridge". Type the code it shows here.</p>
+    <form id="pair-form">
+      <label>Site address <input id="site" type="text" spellcheck="false" autocomplete="off"></label>
+      <label>Pairing code <input id="code" type="text" placeholder="ABCD-EFGH" maxlength="12" spellcheck="false" autocomplete="off"></label>
+      <button type="submit" id="pair-btn">Pair</button>
+      <p id="pair-error" class="bad" role="alert"></p>
+    </form>
+  </section>
+
+  <main id="status" hidden>
+    <section class="card">
+      <h2><span id="site-dot" class="dot"></span>Site</h2>
+      <dl>
+        <dt>Address</dt><dd id="site-url"></dd>
+        <dt>Paired as</dt><dd id="paired-as"></dd>
+        <dt>Last poll</dt><dd id="last-poll"></dd>
+        <dt>State</dt><dd id="site-state"></dd>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h2><span id="mix-dot" class="dot"></span>Mix It Up</h2>
+      <dl>
+        <dt>Found</dt><dd id="mix-found"></dd>
+        <dt>Version</dt><dd id="mix-version"></dd>
+        <dt>Currency</dt><dd id="mix-currency"></dd>
+      </dl>
+      <p id="mix-help" class="help" hidden>
+        Mix It Up is not answering on this PC. Open Mix It Up, then go to Services > Developer API > Connect. TCG Bridge will notice within a few seconds.
+      </p>
+    </section>
+
+    <section>
+      <h2>Last jobs</h2>
+      <p id="no-jobs" class="muted">Nothing yet. Jobs appear here when the site asks Mix It Up for something.</p>
+      <table id="jobs" hidden>
+        <thead><tr><th>Time</th><th>Job</th><th>Viewer</th><th>Result</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    <label><input id="autostart" type="checkbox"> Start with Windows</label>
+    <span id="update" class="muted"></span>
+    <button id="unpair" type="button" hidden>Unpair</button>
+  </footer>
+  <script src="renderer.js"></script>
+</body>
+</html>

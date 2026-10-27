@@ -1,0 +1,29 @@
+:root { color-scheme: light dark; --bg: #fafaf7; --fg: #1d1d1b; --muted: #6b6b66; --card: #ffffff; --line: #deded6; --ok: #2fb344; --warn: #f5a524; --bad: #d63939; --accent: #e0a100; }
+@media (prefers-color-scheme: dark) { :root { --bg: #1b1b19; --fg: #f1f1ec; --muted: #a2a29a; --card: #26261f; --line: #3a3a31; } }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+header { display: flex; align-items: baseline; gap: 10px; }
+h1 { font-size: 20px; margin: 0 0 8px; }
+h2 { font-size: 14px; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+.muted { color: var(--muted); }
+.bad { color: var(--bad); min-height: 1.4em; margin: 6px 0 0; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+dl { display: grid; grid-template-columns: 90px 1fr; gap: 4px 8px; margin: 0; }
+dt { color: var(--muted); }
+dd { margin: 0; overflow-wrap: anywhere; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bad); display: inline-block; }
+.dot.ok { background: var(--ok); }
+.dot.warn { background: var(--warn); }
+.help { margin: 10px 0 0; padding: 8px; border-left: 3px solid var(--warn); background: var(--bg); }
+form { display: grid; gap: 10px; max-width: 360px; }
+label { display: grid; gap: 4px; }
+input[type="text"] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--fg); font: inherit; }
+label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: 6px; }
+button { padding: 6px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--accent); color: #1d1d1b; font: inherit; cursor: pointer; }
+button#unpair { background: var(--card); color: var(--fg); }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+td.fail { color: var(--bad); }
+footer { display: flex; align-items: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+footer .muted { flex: 1; }
