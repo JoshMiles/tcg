@@ -22,7 +22,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 47 | Access hardening (47.11) | Blocked (Josh, from 2026-11-02) | S |
 | 50 | Swap finder trial (50.3) | Blocked (trial readout from 2026-11-24) | S |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
-| 55 | Mix It Up integration: bridge, setup wizard, Stream Deck buffs, clearer messages, more settings, command downloads, TCG Bridge app (55.0 to 55.6) | Ready (55.4 needs a decision) | L |
+| 55 | Mix It Up integration: bridge, setup wizard, Stream Deck buffs, clearer messages, more settings, command downloads, TCG Bridge app, a better Mix It Up page (55.0 to 55.7) | Ready (55.4 needs a decision) | L |
 
 Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52 and 54 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -61,7 +61,7 @@ The file holds the extension's CORS rules, which stay as submitted while panel 0
 
 Josh: connecting Mix It Up is confusing, there are too few settings, and Cheesygidds rewards viewers from the Stream Deck a lot, which the site cannot take today. Read `docs/admin/mixitup.md` first.
 
-**Where it stands (2026-10-27).** Mix It Up calls the site on seven incoming webhooks (`/api/webhooks/pull`, `command`, `show-card`, `grant-card`, `collection`, `stream`, `queue` for the overlay), all on the one incoming secret. The site calls Mix It Up on up to four outgoing addresses (balance, deduct, add, chat viewers; public https only, so Mix It Up on the streamer's PC needs a tunnel). Setup is spread over Admin Settings > Webhooks (the incoming secret), the Mix It Up page's Paid pulls form and the Copy setup cards; nothing shows whether Mix It Up has ever reached the site. Buffs reach players only through trainer cards and achievements; the one live lever is "Extra pulls this stream" on the Mix It Up page. The Stream Deck runs Mix It Up commands through Mix It Up's Developer API (the Mix It Up plugin from the Elgato store, Developer API service switched on in Mix It Up), so a Stream Deck button is a Mix It Up command that calls one of our webhooks. Order: 55.0 (site side), 55.6a, 55.6b, the 55.1 wizard (health merged as #579), 55.2, 55.3, 55.5, and 55.4 once Josh picks. One PR per item unless it says otherwise.
+**Where it stands (2026-10-27).** Mix It Up calls the site on seven incoming webhooks (`/api/webhooks/pull`, `command`, `show-card`, `grant-card`, `collection`, `stream`, `queue` for the overlay), all on the one incoming secret. The site calls Mix It Up on up to four outgoing addresses (balance, deduct, add, chat viewers; public https only, so Mix It Up on the streamer's PC needs a tunnel). Setup is spread over Admin Settings > Webhooks (the incoming secret), the Mix It Up page's Paid pulls form and the Copy setup cards; nothing shows whether Mix It Up has ever reached the site. Buffs reach players only through trainer cards and achievements; the one live lever is "Extra pulls this stream" on the Mix It Up page. The Stream Deck runs Mix It Up commands through Mix It Up's Developer API (the Mix It Up plugin from the Elgato store, Developer API service switched on in Mix It Up), so a Stream Deck button is a Mix It Up command that calls one of our webhooks. Order: 55.0 (site side, #581), 55.6a (#582), 55.6b, 55.6c, 55.6d, 55.7 (the page), the 55.1 wizard (health merged as #579; it opens from 55.7's Connection tab), 55.2, 55.3, 55.5, and 55.4 once Josh picks. One PR per item unless it says otherwise.
 
 **From Mix It Up's source (github.com/MixItUpBot/Desktop, read 2026-10-27).**
 - Mix It Up has no action that sends a custom answer back to an HTTP request. The site's paid-pull calls (balance, deduct, add, viewers) expect a Mix It Up command to answer with JSON, which stock Mix It Up cannot do, so those addresses can only work through something in between. See 55.0.
@@ -148,6 +148,27 @@ Josh (2026-10-27): a small app the streamer opens when streaming, built first, s
 - **Refresh the overlay from the site:** a "Refresh overlay in OBS" button (Admin Settings > OBS Overlay) sends an `obs-refresh` job; the app presses the source's "Refresh cache of current page" button.
 - Not in this item (ideas for later, Josh picks): switch to a scene on a big pull, mute or show sources during pack openings.
 - Check: a fake obs-websocket server in the bridge check script.
+
+**55.6c Reliability and self-help in the app (M).** Josh (2026-10-27): more useful features in the app. All app side; bump the version.
+- **Alerts:** a Windows notification when the site, Mix It Up or OBS link drops while OBS says the stream is live, and one when it comes back (no repeat within 2 minutes). A switch in the window, on by default.
+- **Self-tests in the window:** "Test Mix It Up" (finds the chosen currency and reads the streamer's own balance), "Send test chat message", "Check OBS" (runs the overlay check now). Each shows the result in words.
+- **Start Mix It Up:** when Mix It Up is not found, a "Start Mix It Up" button (the default install path, or a path picked once and saved); a "Start Mix It Up with TCG Bridge" switch, off by default. Only the saved local path is ever launched.
+- **Diagnostics:** a log file in the app's data folder (kept 7 days; never the token, the OBS password, the incoming secret or the overlay key), "Open log folder", and "Copy diagnostics" (versions, statuses, the last 20 jobs, no secrets).
+- **Updates:** "Check for updates" and the version in the window; after an update, "Updated to 0.x" with a link to the release.
+- Checks: alerts fire once per drop and only while live; diagnostics hold no secret (grep the output in the check).
+
+**55.6d Mix It Up commands on big pulls (M).** The site sends a new `run-command` job when a pull matches a rule; the app runs that Mix It Up command (`POST /api/commands/{id}` with the viewer and card name as arguments) so Mix It Up can play a sound, run lights or post its own message.
+- The app reports Mix It Up's commands (`GET /api/commands`, name and id; check the controller in github.com/MixItUpBot/Desktop) in `hello` and every 5 minutes; the site keeps the list in `mixitup:bridge`.
+- Rules on the Mix It Up page: rarity, variant or "new to the dex" picks a command from that list (up to 10 rules; the first match wins). The app runs only an id it reported itself. Fire and forget: a pull never waits on it.
+- Checks: a rule matches once per pull, an unknown id is refused by the app, no job when no bridge is paired.
+
+### 55.7 A better Mix It Up page (Ready, M to L)
+Josh (2026-10-27): the Mix It Up page should look better and be more useful. Today it is three tabs (Paid pulls, which also holds TCG Bridge pairing and the connection switch; Commands; Log) under a row of health chips. Read `docs/admin.md` (admin UX conventions) and `docs/admin/mixitup.md` first. After 55.6b (it touches the same chips).
+1. **Overview tab, the new default.** Three status cards in plain words, each with what to do when it is not green and a link to the fix: *Mix It Up to the site* (last request per webhook, a wrong secret), *the site to Mix It Up* (TCG Bridge paired and last poll, Mix It Up found and its version, the currency), *OBS* (the overlay check from 55.6b). Then "This stream": paid pulls, Brie Bucks taken and refunded, commands run, refusals and the top reason, from the existing logs (read what they hold first; add a counter only if a number cannot come from them). Then quick actions: test a balance check, send a test chat message, refresh the overlay in OBS, extra pulls this stream. Then the last 5 log rows with "See all".
+2. **Connection tab:** TCG Bridge download and pairing, the paired apps, the connection switch, and the direct outgoing addresses folded under "Advanced". A "Set up Mix It Up" button here (and on Overview while anything is red) opens the 55.1 wizard once it exists.
+3. **Paid pulls tab:** only prices, limits and messages, grouped in cards, with a preview of each chat message filled with sample values.
+4. **Log tab:** filters (incoming, outgoing, refusals only) and the time on each row.
+5. The health chips stay as a one-line summary on the other tabs. Check it at phone width. Update `docs/admin/mixitup.md` and the screenshots in it, if any.
 
 ## Twitch extension
 
