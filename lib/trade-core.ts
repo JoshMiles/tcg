@@ -110,6 +110,18 @@ const clampInt = (v: unknown, min: number, max: number, fallback: number) => {
 };
 
 /** Coerces stored / posted settings into valid ones. */
+export interface TradeItemLike { variant: string; count: number }
+
+// TRIAL (ROADMAP 51.7, two weeks): a reversal of a "big" trade is logged as one that would need a second approval; nothing is blocked.
+// Big = any Golden print, or this many prints or more across both sides. shortcut: no card values or serial editions (the action has no
+// season cards in hand), upgrade to a value threshold if the trial shows this misses the trades staff worry about.
+export const BIG_TRADE_PRINTS = 6;
+export const SECOND_APPROVAL_NOTE = 'would need a second approval';
+
+export function isBigReversal(trade: { give: TradeItemLike[]; get: TradeItemLike[] }): boolean {
+  const items = [...trade.give, ...trade.get];
+  return items.some(i => i.variant === 'golden') || items.reduce((n, i) => n + i.count, 0) >= BIG_TRADE_PRINTS;
+}
 export function sanitizeTradeSettings(input: unknown): TradeSettings {
   const i = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
   const d = DEFAULT_TRADE_SETTINGS;
