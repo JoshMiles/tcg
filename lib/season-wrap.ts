@@ -183,6 +183,25 @@ export async function getUserAwards(username: string): Promise<{ seasonId: strin
   return snaps.flatMap(({ s, snap }) => (snap?.awards ?? []).filter(a => a.username.toLowerCase() === name).map(award => ({ seasonId: s.id, seasonName: s.name, award })));
 }
 
+export interface PastSeasonResult { seasonId: string; seasonName: string; rank: number; score: number }
+
+/** Pure: one row per ended season whose snapshot standings include the viewer (rank = place in the final standings), newest ended first. */
+export function pastSeasonResults(username: string, seasons: Season[], snaps: (SeasonSnapshot | null)[]): PastSeasonResult[] {
+  const name = username.toLowerCase();
+  const rows: (PastSeasonResult & { endedAt: number })[] = [];
+  seasons.forEach((s, i) => {
+    const at = snaps[i]?.standings.findIndex(r => r.username.toLowerCase() === name) ?? -1;
+    if (s.endedAt && at >= 0) rows.push({ seasonId: s.id, seasonName: s.name, rank: at + 1, score: snaps[i]!.standings[at].score, endedAt: s.endedAt });
+  });
+  return rows.sort((a, b) => b.endedAt - a.endedAt).map(({ endedAt: _, ...r }) => r);
+}
+
+/** The viewer's rank and score in each ended season, read from the wrap-up snapshots (the same reads as getUserAwards). */
+export async function getPastSeasonResults(username: string): Promise<PastSeasonResult[]> {
+  const seasons = (await listSeasons()).filter(s => s.endedAt);
+  return pastSeasonResults(username, seasons, await Promise.all(seasons.map(s => getSnapshot(s.id))));
+}
+
 export interface ActivationPreview {
   /** The season that will be wrapped up when this one goes live. */
   outgoing: { id: string; name: string; viewers: number; copies: number } | null;
