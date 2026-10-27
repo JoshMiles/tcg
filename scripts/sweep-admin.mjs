@@ -25,7 +25,7 @@ const ADMIN_PAGES = [
   '/admin/settings', '/admin/settings?tab=scoring', '/admin/settings?tab=webhooks', '/admin/settings?tab=viewers', '/admin/settings?tab=environment', '/admin/settings?tab=about',
   '/admin/webhooks', '/admin/sandbox', '/admin/sandbox/does-not-exist', '/admin/does-not-exist',
 ];
-const MOD_PAGES = ['/mod', '/mod/activity', '/mod/users', `/mod/users/${VIEWER}`, '/mod/users/nobody_here', '/mod/trades', '/mod/does-not-exist'];
+const MOD_PAGES = ['/mod', '/mod/activity', '/mod/users', `/mod/users/${VIEWER}`, '/mod/users/nobody_here', '/mod/trades', '/mod/guide', '/mod/guide/mod-restrict-viewer', '/mod/guide/mod-reverse-trade', '/mod/guide/mod-escalate', '/mod/guide/moderation', '/mod/does-not-exist'];
 const WIDTHS = { 390: 844, 768: 1024, 1280: 900 };
 
 const args = process.argv.slice(2);
