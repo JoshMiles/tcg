@@ -193,8 +193,9 @@ export async function currentStreamKey(): Promise<string> {
 /**
  * Before a pull is queued: is the viewer under their limit and able to pay? On success the pull is reserved under `payId` (limit
  * and in-flight counts raised, until the pull is claimed or the reservation expires). A sandbox never calls out and never charges.
+ * `packPrice` is the price of the pack the viewer asked for by name (55.4f); it sets the price before role price, base price and happy hour.
  */
-export async function reservePaidPull(s: MixItUpSettings, username: string, payId: string, doFetch?: Fetch, role?: unknown): Promise<Reservation> {
+export async function reservePaidPull(s: MixItUpSettings, username: string, payId: string, doFetch?: Fetch, role?: unknown, packPrice?: number): Promise<Reservation> {
   const user = username.toLowerCase();
   const stream = await currentStreamKey();
 
@@ -208,7 +209,7 @@ export async function reservePaidPull(s: MixItUpSettings, username: string, payI
 
   // Their own limit replaces the role default. A this-stream bonus adds on top. 0 = no limit, and bonuses cannot change that.
   const extra = streamBuffAmount(await getStreamBuff(), stream) + await extraPullsFromBuffs(user);
-  const price = pullPrice(s, { role: pullRole(role, user), happyHour: await getHappyHour() });
+  const price = pullPrice(s, { role: pullRole(role, user), happyHour: await getHappyHour(), packPrice });
   const limit = effectiveLimit(roleLimitOf(s, pullRole(role, user)), await getUserPullLimit(user), Date.now(), extra).limit;
   let cdHeld = false; // this pull holds the viewer's cooldown key (below)
   const refuse = async (reason: RefusalReason, balance?: number, why?: string, wait?: number): Promise<Reservation> => {
