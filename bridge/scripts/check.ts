@@ -17,6 +17,7 @@ import { cleanObsAddress, isOverlayUrl, ObsWatcher } from '../src/obs';
 import { checkObs, sendTestChat, testMixItUp, TEST_CHAT_MESSAGE } from '../src/selftest';
 import { BridgeService } from '../src/service';
 import { defaults, FileSettingsStore } from '../src/settings';
+import { CHECK_NOTE, DOWNLOAD_NOTE, Startup } from '../src/startup';
 import { checkText, releaseUrl, updatedTo, updateText } from '../src/update';
 import { FakeObs, PW_123 } from './fake-obs';
 import { cleanSite, pair, SiteClient, SiteError, type BridgeJob, type BridgeResult } from '../src/site';
@@ -629,6 +630,61 @@ async function main() {
   assert.equal(checkText('0.3.0', '0.4.0', { stage: 'idle' }), 'Downloading version 0.4.0');
   assert.match(checkText('0.3.0', '0.4.0', { stage: 'ready', version: '0.4.0' }), /^Version 0\.4\.0 is ready.*restart to update/);
   assert.equal(updateText({ stage: 'idle' }), '');
+
+  // ── Start-up window: fake updater events and a fake clock ──
+  {
+    const fresh = new Startup(0);
+    assert.deepEqual([fresh.step.text, fresh.step.handover, fresh.step.progress], ['Checking for updates', false, null]);
+    // no update: straight to "Starting" and the real window
+    let s = new Startup(0);
+    s.event({ type: 'checking' }, 100);
+    assert.equal(s.tick(2000).handover, false, 'still checking at 2 s');
+    let st = s.event({ type: 'none' }, 2000);
+    assert.deepEqual([st.phase, st.text, st.handover, st.install, st.note], ['starting', 'Starting', true, false, '']);
+    // an update: progress, then "Installing update" and the install flag
+    s = new Startup(0);
+    s.event({ type: 'checking' }, 0);
+    st = s.event({ type: 'available', version: '0.6.0' }, 500);
+    assert.deepEqual([st.phase, st.text, st.progress, st.handover], ['downloading', 'Downloading update 0.6.0', 0, false]);
+    assert.equal(s.event({ type: 'progress', percent: 40.4 }, 1000).progress, 40);
+    assert.equal(s.event({ type: 'progress', percent: 140 }, 1100).progress, 100, 'clamped');
+    assert.equal(s.tick(20_000).handover, false, 'a download is not cut off by the 8 s check limit');
+    st = s.event({ type: 'downloaded', version: '0.6.0' }, 21_000);
+    assert.deepEqual([st.phase, st.text, st.progress, st.install, st.handover], ['installing', 'Installing update', 100, true, false]);
+    // offline: the check errors at once, so start the current version, with a note
+    s = new Startup(0);
+    s.event({ type: 'checking' }, 0);
+    st = s.event({ type: 'error' }, 50);
+    assert.deepEqual([st.phase, st.handover, st.install, st.note], ['starting', true, false, CHECK_NOTE]);
+    // a slow check: at 8 s start anyway, with the note
+    s = new Startup(1000);
+    s.event({ type: 'checking' }, 1000);
+    assert.equal(s.tick(8999).handover, false, 'not before 8 s');
+    st = s.tick(9000);
+    assert.deepEqual([st.phase, st.handover, st.note, st.update.stage], ['starting', true, CHECK_NOTE, 'idle']);
+    // a failed download starts the current version, with its own note
+    s = new Startup(0);
+    s.event({ type: 'available', version: '0.6.0' }, 100);
+    st = s.event({ type: 'error' }, 3000);
+    assert.deepEqual([st.phase, st.handover, st.install, st.note], ['starting', true, false, DOWNLOAD_NOTE]);
+    // a download that goes quiet for 30 s is given up on too
+    s = new Startup(0);
+    s.event({ type: 'available', version: '0.6.0' }, 100);
+    s.event({ type: 'progress', percent: 10 }, 5000);
+    assert.equal(s.tick(34_999).handover, false);
+    assert.deepEqual([s.tick(35_000).handover, s.step.note], [true, DOWNLOAD_NOTE]);
+    // an update-downloaded after the 8 s hand-over is not installed at start-up: it becomes "ready, restart to update"
+    s = new Startup(0);
+    s.event({ type: 'checking' }, 0);
+    s.tick(8000);
+    st = s.event({ type: 'available', version: '0.6.0' }, 9000);
+    assert.deepEqual([st.handover, st.update, st.note], [true, { stage: 'downloading', version: '0.6.0' }, '']);
+    st = s.event({ type: 'downloaded', version: '0.6.0' }, 20_000);
+    assert.deepEqual([st.phase, st.install, st.update], ['starting', false, { stage: 'ready', version: '0.6.0' }]);
+    assert.match(updateText(st.update), /ready.*restart to update/);
+    // later events once running never come back to the start-up window
+    assert.equal(s.event({ type: 'checking' }, 21_000).phase, 'starting');
+  }
 
   // settings: the token and the OBS password are never written in plain text
   const dir = mkdtempSync(join(tmpdir(), 'tcg-bridge-'));

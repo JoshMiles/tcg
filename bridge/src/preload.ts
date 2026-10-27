@@ -4,7 +4,9 @@ import { contextBridge, ipcRenderer } from 'electron';
 type Result = Promise<{ ok: boolean; text: string }>;
 
 contextBridge.exposeInMainWorld('bridge', {
-  getState: (): Promise<unknown> => ipcRenderer.invoke('state'),
+  minimize: (): Promise<void> => ipcRenderer.invoke('win-minimize'),
+  closeToTray: (): Promise<void> => ipcRenderer.invoke('win-close'),
+  getState:(): Promise<unknown> => ipcRenderer.invoke('state'),
   onState: (cb: (state: unknown) => void): void => { ipcRenderer.on('state', (_e, state) => cb(state)); },
   pair: (site: string, code: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('pair', String(site), String(code)),
   unpair: (): Promise<void> => ipcRenderer.invoke('unpair'),

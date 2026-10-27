@@ -1,0 +1,18 @@
+/* The start-up window: the same dark look as the main window. */
+:root { color-scheme: dark; --bg: #0a0f21; --line: #1f2848; --fg: #e6eafb; --muted: #8190bf; --primary: #ffcb05; }
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  overflow: hidden; color: var(--fg); font: 14px/1.5 "Nunito", "Segoe UI", system-ui, sans-serif; border: 1px solid var(--line);
+  background: radial-gradient(420px 260px at 90% -10%, rgba(59, 76, 202, .35), transparent 60%), radial-gradient(320px 220px at -10% 110%, rgba(238, 59, 59, .12), transparent 60%), var(--bg);
+  -webkit-app-region: drag; user-select: none;
+}
+.splash { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 0 32px; text-align: center; }
+.logo { border-radius: 28px; margin-bottom: 10px; animation: pulse 2.4s ease-in-out infinite; }
+h1 { margin: 0; font: 600 22px "Fredoka", ui-rounded, system-ui, sans-serif; letter-spacing: .02em; }
+.line { margin: 6px 0 0; min-height: 1.5em; color: #a9b5e0; }
+.bar { width: 100%; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.fill { width: 0; height: 100%; border-radius: 3px; background: var(--primary); transition: width .2s ease-out; }
+.version { position: absolute; bottom: 14px; left: 0; right: 0; margin: 0; color: var(--muted); font-size: 12px; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .logo { animation: none; } .fill { transition: none; } }

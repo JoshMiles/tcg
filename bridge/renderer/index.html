@@ -2,125 +2,219 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'">
   <title>TCG Bridge</title>
+  <link rel="stylesheet" href="fonts.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>TCG Bridge</h1>
-    <span id="version" class="muted"></span>
-  </header>
+  <!-- Icons: Lucide (ISC), see LICENSES.txt. Used as <svg class="i"><use href="#i-name"/></svg>. -->
+  <svg class="sprite" width="0" height="0" aria-hidden="true">
+    <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+    <symbol id="i-sliders-horizontal" viewBox="0 0 24 24"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></symbol>
+    <symbol id="i-video" viewBox="0 0 24 24"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></symbol>
+    <symbol id="i-folder-open" viewBox="0 0 24 24"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></symbol>
+    <symbol id="i-flask-conical" viewBox="0 0 24 24"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094"/><path d="M8.5 2h7"/></symbol>
+    <symbol id="i-message-square" viewBox="0 0 24 24"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="i-refresh-cw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+    <symbol id="i-file-text" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+    <symbol id="i-clipboard-copy" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M16 4h2a2 2 0 0 1 2 2v4"/><path d="M21 14H11"/><path d="m15 10-4 4 4 4"/></symbol>
+    <symbol id="i-unlink" viewBox="0 0 24 24"><path d="m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"/><line x1="8" x2="8" y1="2" y2="5"/><line x1="2" x2="5" y1="8" y2="8"/><line x1="16" x2="16" y1="19" y2="22"/><line x1="19" x2="22" y1="16" y2="16"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol>
+    <symbol id="i-external-link" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+    <symbol id="i-key-round" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-triangle-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  </svg>
 
-  <p id="updated" class="help good" hidden>
-    Updated to <span id="updated-version"></span>.
-    <button id="updated-link" type="button" class="link">See what changed</button>
-    <button id="updated-dismiss" type="button" class="link">Dismiss</button>
-  </p>
+  <div class="app">
+    <header class="titlebar">
+      <img class="tb-icon" src="icon.png" alt="" width="20" height="20">
+      <span class="tb-title">TCG Bridge</span>
+      <span id="version" class="tb-version"></span>
+      <span class="tb-spacer"></span>
+      <button id="win-min" type="button" class="tb-btn" aria-label="Minimise" title="Minimise"><svg class="i"><use href="#i-minus"/></svg></button>
+      <button id="win-close" type="button" class="tb-btn tb-close" aria-label="Close to tray" title="Close to tray (quit from the tray menu)"><svg class="i"><use href="#i-x"/></svg></button>
+    </header>
 
-  <section id="pairing" hidden>
-    <h2>Pair with the site</h2>
-    <p id="pair-note" class="muted">On the site, open Admin > Mix It Up > Paid pulls and press "Pair TCG Bridge". Type the code it shows here.</p>
-    <form id="pair-form">
-      <label>Site address <input id="site" type="text" spellcheck="false" autocomplete="off"></label>
-      <label>Pairing code <input id="code" type="text" placeholder="ABCD-EFGH" maxlength="12" spellcheck="false" autocomplete="off"></label>
-      <button type="submit" id="pair-btn">Pair</button>
-      <p id="pair-error" class="bad" role="alert"></p>
-    </form>
-  </section>
+    <div class="body">
+      <nav class="rail" aria-label="Sections">
+        <button type="button" class="rail-btn" data-tab="status" aria-current="page"><svg class="i"><use href="#i-activity"/></svg><span>Status</span></button>
+        <button type="button" class="rail-btn" data-tab="settings"><svg class="i"><use href="#i-settings"/></svg><span>Settings</span></button>
+        <button type="button" class="rail-btn" data-tab="about"><svg class="i"><use href="#i-info"/></svg><span>About</span></button>
+        <div class="rail-foot"><span id="rail-dot" class="dot bad"></span><span id="rail-text">Not connected</span></div>
+      </nav>
 
-  <main id="status" hidden>
-    <section class="card">
-      <h2><span id="site-dot" class="dot"></span>Site</h2>
-      <dl>
-        <dt>Address</dt><dd id="site-url"></dd>
-        <dt>Paired as</dt><dd id="paired-as"></dd>
-        <dt>Last poll</dt><dd id="last-poll"></dd>
-        <dt>State</dt><dd id="site-state"></dd>
-      </dl>
-    </section>
+      <main class="content">
+        <p id="updated" class="banner good" hidden>
+          <svg class="i"><use href="#i-circle-check"/></svg>
+          <span>Updated to <span id="updated-version"></span>.</span>
+          <button id="updated-link" type="button" class="link">See what changed</button>
+          <button id="updated-dismiss" type="button" class="link">Dismiss</button>
+        </p>
+        <p id="start-note" class="banner warn" hidden>
+          <svg class="i"><use href="#i-triangle-alert"/></svg>
+          <span id="start-note-text"></span>
+          <button id="start-note-dismiss" type="button" class="link">Dismiss</button>
+        </p>
+        <p id="update-banner" class="banner info" hidden>
+          <svg class="i"><use href="#i-download"/></svg>
+          <span id="update-banner-text"></span>
+        </p>
 
-    <section class="card">
-      <h2><span id="mix-dot" class="dot"></span>Mix It Up</h2>
-      <dl>
-        <dt>Found</dt><dd id="mix-found"></dd>
-        <dt>Version</dt><dd id="mix-version"></dd>
-        <dt>Currency</dt><dd id="mix-currency"></dd>
-      </dl>
-      <p id="mix-help" class="help" hidden>
-        Mix It Up is not answering on this PC. Open Mix It Up, then go to Services > Developer API > Connect. TCG Bridge will notice within a few seconds.
-      </p>
-      <div class="row tools">
-        <button type="button" id="mix-start" hidden>Start Mix It Up</button>
-        <button type="button" id="mix-choose" class="plain">Choose MixItUp.exe...</button>
-      </div>
-      <p id="mix-start-result" class="result" role="status"></p>
-      <p class="muted small">Mix It Up file: <span id="mix-path"></span></p>
-      <label class="inline"><input id="mix-autostart" type="checkbox"> Start Mix It Up with TCG Bridge</label>
-      <div class="row tools">
-        <input id="test-name" type="text" placeholder="Twitch name" aria-label="Twitch name to read the balance of" spellcheck="false" autocomplete="off" maxlength="25">
-        <button type="button" id="test-mix" class="plain">Test Mix It Up</button>
-        <button type="button" id="test-chat" class="plain">Send test chat message</button>
-      </div>
-      <p id="test-mix-result" class="result" role="status"></p>
-      <p id="test-chat-result" class="result" role="status"></p>
-    </section>
+        <!-- Status -->
+        <section data-panel="status">
+          <section id="pairing" class="card" hidden>
+            <div class="card-head">
+              <span class="badge"><svg class="i"><use href="#i-key-round"/></svg></span>
+              <div class="card-title"><h2>Pair with the site</h2><p id="pair-note" class="line">On the site, open Admin > Mix It Up > Paid pulls and press "Pair TCG Bridge". Type the code it shows here.</p></div>
+            </div>
+            <form id="pair-form">
+              <label>Site address <input id="site" type="text" spellcheck="false" autocomplete="off"></label>
+              <label>Pairing code <input id="code" type="text" placeholder="ABCD-EFGH" maxlength="12" spellcheck="false" autocomplete="off"></label>
+              <div class="row"><button type="submit" id="pair-btn" class="btn">Pair</button></div>
+              <p id="pair-error" class="bad-text" role="alert"></p>
+            </form>
+          </section>
 
-    <section class="card">
-      <h2><span id="obs-dot" class="dot"></span>OBS</h2>
-      <dl>
-        <dt>State</dt><dd id="obs-state"></dd>
-        <dt>Scene</dt><dd id="obs-scene"></dd>
-        <dt>Stream</dt><dd id="obs-stream"></dd>
-        <dt>Overlay</dt><dd id="obs-overlay"></dd>
-      </dl>
-      <form id="obs-form">
-        <label class="inline"><input id="obs-on" type="checkbox"> Talk to OBS</label>
-        <label>Address <input id="obs-address" type="text" spellcheck="false" autocomplete="off"></label>
-        <label>Password <input id="obs-password" type="password" spellcheck="false" autocomplete="off"></label>
-        <div class="row">
-          <button type="submit" id="obs-save">Save</button>
-          <button type="button" id="obs-forget" hidden>Forget saved password</button>
-        </div>
-        <p id="obs-error" class="bad" role="alert"></p>
-      </form>
-      <div class="row tools">
-        <button type="button" id="test-obs" class="plain">Check OBS</button>
-      </div>
-      <p id="test-obs-result" class="result" role="status"></p>
-      <p class="help muted">
-        In OBS open Tools &gt; WebSocket Server Settings, tick "Enable WebSocket server", and copy the Server Password here (OBS 28 or newer; leave it empty if you switched authentication off). TCG Bridge only talks to OBS on this PC. It tells the site when the stream starts and stops, which scene is on air, and whether the TCG overlay browser source is in that scene and visible. An overlay inside a nested scene is not seen.
-      </p>
-    </section>
+          <div id="status" hidden>
+            <section class="card">
+              <div class="card-head">
+                <span class="badge"><svg class="i"><use href="#i-globe"/></svg></span>
+                <div class="card-title"><h2>Site</h2><p class="line"><span id="site-dot" class="dot"></span><span id="site-state"></span></p></div>
+              </div>
+              <dl>
+                <dt>Address</dt><dd id="site-url"></dd>
+                <dt>Paired as</dt><dd id="paired-as"></dd>
+                <dt>Last poll</dt><dd id="last-poll"></dd>
+              </dl>
+            </section>
 
-    <section class="card">
-      <h2>Help</h2>
-      <div class="row tools">
-        <button type="button" id="open-logs" class="plain">Open log folder</button>
-        <button type="button" id="copy-diagnostics" class="plain">Copy diagnostics</button>
-      </div>
-      <p id="help-result" class="result" role="status"></p>
-      <p class="muted small">The log keeps 7 days. It never holds the pairing token, the OBS password or the overlay key.</p>
-    </section>
+            <section class="card">
+              <div class="card-head">
+                <span class="badge"><svg class="i"><use href="#i-sliders-horizontal"/></svg></span>
+                <div class="card-title"><h2>Mix It Up</h2><p class="line"><span id="mix-dot" class="dot"></span><span id="mix-state"></span></p></div>
+              </div>
+              <dl>
+                <dt>Version</dt><dd id="mix-version"></dd>
+                <dt>Currency</dt><dd id="mix-currency"></dd>
+                <dt>File</dt><dd id="mix-path"></dd>
+              </dl>
+              <p id="mix-help" class="note" hidden>
+                Open Mix It Up, then go to Services > Developer API > Connect. TCG Bridge will notice within a few seconds.
+              </p>
+              <div class="row tools">
+                <button type="button" id="mix-start" class="btn" hidden><svg class="i"><use href="#i-play"/></svg>Start Mix It Up</button>
+                <button type="button" id="mix-choose" class="btn plain"><svg class="i"><use href="#i-folder-open"/></svg>Choose MixItUp.exe...</button>
+              </div>
+              <p id="mix-start-result" class="result" role="status"></p>
+              <div class="row tools">
+                <input id="test-name" type="text" placeholder="Twitch name" aria-label="Twitch name to read the balance of" spellcheck="false" autocomplete="off" maxlength="25">
+                <button type="button" id="test-mix" class="btn plain"><svg class="i"><use href="#i-flask-conical"/></svg>Test Mix It Up</button>
+                <button type="button" id="test-chat" class="btn plain"><svg class="i"><use href="#i-message-square"/></svg>Send test chat message</button>
+              </div>
+              <p id="test-mix-result" class="result" role="status"></p>
+              <p id="test-chat-result" class="result" role="status"></p>
+            </section>
 
-    <section>
-      <h2>Last jobs</h2>
-      <p id="no-jobs" class="muted">Nothing yet. Jobs appear here when the site asks Mix It Up for something.</p>
-      <table id="jobs" hidden>
-        <thead><tr><th>Time</th><th>Job</th><th>Viewer</th><th>Result</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </main>
+            <section class="card">
+              <div class="card-head">
+                <span class="badge"><svg class="i"><use href="#i-video"/></svg></span>
+                <div class="card-title"><h2>OBS</h2><p class="line"><span id="obs-dot" class="dot"></span><span id="obs-state"></span></p></div>
+              </div>
+              <dl>
+                <dt>Scene</dt><dd id="obs-scene"></dd>
+                <dt>Stream</dt><dd id="obs-stream"></dd>
+                <dt>Overlay</dt><dd id="obs-overlay"></dd>
+              </dl>
+              <div class="row tools">
+                <button type="button" id="test-obs" class="btn plain"><svg class="i"><use href="#i-flask-conical"/></svg>Check OBS</button>
+              </div>
+              <p id="test-obs-result" class="result" role="status"></p>
+              <details class="more">
+                <summary>OBS connection</summary>
+                <form id="obs-form">
+                  <label class="inline"><input id="obs-on" type="checkbox"> Talk to OBS</label>
+                  <label>Address <input id="obs-address" type="text" spellcheck="false" autocomplete="off"></label>
+                  <label>Password <input id="obs-password" type="password" spellcheck="false" autocomplete="off"></label>
+                  <div class="row">
+                    <button type="submit" id="obs-save" class="btn">Save</button>
+                    <button type="button" id="obs-forget" class="btn plain" hidden>Forget saved password</button>
+                  </div>
+                  <p id="obs-error" class="bad-text" role="alert"></p>
+                </form>
+                <p class="note muted">
+                  In OBS open Tools &gt; WebSocket Server Settings, tick "Enable WebSocket server", and copy the Server Password here (OBS 28 or newer; leave it empty if you switched authentication off). TCG Bridge only talks to OBS on this PC. It tells the site when the stream starts and stops, which scene is on air, and whether the TCG overlay browser source is in that scene and visible. An overlay inside a nested scene is not seen.
+                </p>
+              </details>
+            </section>
 
-  <footer>
-    <label><input id="autostart" type="checkbox"> Start with Windows</label>
-    <label><input id="alerts" type="checkbox"> Alert me when a link drops while live</label>
-    <button id="check-update" type="button" class="plain">Check for updates</button>
-    <span id="update" class="muted"></span>
-    <span id="update-result" class="result" role="status"></span>
-    <button id="unpair" type="button" hidden>Unpair</button>
-  </footer>
+            <section class="card">
+              <h2 class="plain-title">Last jobs</h2>
+              <p id="no-jobs" class="muted">Nothing yet. Jobs appear here when the site asks Mix It Up for something.</p>
+              <table id="jobs" hidden>
+                <thead><tr><th>Time</th><th>Job</th><th>Viewer</th><th>Result</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </section>
+          </div>
+        </section>
+
+        <!-- Settings -->
+        <section data-panel="settings" hidden>
+          <section class="card">
+            <h2 class="plain-title">General</h2>
+            <label class="switch-row"><span><b>Start with Windows</b><small>TCG Bridge opens in the tray when you sign in.</small></span><input id="autostart" class="switch" type="checkbox"></label>
+            <label class="switch-row"><span><b>Alert me when a link drops while live</b><small>A Windows notification when the site, Mix It Up or OBS drops during a stream.</small></span><input id="alerts" class="switch" type="checkbox"></label>
+            <label class="switch-row"><span><b>Start Mix It Up with TCG Bridge</b><small>Opens Mix It Up when this app starts, if it is not running.</small></span><input id="mix-autostart" class="switch" type="checkbox"></label>
+          </section>
+          <section class="card">
+            <h2 class="plain-title">Pairing</h2>
+            <p id="account-text" class="muted"></p>
+            <div class="row tools"><button id="unpair" type="button" class="btn plain" hidden><svg class="i"><use href="#i-unlink"/></svg>Unpair</button></div>
+          </section>
+          <section class="card">
+            <h2 class="plain-title">Help</h2>
+            <div class="row tools">
+              <button type="button" id="open-logs" class="btn plain"><svg class="i"><use href="#i-file-text"/></svg>Open log folder</button>
+              <button type="button" id="copy-diagnostics" class="btn plain"><svg class="i"><use href="#i-clipboard-copy"/></svg>Copy diagnostics</button>
+            </div>
+            <p id="help-result" class="result" role="status"></p>
+            <p class="muted small">The log keeps 7 days. It never holds the pairing token, the OBS password or the overlay key.</p>
+          </section>
+        </section>
+
+        <!-- About -->
+        <section data-panel="about" hidden>
+          <section class="card about">
+            <img src="icon.png" alt="" width="72" height="72">
+            <div>
+              <h2 class="plain-title">TCG Bridge</h2>
+              <p id="about-version" class="muted"></p>
+              <p class="muted small">Carries the TCG site's Mix It Up requests to Mix It Up on this PC.</p>
+            </div>
+          </section>
+          <section class="card">
+            <h2 class="plain-title">Updates</h2>
+            <p id="update" class="muted"></p>
+            <div class="row tools">
+              <button id="check-update" type="button" class="btn plain"><svg class="i"><use href="#i-refresh-cw"/></svg>Check for updates</button>
+              <button id="open-release" type="button" class="btn plain"><svg class="i"><use href="#i-external-link"/></svg>Release notes</button>
+            </div>
+            <p id="update-result" class="result" role="status"></p>
+            <p class="muted small">TCG Bridge checks when it starts and every 6 hours, and installs an update when you quit it.</p>
+          </section>
+        </section>
+      </main>
+    </div>
+  </div>
   <script src="renderer.js"></script>
 </body>
 </html>

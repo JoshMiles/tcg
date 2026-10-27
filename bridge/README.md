@@ -9,7 +9,13 @@ A small Windows app for the stream PC. Mix It Up's Developer API only listens on
 3. In Mix It Up switch the Developer API on: Services > Developer API > Connect.
 4. On the site press **Pair TCG Bridge** and type the code into the app (the site address is `https://cheesytcg.app`). The app turns green when the site and Mix It Up both answer.
 
-It starts with Windows and lives in the tray; closing the window keeps it running. Quit from the tray menu. It updates itself from the latest GitHub release (checked on start and every 6 hours, installed when you quit).
+It starts with Windows and lives in the tray; closing the window keeps it running. Quit from the tray menu. The window has its own title bar: minimise, and close (which only hides it to the tray). A rail on the left switches between Status, Settings and About; the Site, Mix It Up and OBS links are cards, each with a coloured dot and a one-line state in words.
+
+The three tray icons differ by badge shape as well as colour: a dot for connected, a half-filled ring for partly connected, a cross for offline.
+
+## Start-up and updates (0.5.0)
+
+Every start opens a small start-up window first (also when Windows starts the app minimised, where it then leaves only the tray). It checks the latest GitHub release: "Checking for updates", then "Downloading update x.y.z" with a bar, then "Installing update" (the app restarts by itself) or "Starting". With no internet, or a check slower than 8 seconds, it starts anyway and the main window says "Couldn't check for updates". A download that fails (or stalls for 30 seconds) starts the current version and is tried again at the next 6-hour check. While the app runs it checks every 6 hours; a found update downloads and shows "ready, restart to update" in the window (it also installs when you quit). The start-up logic is `src/startup.ts`, a small state machine with no Electron imports (`npm run check` covers it).
 
 ## OBS (optional)
 
@@ -27,7 +33,7 @@ The overlay is the browser source whose address is `<paired site>/overlay.html?.
 - **Start Mix It Up.** When Mix It Up is not found the window offers **Start Mix It Up**. It launches only `MixItUp.exe` from the path you chose with **Choose MixItUp.exe...**, else from Mix It Up's default install folder (`%LocalAppData%\MixItUp`). The **Start Mix It Up with TCG Bridge** switch (off by default) does it when the app starts.
 - **Log.** One file a day in the app's logs folder (**Open log folder**), kept 7 days: connects, drops, jobs (kind, result, time) and errors. It never holds the pairing token, the OBS password, the pair code or the overlay key. **Copy diagnostics** copies the versions, the statuses and the last 20 jobs as text, redacted the same way, for a bug report.
 - **Mix It Up commands (0.4.0).** The app lists your enabled Mix It Up commands to the site (on start, every 5 minutes and when Mix It Up comes back) so a rule on the Mix It Up page can pick one, and it runs a command for a big pull only if it is in that list. The command gets the viewer, card, rarity and version as arguments.
-- **Updates.** The window shows the version and a **Check for updates** button. After an update it says "Updated to x.y.z" once, with a link to the release notes.
+- **Updates.** The About tab shows the version and a **Check for updates** button. After an update the Status tab says "Updated to x.y.z" once, with a link to the release notes.
 
 ## Develop
 
@@ -38,12 +44,16 @@ npm run typecheck   # tsc --noEmit
 npm run check       # fake Mix It Up, fake OBS and fake site, no Electron needed
 npm start           # build, then run the app
 npm run dist        # build the installer into release/ (not committed)
+npm run icons       # redraw the app icon and tray PNGs from the site's icon (public/brand/icon.png)
 ```
+
+`npm start -- --demo-startup` (ignored in the installed app) walks the start-up window through its states, then shows the window with made-up data; add `--shots=<folder>` to save a PNG of each and quit. `src/demo.ts` holds it and is left out of the installer.
 
 `TCG_BRIDGE_DATA=<folder>` keeps the app's settings in that folder instead of the real user data folder, which is handy against a local site (`http://localhost:3000` is allowed as a site address; anything else must be https).
 
-- `src/site.ts`, `src/mixitup.ts`, `src/obs.ts`, `src/jobs.ts`, `src/service.ts`, `src/settings.ts`, `src/alerts.ts`, `src/selftest.ts`, `src/launch.ts`, `src/log.ts`, `src/diagnostics.ts`, `src/update.ts`: plain TypeScript with no Electron imports, so the checks run under Node.
-- `src/main.ts` and `src/preload.ts`: the Electron glue (tray, window, auto start, updates, encrypted token).
-- `renderer/`: the window, plain HTML, CSS and JS.
+- `src/site.ts`, `src/mixitup.ts`, `src/obs.ts`, `src/jobs.ts`, `src/service.ts`, `src/settings.ts`, `src/alerts.ts`, `src/selftest.ts`, `src/launch.ts`, `src/log.ts`, `src/diagnostics.ts`, `src/update.ts`, `src/startup.ts`: plain TypeScript with no Electron imports, so the checks run under Node.
+- `src/main.ts`, `src/preload.ts` and `src/splash-preload.ts`: the Electron glue (tray, windows, auto start, updates, encrypted token).
+- `renderer/`: the main window (`index.html`, `style.css`, `renderer.js`) and the start-up window (`splash.*`), plain HTML, CSS and JS with no framework and no network fetches. Colours are the site's cheesy theme as CSS variables. Fonts are the site's own, Fredoka and Nunito, bundled in `renderer/fonts/` (SIL OFL 1.1, licence files beside them). Icons are Lucide as inline SVG; licences in `renderer/LICENSES.txt`.
+- `scripts/make-icons.ts` writes the app icon and the tray icons from the site's own icon, `public/brand/icon.png`, adding the status badge to each tray icon (the installer turns `build/icon.png` into the Windows icon).
 
 To release: bump `version` in `package.json`, merge, then push a tag `bridge-v<version>`. `.github/workflows/bridge.yml` builds the installer on `windows-latest` and attaches it to a release of that tag.
