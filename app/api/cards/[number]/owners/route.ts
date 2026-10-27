@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getActive, getSeasonOverview, ownersByCard } from '@/lib/site-data';
 import { getCollectionCached } from '@/lib/leaderboard';
 import { getHiddenUsers } from '@/lib/user-admin';
+import { serverError } from '@/lib/trade-api';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 
 // GET /api/cards/<number>/owners?season=<id> : the Card Dex dialog's Top collectors (10, with avatars). Public information the Dex page
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ numb
     const avatars = await getAvatars(top.map(o => o.username));
     const owners = top.map(o => ({ ...o, avatar: avatars[o.username] ? sizeTwitchAvatar(avatars[o.username], 70) : undefined }));
     return NextResponse.json({ owners }, { headers: { 'Cache-Control': 'public, max-age=0, s-maxage=15, stale-while-revalidate=30' } });
-  } catch {
-    return NextResponse.json({ error: 'Could not load collectors.' }, { status: 503 });
+  } catch (e) {
+    return serverError(e, 'cards/owners', 'Could not load collectors.');
   }
 }

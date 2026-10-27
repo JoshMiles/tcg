@@ -1,6 +1,6 @@
 import { siteClosedResponse } from '@/lib/access';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireViewer } from '@/lib/trade-api';
+import { requireViewer, serverError } from '@/lib/trade-api';
 import { captchaGate } from '@/lib/captcha-server';
 import { parseReportInput } from '@/lib/feedback-core';
 import { submitReport } from '@/lib/feedback';
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const result = await submitReport(viewer.session.username, parsed.value);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ error: 'Could not send that right now. Try again in a moment.' }, { status: 503 });
+  } catch (e) {
+    return serverError(e, 'feedback/report', 'Could not send that right now. Try again in a moment.');
   }
 }

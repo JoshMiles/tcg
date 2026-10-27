@@ -1,6 +1,7 @@
 import { siteClosedResponse } from '@/lib/access';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, isSameOrigin } from '@/lib/session';
+import { serverError } from '@/lib/trade-api';
 import { addDevice, listDevices, pushConfigured, pushPublicKey, removeDevice, sendTestPush } from '@/lib/push';
 
 // The logged-in viewer's alert devices. Who they are comes from the signed session, never the body.
@@ -37,8 +38,8 @@ export async function POST(req: NextRequest) {
     }
     const r = await addDevice(w.user, body.subscription, req.headers.get('user-agent') ?? '');
     return r.ok ? NextResponse.json({ id: r.id, devices: r.devices }) : NextResponse.json({ error: r.error }, { status: 400 });
-  } catch {
-    return NextResponse.json({ error: 'Could not save right now. Try again.' }, { status: 503 });
+  } catch (e) {
+    return serverError(e, 'account/push', 'Could not save right now. Try again.');
   }
 }
 
@@ -51,7 +52,7 @@ export async function DELETE(req: NextRequest) {
   if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Send JSON.' }, { status: 400 });
   try {
     return NextResponse.json({ devices: await removeDevice(w.user, body) });
-  } catch {
-    return NextResponse.json({ error: 'Could not save right now. Try again.' }, { status: 503 });
+  } catch (e) {
+    return serverError(e, 'account/push', 'Could not save right now. Try again.');
   }
 }

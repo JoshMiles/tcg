@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { extensionViewer } from '@/lib/twitch-viewer';
 import { useTrainerCard } from '@/lib/buffs';
 import { limitTwitch } from '@/lib/rate-limit';
+import { recordServerError } from '@/lib/error-spike';
 
 // Use a trainer card: spends one Regular edition and starts its buff. The viewer is identified by the signed Extension JWT
 // (opaque ID -> linked username), never by anything in the body; every rule lives in useTrainerCard (the website uses it too).
@@ -22,6 +23,7 @@ export async function POST(req: NextRequest) {
     if (!res.ok) return NextResponse.json({ ok: false, error: res.error }, { status: res.status });
     return NextResponse.json({ ok: true, message: res.message });
   } catch (e) {
+    recordServerError();
     return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'Could not use the trainer card' }, { status: 503 });
   }
 }

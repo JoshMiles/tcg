@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireViewer } from '@/lib/trade-api';
+import { requireViewer, serverError } from '@/lib/trade-api';
 import { captchaGate } from '@/lib/captcha-server';
 import { cancelDeletion, requestDeletion } from '@/lib/feedback';
 
@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
     const result = await requestDeletion(viewer.session.username);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 409 });
     return NextResponse.json({ ok: true, at: result.item.at });
-  } catch {
-    return NextResponse.json({ error: 'Could not send that right now. Try again in a moment.' }, { status: 503 });
+  } catch (e) {
+    return serverError(e, 'account/deletion', 'Could not send that right now. Try again in a moment.');
   }
 }
 

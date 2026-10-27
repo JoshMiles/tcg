@@ -1,6 +1,7 @@
 import { siteClosedResponse } from '@/lib/access';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, isSameOrigin } from '@/lib/session';
+import { serverError } from '@/lib/trade-api';
 import { getUserSettings, saveUserSettings } from '@/lib/user-settings-store';
 
 // The logged-in viewer's own settings. Who they are comes from the signed session, never the body; the body is re-validated
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
   if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Send the settings as JSON.' }, { status: 400 });
   try {
     return NextResponse.json({ settings: await saveUserSettings(session.username, body) });
-  } catch {
-    return NextResponse.json({ error: 'Could not save right now. Try again.' }, { status: 503 });
+  } catch (e) {
+    return serverError(e, 'account/settings', 'Could not save right now. Try again.');
   }
 }
