@@ -1,4 +1,5 @@
 import { staffPage } from '@/lib/staff-guard';
+import { PreflightList } from '../PreflightList';
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '@/app/components/PendingButton';
 import Link from 'next/link';
@@ -312,11 +313,7 @@ function ActivationMessage({ name, preview }: { name: string; preview: Awaited<R
           <strong className="text-white">{preview.outgoing.name}</strong> will be wrapped up first: its final standings and awards are saved ({preview.outgoing.viewers} viewer{preview.outgoing.viewers === 1 ? '' : 's'}, {preview.outgoing.copies.toLocaleString()} cards), trading for it is closed, and every collection is kept.
         </p>
       )}
-      {preview && preview.warnings.length > 0 && (
-        <ul className="rounded-lg border border-amber-500/30 bg-amber-950/20 px-3 py-2 space-y-1 text-amber-200">
-          {preview.warnings.map((w, i) => <li key={i} className="flex gap-2"><span aria-hidden>•</span><span>{w}</span></li>)}
-        </ul>
-      )}
+      {preview && <PreflightList items={preview.warnings} />}
     </div>
   );
 }
