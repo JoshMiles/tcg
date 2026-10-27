@@ -44,7 +44,7 @@ ok(c.streamKey(1700000000000) === 's1700000000000' && c.streamKey(null, Date.UTC
 ok(c.decide({ balance: 200, owed: 200 }) && !c.decide({ balance: 199, owed: 200 }), 'the balance must cover every pull in flight');
 
 // ── A fake Mix It Up ──
-const balances: Record<string, number> = { ann: 250, bob: 50, cat: 1000, dan: 1000, eve: 1000 };
+const balances: Record<string, number> = { ann: 250, bob: 50, cat: 1000, dan: 1000, eve: 1000, hal: 1000, jon: 1000, kim: 1000 };
 const calls: { action: string; username: string; amount?: number; message?: string; secret?: string }[] = [];
 let mode: 'ok' | 'down' | 'junk' | 'declines' | 'text' = 'ok';
 const fake: typeof fetch = async (_url, init) => {
@@ -164,6 +164,46 @@ ok(!v2.ok && v2.reason === 'limit_reached', 'a free pull still used the viewer\'
 await kv.set('mixitup:pay:old1', { username: 'eve', stream: 'x', at: Date.now() });
 const old = await m.claimPaidPull('old1', 'eve');
 ok(old && old.amount === (await m.getMixItUpSettings()).cost, 'an old reservation without a price uses the current cost');
+
+// ── Happy hour (ROADMAP 55.4c) ──
+const hh = await import('../lib/happyhour');
+const T = Date.now();
+const disc = (percent: number) => ({ kind: 'discount' as const, percent, endsAt: T + 60_000, by: 't' });
+ok(c.pullPrice(rp, { role: 'regular', happyHour: disc(25), now: T }) === 75 && c.pullPrice({ cost: 30, priceByRole: {} }, { happyHour: disc(10), now: T }) === 27 && c.pullPrice({ cost: 33, priceByRole: {} }, { happyHour: disc(50), now: T }) === 17 && c.pullPrice({ cost: 1, priceByRole: {} }, { happyHour: disc(99), now: T }) === 1, 'a discount rounds up to a whole number');
+ok(c.pullPrice(rp, { role: 'subscriber', happyHour: disc(50), now: T }) === 30 && c.pullPrice(rp, { happyHour: { kind: 'free', endsAt: T + 1, by: 't' }, now: T }) === 0, 'the discount applies after the role price, and free is 0');
+ok(c.pullPrice(rp, { happyHour: disc(50), now: T + 60_000 }) === 100 && c.pullPrice(rp, { happyHour: null, now: T }) === 100, 'an expired or missing happy hour charges full price');
+ok(!c.cleanHappyHourInput({ minutes: 0, kind: 'free' }).ok && !c.cleanHappyHourInput({ minutes: 241, kind: 'free' }).ok && !c.cleanHappyHourInput({ minutes: 30, kind: 'discount', percent: 100 }).ok && !c.cleanHappyHourInput({ minutes: 30, kind: 'discount' }).ok && !c.cleanHappyHourInput({ minutes: 1.5, kind: 'free' }).ok && c.cleanHappyHourInput({ minutes: '240', kind: 'discount', percent: '99' }).ok, 'the happy hour form is validated');
+const hhMix = c.normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', cost: 100, limit: 0 });
+ok((await hh.getHappyHour()) === null, 'no happy hour at first');
+ok(!(await hh.startHappyHour({ minutes: 0, kind: 'free' }, 'amy')).ok && (await hh.getHappyHour()) === null, 'a bad start changes nothing');
+await hh.startHappyHour({ minutes: 30, kind: 'discount', percent: 30 }, 'amy');
+const h1 = await m.reservePaidPull(hhMix, 'hal', 'hh1', fake);
+ok(h1.ok && h1.price === 70, 'a pull queued in a happy hour is quoted the discounted price');
+const refused = await m.reservePaidPull({ ...hhMix, cost: 100 }, 'poor', 'hh0', fake);
+ok(!refused.ok && /costs 70/.test(refused.message), 'the reply {cost} shows the happy hour price');
+await hh.startHappyHour({ minutes: 30, kind: 'free' }, 'amy'); // replaces the running one
+ok((await hh.getHappyHour())?.kind === 'free', 'starting a new happy hour replaces the running one');
+calls.length = 0;
+const hhLim = { ...hhMix, roleLimits: { ...hhMix.roleLimits, regular: 1 } };
+const f1 = await m.reservePaidPull(hhLim, 'ivy', 'hf1', fake);
+const f1c = await m.claimPaidPull('hf1', 'ivy');
+await m.chargePaidPull(hhLim, f1c!, { cardName: 'X', variant: 'Regular', stars: 1, packName: 'B', cardNumber: 1 }, fake);
+ok(f1.ok && f1.price === 0 && f1.left === 0 && calls.length === 0, 'a free happy hour asks for no balance and sends no deduct');
+ok(!(await m.reservePaidPull(hhLim, 'ivy', 'hf2', fake)).ok, 'a free pull still counts toward the limit');
+// The price stored during the happy hour is still charged after it ends.
+await hh.startHappyHour({ minutes: 30, kind: 'discount', percent: 50 }, 'amy');
+await m.reservePaidPull(hhMix, 'jon', 'hs1', fake);
+await hh.endHappyHour('amy');
+ok((await hh.getHappyHour()) === null && (await m.reservePaidPull(hhMix, 'jon', 'hs2', fake)).price === 100, 'ending it puts the full price back');
+const hs1 = await m.claimPaidPull('hs1', 'jon');
+calls.length = 0;
+await m.chargePaidPull(hhMix, hs1!, { cardName: 'X', variant: 'Regular', stars: 1, packName: 'B', cardNumber: 1 }, fake);
+ok(hs1!.amount === 50 && calls[0].amount === 50, 'a price stored during the happy hour is still charged after it ends');
+// A stored happy hour whose time has passed is off even if the key is still there.
+await kv.set('mixitup:happyhour', { kind: 'free', endsAt: Date.now() - 1000, by: 'amy' });
+ok((await hh.getHappyHour()) === null && (await m.reservePaidPull(hhMix, 'kim', 'he1', fake)).price === 100, 'an expired happy hour charges full price');
+ok(!(await hh.endHappyHour('amy')).wasOn, 'ending an expired one says nothing was running');
+await kv.del('mixitup:happyhour');
 
 // ── Log ──
 const log = await m.getMixItUpLog();

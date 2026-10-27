@@ -11,6 +11,7 @@ import { currentStreamKey } from './mixitup';
 import { queuePull } from './pull-queue';
 import { setStreamPullBuff } from './pull-limit';
 import { streamAmount } from './pull-limit-core';
+import { endHappyHour, startHappyHour } from './happyhour';
 
 const COOLDOWN_S = 10;
 const BY = 'Stream Deck';
@@ -105,6 +106,15 @@ async function runAction(body: Record<string, unknown>): Promise<StreamDeckResul
     await setStreamPullBuff(n, await currentStreamKey(), BY);
     await recordAudit('everyone', `${BY}: ${n === 0 ? 'stream pull bonus cleared' : `everyone +${n} pulls this stream`}`);
     return { ok: true, message: n === 0 ? 'The extra pulls for this stream are cleared.' : `Everyone gets ${plural(n, 'extra pull')} this stream.` };
+  }
+  if (body.action === 'happy-hour') {
+    if (!(await takeCooldown('happy-hour'))) return no(COOLING);
+    const n = streamAmount(body.amount);
+    if (n === null) return no('amount must be the minutes: a whole number, 0 ends it.');
+    if (n === 0) return { ok: true, message: (await endHappyHour(BY)).message };
+    const hasPercent = body.percent !== undefined && body.percent !== null && body.percent !== '';
+    const r = await startHappyHour({ minutes: n, kind: hasPercent ? 'discount' : 'free', percent: body.percent }, BY);
+    return { ok: r.ok, message: r.message };
   }
   if (body.action === 'free-pack') {
     const t = await resolveTarget(body, true);

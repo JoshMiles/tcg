@@ -95,16 +95,43 @@ export function roleLimitOf(s: Pick<MixItUpSettings, 'limit' | 'roleLimits'>, ro
   return typeof n === 'number' && Number.isFinite(n) ? Math.min(1000, Math.max(0, Math.floor(n))) : s.limit;
 }
 
+/** A running happy hour (ROADMAP 55.4c), stored on its own at KV `mixitup:happyhour`: not part of the settings. `free` = packs cost 0. */
+export type HappyHour = ({ kind: 'discount'; percent: number } | { kind: 'free' }) & { endsAt: number; by: string };
+export const HAPPY_MINUTES_MAX = 240;
+
+/** A happy hour is on until `endsAt`; an expired or malformed one counts as off. */
+export function activeHappyHour(h: unknown, now: number): HappyHour | null {
+  const o = h as Partial<HappyHour> | null | undefined;
+  if (!o || typeof o !== 'object' || typeof o.endsAt !== 'number' || o.endsAt <= now) return null;
+  if (o.kind === 'free') return { kind: 'free', endsAt: o.endsAt, by: String(o.by ?? '') };
+  return o.kind === 'discount' && Number.isInteger(o.percent) && o.percent! >= 1 && o.percent! <= 99 ? { kind: 'discount', percent: o.percent!, endsAt: o.endsAt, by: String(o.by ?? '') } : null;
+}
+
+/** The form's (or button's) Start values: minutes 1 to 240, kind `free` or `discount`, and for a discount a percent 1 to 99. */
+export function cleanHappyHourInput(raw: { minutes?: unknown; kind?: unknown; percent?: unknown }): { ok: true; minutes: number; spec: { kind: 'free' } | { kind: 'discount'; percent: number } } | { ok: false; message: string } {
+  const whole = (v: unknown) => { const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN; return Number.isInteger(n) ? n : NaN; };
+  const minutes = whole(raw.minutes);
+  if (!(minutes >= 1 && minutes <= HAPPY_MINUTES_MAX)) return { ok: false, message: `Minutes must be a whole number from 1 to ${HAPPY_MINUTES_MAX}.` };
+  if (raw.kind === 'free') return { ok: true, minutes, spec: { kind: 'free' } };
+  const percent = whole(raw.percent);
+  if (raw.kind !== 'discount' || !(percent >= 1 && percent <= 99)) return { ok: false, message: 'Pick free packs, or a discount of 1 to 99 percent.' };
+  return { ok: true, minutes, spec: { kind: 'discount', percent } };
+}
+
 /**
  * What one pack costs this viewer, a whole number. The full price order (ROADMAP 55.4): pack price, else role price, else base price;
- * then a happy hour discount; then a first free pack makes it 0. Only the role step exists so far (55.4b); the later items add their
- * steps here. A viewer with several roles pays the lowest of their role prices. Worked out when the pull is reserved and stored on
- * the reservation, so a settings change while the pack waits on the overlay changes nothing.
+ * then a happy hour discount (55.4c, rounded UP to a whole number; free = 0); then a first free pack makes it 0. The later items add
+ * their steps here. A viewer with several roles pays the lowest of their role prices. Worked out when the pull is reserved and stored on
+ * the reservation, so a settings change or a happy hour ending while the pack waits on the overlay changes nothing. `happyHour` is passed
+ * in (this stays pure); one whose `endsAt` has passed at `now` is ignored.
  */
-export function pullPrice(s: Pick<MixItUpSettings, 'cost' | 'priceByRole'>, o: { role?: PullRole | readonly PullRole[] }): number {
+export function pullPrice(s: Pick<MixItUpSettings, 'cost' | 'priceByRole'>, o: { role?: PullRole | readonly PullRole[]; happyHour?: HappyHour | null; now?: number }): number {
   const roles: readonly PullRole[] = Array.isArray(o.role) ? o.role : o.role ? [o.role as PullRole] : [];
   const prices = roles.flatMap(r => { const p = (s.priceByRole as Record<string, number | undefined> | undefined)?.[r]; return typeof p === 'number' ? [p] : []; });
-  return prices.length ? Math.min(...prices) : s.cost;
+  const price = prices.length ? Math.min(...prices) : s.cost;
+  const h = activeHappyHour(o.happyHour, o.now ?? Date.now());
+  if (!h) return price;
+  return h.kind === 'free' ? 0 : Math.floor((price * (100 - h.percent) + 99) / 100);
 }
 
 const num = (v: unknown, fallback: number, min: number, max: number): number => {
