@@ -18,6 +18,8 @@ import { getUserSettings } from '@/lib/user-settings-store';
 import { bestMatches, matchTrade, type MatchViewer } from '@/lib/trade-match';
 import { profileHref } from '@/lib/profile-url';
 import { BoardToolbar } from './BoardToolbar';
+import { SwapFinder } from './SwapFinder';
+import { Suspense } from 'react';
 import { parseGive } from '@/lib/close-to-complete';
 
 // @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
@@ -182,6 +184,12 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
             </section>
           )}
         </div>
+      )}
+
+      {tab === 'board' && me && settings.enabled && !season.tradingFrozen && (
+        <Suspense fallback={<p className="text-sm text-gray-500">Looking for swaps...</p>}>
+          <SwapFinder season={season} me={me} owned={owned} wanted={prefs?.wanted ?? []} nameOf={nameOf} />
+        </Suspense>
       )}
 
       {tab === 'board' && (

@@ -21,6 +21,8 @@ export interface TradeStats {
   acceptRate: number | null;
   /** Median minutes from offer to acceptance, or null. */
   medianAcceptMin: number | null;
+  /** Offers made from the board's swap finder (ROADMAP 50.3 trial), and how many of them were completed. */
+  swap: { offered: number; completed: number };
   perDay: { day: string; offered: number; accepted: number }[];
   topTraders: { username: string; trades: number; cards: number }[];
   topCards: { key: string; copies: number }[];
@@ -66,6 +68,7 @@ export function computeTradeStats(open: Trade[], history: Trade[], now: number, 
     ...counts,
     acceptRate: decided > 0 ? counts.accepted / decided : null,
     medianAcceptMin,
+    swap: { offered: [...open, ...history].filter(t => t.via === 'swap').length, completed: history.filter(t => t.via === 'swap' && t.status === 'accepted').length },
     perDay: [...perDayMap].map(([day, v]) => ({ day, ...v })),
     topTraders: [...traders].map(([username, v]) => ({ username, ...v })).sort((a, b) => b.trades - a.trades || b.cards - a.cards).slice(0, 8),
     topCards: [...cardCopies].map(([key, c]) => ({ key, copies: c })).sort((a, b) => b.copies - a.copies).slice(0, 8),

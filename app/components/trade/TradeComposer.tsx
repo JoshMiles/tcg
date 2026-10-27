@@ -40,7 +40,7 @@ export function TradeComposer({
   myWanted?: number[];
   maxStacks: number;
   expiryHours: number;
-  initial: { kind: 'direct' | 'listing'; to: string; give: TradeItem[]; get: TradeItem[]; counterOf?: string };
+  initial: { kind: 'direct' | 'listing'; to: string; give: TradeItem[]; get: TradeItem[]; counterOf?: string; via?: 'swap' };
 }) {
   const router = useRouter();
   const byNumber = useMemo(() => Object.fromEntries(cards.map(c => [c.number, c])) as Record<number, TradeCardInfo>, [cards]);
@@ -141,7 +141,7 @@ export function TradeComposer({
       const payload = { give, get, note };
       const res = counter
         ? await postJson(`/api/trades/${initial.counterOf}`, { action: 'counter', ...payload })
-        : await postJson('/api/trades', { kind, seasonId, to: kind === 'direct' ? to : undefined, ...payload });
+        : await postJson('/api/trades', { kind, seasonId, to: kind === 'direct' ? to : undefined, via: initial.via, ...payload });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || `That didn't work (${res.status})`);
       router.push('/trade');

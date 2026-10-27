@@ -52,6 +52,8 @@ export interface Trade {
   staff?: string;
   /** Set on a counter-offer: the trade it answers. */
   counterOf?: string;
+  /** Set when the offer was made from a suggestion on the trade board (only 'swap' is ever stored); measures the swap finder trial. */
+  via?: 'swap';
   /** The exact prints that changed hands when it was accepted (`give`: offerer to taker, `get`: taker to offerer). Absent on older trades and in seasons whose prints are not numbered. */
   moved?: { give: string[]; get: string[] };
   /** Set when staff reversed the completed trade: every print went back where it started. The status stays 'accepted'. */
