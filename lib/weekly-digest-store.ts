@@ -1,5 +1,8 @@
 import { kv, inSandbox } from './db';
-import { postDigest } from './discord';
+import { postAdminDigest, postDigest } from './discord';
+import { countBigReversals, countByStaff, type AuditEntry } from './audit';
+import { lastEmergencyLogin } from './admin-cookie';
+import { backupStatus } from './backup';
 import { getActiveSeasonWithPacks } from './kv';
 import { getSeasonLeaderboard } from './leaderboard';
 import { getPotw, loadFeatured } from './print-of-week-store';
@@ -7,7 +10,7 @@ import { isoWeekKey } from './print-of-week';
 import { tradeHistory } from './trades';
 import { VARIANT_LABELS } from './variants';
 import { watcherCounts } from './watch-index';
-import { buildWeeklyDigest, digestWorthPosting, snapshotRanks, type DigestPrint, type RankSnapshot, type WeeklyDigest } from './weekly-digest';
+import { buildAdminDigest, buildWeeklyDigest, digestWorthPosting, snapshotRanks, type DigestPrint, type RankSnapshot, type WeeklyDigest } from './weekly-digest';
 
 // The weekly digest, server side. KV: `digest:latest` (the last digest that was posted, for the dashboard widget),
 // `digest:ranks:<seasonId>` (rank + points per collector, saved by every run, next week's movers compare with it) and
@@ -83,5 +86,28 @@ export async function digestOncePerWeek(now = Date.now()): Promise<DigestOutcome
   } catch (e) {
     await kv.del(lock).catch(() => {}); // let a retry later in the week try again
     return { status: 'error', error: e instanceof Error ? e.message : 'Digest failed.' };
+  }
+}
+
+export type AdminDigestOutcome = { status: 'posted'; week: string; channels: number } | { status: 'skipped' | 'already'; week: string } | { status: 'error'; error: string };
+
+/** TRIAL (ROADMAP 51.10): the weekly cron's step that posts the staff summary to the Discord admin log once per ISO week. Always sends, even a quiet week, so the trial shows it arrives. */
+export async function adminDigestOncePerWeek(now = Date.now()): Promise<AdminDigestOutcome> {
+  const week = isoWeekKey(now);
+  if (await inSandbox()) return { status: 'skipped', week };
+  const lock = `digest:admin:week:${week}`;
+  if (!(await kv.set(lock, now, { nx: true, ex: WEEK_TTL_S }))) return { status: 'already', week };
+  try {
+    const [entries, lastEmergencyAt, backup] = await Promise.all([
+      kv.lrange<AuditEntry>('audit:all', 0, -1).catch(() => []), lastEmergencyLogin(), backupStatus(now),
+    ]);
+    const text = buildAdminDigest({
+      now, staffCounts: countByStaff(entries ?? [], now), bigReversals: countBigReversals(entries ?? [], now, 7), lastEmergencyAt,
+      backup: { lastAt: backup.lastAt, problem: backup.problem },
+    });
+    return { status: 'posted', week, channels: await postAdminDigest(text) };
+  } catch (e) {
+    await kv.del(lock).catch(() => {});
+    return { status: 'error', error: e instanceof Error ? e.message : 'Admin digest failed.' };
   }
 }
