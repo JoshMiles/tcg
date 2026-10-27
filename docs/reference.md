@@ -34,6 +34,7 @@
 | `lib/twitch-jwt.ts` | Manual JWT verification via Node `crypto` (no external deps) + `getBearerToken()` |
 | `lib/overlay-props.ts` | Registry of every adjustable overlay property (defaults, limits, validation, import/export). See "Overlay properties" |
 | `app/admin/overlay/OverlayEditor.tsx`, `app/admin/overlay/page.tsx` | The **Overlay Editor** (sidebar → `/admin/overlay`): one workspace for the overlay's layout and look, registry-driven properties, live preview, drag-to-position, per-pack overrides, presets, import/export. Split into `OverlayEditorContext.tsx`, `EditorTopBar.tsx`, `PreviewStage.tsx`, `PreviewToolbar.tsx`, `PropertiesDock.tsx`, and supporting files (`editor-types.ts`, `editor-controls.tsx`, `EditorMenus.tsx`, `LayoutPanel.tsx`, `VariantPicker.tsx`, `CategoryRail.tsx`) |
+| `bridge/` | TCG Bridge, the Windows desktop app (Electron + TypeScript) on the stream PC: its own `package.json`, outside the Next build and the root typecheck (`scripts/check-bridge-app.mts` runs its checks). See docs/admin/mixitup.md, "TCG Bridge app" |
 | `public/widget.js` | OBS overlay widget. Vanilla JS, no build step |
 | `public/overlay.html` | OBS browser source HTML |
 | `public/widget.css` | Overlay styles |

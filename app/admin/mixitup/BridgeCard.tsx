@@ -7,7 +7,8 @@ import { createPairCodeAction, revokeBridgeAction } from './bridge-actions';
 
 export interface BridgeRow { id: string; name: string; paired: string; seen: string }
 
-const secondary = 'rounded-lg border border-gray-700 px-3 py-2 text-sm font-semibold text-gray-200 hover:border-gray-500 disabled:opacity-60';
+const DOWNLOAD_URL = 'https://github.com/JoshMiles/tcg/releases?q=bridge-v&expanded=true';
+const secondary ='rounded-lg border border-gray-700 px-3 py-2 text-sm font-semibold text-gray-200 hover:border-gray-500 disabled:opacity-60';
 
 /** Paid pulls → TCG Bridge: make a pairing code, and see or revoke the paired bridges. A token or its hash is never shown. */
 export function BridgeCard({ bridges, version }: { bridges: BridgeRow[]; version: string }) {
@@ -25,6 +26,7 @@ export function BridgeCard({ bridges, version }: { bridges: BridgeRow[]; version
       </div>
       <div className="px-6 py-5 space-y-4">
         <div className="flex flex-wrap items-center gap-3">
+          <a href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer" className={`${secondary} inline-flex items-center gap-1.5`}><Icon name="download" />Download TCG Bridge</a>
           <button type="button" onClick={make} disabled={pending} className={secondary}>Pair TCG Bridge</button>
           {pair && (
             <p role="status" className="text-sm text-gray-300">
