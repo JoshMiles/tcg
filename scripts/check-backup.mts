@@ -96,6 +96,21 @@ ok(JSON.stringify(await prodKv.get('tcg_S1')) === JSON.stringify({ alice: [1, 1,
 ok(JSON.stringify(await prodKv.hgetall('coll:S1')) === JSON.stringify({ alice: [1, 1, 2], bob: [3] }), 'a raw restore replaces a changed collection hash (no leftover viewer)');
 ok((await prodKv.lrange('trades:history', 0, -1)).length === 3, 'a raw restore replaces a list instead of appending');
 
+// ---- restore preview (dry run): compares, writes nothing ----
+const rc = prodKv as unknown as Parameters<typeof backup.collectEntries>[0];
+await prodKv.set('sbx:rt:tcg_S1', { alice: [1], zed: [2] });          // changed
+await prodKv.del('sbx:rt:users:hidden');                                // missing at the target
+await prodKv.set('sbx:rt:extra:thing', 1);                              // only at the target
+await prodKv.set('sbx:rt:stats:x', 1);                                  // outside the backed-up keyspace
+await prodKv.del('sbx:rt:staff:members'); await prodKv.hset('sbx:rt:staff:members', { bob: { role: 'admin', login: 'bob' }, alice: { role: 'mod', login: 'alice' } }); // same content, other order
+const cur = await backup.collectEntries(rc, NOW, 'sbx:rt:');
+ok(cur.entries.every(e => !e.key.startsWith('sbx:')) && cur.entries.some(e => e.key === 'extra:thing') && !cur.entries.some(e => e.key === 'stats:x'), 'a sandbox read strips the prefix and keeps to the backed-up keyspace');
+const pre = core.previewRestore(reread.entries, cur.entries);
+ok(pre.added.join() === 'users:hidden' && pre.replaced.join() === 'tcg_S1' && pre.notInBackup.join() === 'extra:thing', 'preview lists added, replaced and not-in-backup keys');
+ok(pre.unchanged === reread.entries.length - 2, 'everything else is unchanged (hash field order does not matter)');
+ok(pre.byPrefix['users:'].added === 1 && pre.byPrefix['tcg_S1'].replaced === 1 && pre.byPrefix['extra:'].notInBackup === 1, 'counts per key prefix');
+const before = JSON.stringify(await prodKv.get('sbx:rt:tcg_S1'));
+ok(before === JSON.stringify({ alice: [1], zed: [2] }) && (await prodKv.smembers('sbx:rt:users:hidden')).length === 0, 'the preview wrote nothing');
 // ---- refusals ----
 delete process.env.VERCEL_ENV;
 ok(await throws(() => backup.runBackup()), 'no backup outside production');
