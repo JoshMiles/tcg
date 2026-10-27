@@ -46,7 +46,7 @@ export async function submitFeedback(user: string, input: ParsedInput, device: u
   await kv.lpush(LIST, item.id);
   await kv.ltrim(LIST, 0, FEEDBACK_LIMITS.listCap - 1);
   await kv.sadd(NEW_SET, item.id);
-  await notifyFeedback(item);
+  await announce(item);
   return { ok: true, item };
 }
 
@@ -67,6 +67,12 @@ export interface FeedbackReader { login: string; admin: boolean }
 /** Every staff login (the staff list plus the fixed super admins), small enough to read per request. */
 async function staffLogins(): Promise<string[]> {
   return [...(await listStaff()).map(s => s.login), ...SUPER_ADMINS.map(s => s.login)];
+}
+
+/** Posts a new item to Discord. One that names staff goes to the admin log channel only (ROADMAP 54.6); if staff cannot be read, it is treated as naming staff. */
+async function announce(item: FeedbackItem): Promise<void> {
+  const about = await staffLogins().then(l => staffNamedIn(item, l).length > 0, () => true);
+  await notifyFeedback(item, about);
 }
 
 /** Sets `aboutStaff` on each item (worked out now, never stored); with a reader, drops the items they may not see. */
@@ -126,7 +132,7 @@ export async function submitReport(reporter: string, input: ParsedReport, now = 
   await kv.lpush(LIST, item.id);
   await kv.ltrim(LIST, 0, FEEDBACK_LIMITS.listCap - 1);
   await kv.sadd(NEW_SET, item.id);
-  await notifyFeedback(item);
+  await announce(item);
   return { ok: true, item };
 }
 
@@ -218,7 +224,7 @@ export async function requestDeletion(user: string, now = Date.now()): Promise<D
   await kv.lpush(LIST, item.id);
   await kv.ltrim(LIST, 0, FEEDBACK_LIMITS.listCap - 1);
   await kv.sadd(NEW_SET, item.id);
-  await notifyFeedback(item);
+  await announce(item);
   return { ok: true, item };
 }
 

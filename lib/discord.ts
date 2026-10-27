@@ -671,12 +671,19 @@ export async function notifySystem(o: SystemNotice): Promise<void> {
   } catch { /* never breaks the action */ }
 }
 
-/** A new suggestion or problem report, for channels with Feedback ticked. Text is Markdown-escaped and cut, mentions stay empty, no staff names. Silent in a sandbox. */
-export async function notifyFeedback(item: FeedbackItem): Promise<void> {
+/**
+ * A new suggestion or problem report, for channels with Feedback ticked. Text is Markdown-escaped and cut, mentions stay empty, no staff names.
+ * One that names a staff member (`aboutStaff`, ROADMAP 54.6) goes to the channels with the admin log on instead, never to a Feedback channel;
+ * with no admin log channel it is not posted at all. Silent in a sandbox.
+ */
+export async function notifyFeedback(item: FeedbackItem, aboutStaff = false): Promise<void> {
   try {
     if (await inSandbox()) return;
     const body = buildFeedbackMessage(item);
-    later(() => sendToCategory('feedback', body, item.kind));
+    if (aboutStaff) {
+      body.embeds[0].title = `Staff report | ${body.embeds[0].title ?? ''}`;
+      later(() => sendToCategory('admin', body));
+    } else later(() => sendToCategory('feedback', body, item.kind));
   } catch { /* never breaks the send */ }
 }
 
