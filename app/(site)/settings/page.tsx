@@ -6,6 +6,9 @@ import { getSession } from '@/lib/session';
 import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { profileHref } from '@/lib/profile-url';
+import { alertHealth } from '@/lib/watch-core';
+import { lastAlertAt } from '@/lib/watch-index';
+import { timeAgo } from '@/lib/site-data';
 import { SettingsForm } from './SettingsForm';
 import { DeleteAccount } from './DeleteAccount';
 import { deletionOf } from '@/lib/feedback';
@@ -23,6 +26,7 @@ export default async function SettingsPage() {
   const [settings, active] = await Promise.all([getUserSettings(session.username), getActiveSeasonWithPacks().catch(() => null)]);
   const isStaff = !!(await getStaffRecord(session.username)) || isSuperAdmin({ twitchId: session.twitchId }) || session.username.toLowerCase() === CHANNEL_LOGIN;
   const deletion = await deletionOf(session.username).catch(() => null);
+  const alertLine = alertHealth(settings, await lastAlertAt(session.username), timeAgo);
   const cards = (active?.packs ?? []).flatMap(p => p.cards).map(c => ({ number: c.number, name: c.name, stars: c.stars })).sort((a, b) => a.number - b.number);
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
@@ -38,7 +42,7 @@ export default async function SettingsPage() {
           <a key={id} href={`#${id}`} className="px-3 py-1 rounded-full text-xs font-semibold border border-gray-700 text-gray-300 hover:text-yellow-300 hover:border-yellow-500/50 transition-colors">{label}</a>
         ))}
       </nav>
-      <SettingsForm initial={settings} username={session.username} cards={cards} isStaff={isStaff} />
+      <SettingsForm initial={settings} username={session.username} cards={cards} isStaff={isStaff} alertLine={alertLine} />
       <DeleteAccount username={session.username} initial={deletion ? { status: deletion.status, at: deletion.at, reply: deletion.reply } : null} />
     </div>
   );

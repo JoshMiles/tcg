@@ -11,7 +11,7 @@ import { stackPoints, type TradeCardInfo } from './trade-view-core';
 import { parseCopyId, type SerialPool } from './serials-core';
 import { getTradeCards } from './trade-view';
 import type { Notice, NoticeKind, Swap, SwapCard } from './trade-notice-core';
-import { watchersOf, wantedForTrades } from './watch-index';
+import { watchersOf, wantedForTrades, markAlertFired } from './watch-index';
 import { matchingAlerts } from './watch-core';
 import { notifyListing } from './discord';
 import { encodeEntry } from './variants';
@@ -39,6 +39,7 @@ export async function notify(username: string, notice: Omit<Notice, 'id' | 'at'>
     const user = username.toLowerCase();
     if (!wantsNotice(await getUserSettings(user), notice.kind)) return; // the viewer switched this kind of notice off
     const full: Notice = { ...notice, id: Math.random().toString(36).slice(2, 10), at: Date.now() };
+    if (notice.kind === 'watch') await markAlertFired(user, full.at); // for Settings -> Saved alerts ("last alert")
     await kv.lpush(noticesKey(user), full);
     await kv.ltrim(noticesKey(user), 0, NOTICE_CAP - 1);
     await kv.incr(versionKey(user)); // the bell asks "has anything changed since version N?"

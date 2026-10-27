@@ -17,6 +17,12 @@ export function alertCards(s: Pick<UserSettings, 'wanted' | 'watches'>): number[
   return [...new Set([...s.wanted, ...s.watches.map(w => w.card)])];
 }
 
+/** The Settings line on how alerts are doing: cards watched, whether they are switched on, and when one last reached the viewer. */
+export function alertHealth(s: Pick<UserSettings, 'wanted' | 'watches' | 'notifyWatch'>, last: number | null, ago: (at: number) => string): string {
+  const n = alertCards(s).length;
+  return `Watching ${n} ${n === 1 ? 'card' : 'cards'}. ${s.notifyWatch ? '' : 'Listing alerts are switched off. '}Last alert: ${last === null ? 'never' : ago(last)}.`;
+}
+
 /** "Shiny Full Art Gouda" / "Gouda (any version)". */
 export function watchLabel(w: Watch, nameOf: (n: number) => string | undefined): string {
   const name = nameOf(w.card) ?? `#${w.card}`;

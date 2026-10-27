@@ -15,9 +15,10 @@ export const PROFILE_TABS: { id: 'overview' | 'collection' | 'stats' | 'trades' 
 export type ProfileTab = (typeof PROFILE_TABS)[number]['id'];
 
 /** The profile address for a username (lower-cased, URL-safe), optionally on a tab. */
-export function profileHref(username: string, tab?: ProfileTab): string {
+export function profileHref(username: string, tab?: ProfileTab, asPublic = false): string {
   const base = `/u/${encodeURIComponent(username.trim().toLowerCase())}`;
-  return tab && tab !== 'overview' ? `${base}?tab=${tab}` : base;
+  const q = [tab && tab !== 'overview' ? `tab=${tab}` : '', asPublic ? 'public=1' : ''].filter(Boolean).join('&');
+  return q ? `${base}?${q}` : base;
 }
 
 /** The browser-tab title for a profile page: "Alice's profile", "Alice's collection", "Alice's stats" ... one pattern for every tab. */

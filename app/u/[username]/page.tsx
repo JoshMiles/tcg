@@ -45,15 +45,18 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   };
 }
 
-export default async function ProfilePage({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ tab?: string; restored?: string }> }) {
-  const [{ username }, { tab: tabParam, restored }] = await Promise.all([params, searchParams]);
+export default async function ProfilePage({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ tab?: string; restored?: string; public?: string }> }) {
+  const [{ username }, { tab: tabParam, restored, public: publicParam }] = await Promise.all([params, searchParams]);
   const lower = decodeURIComponent(username).toLowerCase();
-  const session = await getSession();
+  const realSession = await getSession();
+  // "View as public" (owner only, `?public=1`): everything below sees a signed-out visitor, so it can only hide things, never add them.
+  const asPublic = publicParam === '1' && realSession?.username === lower;
+  const session = asPublic ? null : realSession;
   const isOwner = session?.username === lower;
   const tab = pickProfileTab(tabParam, isOwner);
   if (!isOwner && (await getUserSettings(lower).catch(() => null))?.privateProfile) {
     return (
-      <SiteMessage icon="lock" title="This profile is private" actions={<Link href="/collection" className="btn btn-primary px-4 py-2 text-sm rounded-xl">Find a collector</Link>}>
+      <SiteMessage icon="lock" title="This profile is private" actions={asPublic ? <Link href={profileHref(lower, tab)} className="btn btn-primary px-4 py-2 text-sm rounded-xl">Back to my view</Link> : <Link href="/collection" className="btn btn-primary px-4 py-2 text-sm rounded-xl">Find a collector</Link>}>
         This collector keeps their profile to themselves, so there is nothing to show here. Their cards still appear on stream when they are shown.
       </SiteMessage>
     );
@@ -86,7 +89,13 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <ProfileHeader compact={tab !== 'overview'} b={b} isOwner={isOwner} signedIn={!!session} canReport={!!session && !isOwner && !(await staffPanelLink(session).catch(() => null))} pronouns={pronouns} staffBadge={(await getStaffBadges())[lower] ?? null} shareSpec={buildShareSpec(b, copies, SITE_SHORT)} />
-      <ProfileTabBar username={lower} active={tab} isOwner={isOwner} />
+      {asPublic && (
+        <p className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-200">
+          <span><Icon name="eye" /> This is how your profile looks to a signed-out visitor.</span>
+          <Link href={profileHref(lower, tab)} className="font-semibold underline hover:text-white">Back to my view</Link>
+        </p>
+      )}
+      <ProfileTabBar username={lower} active={tab} isOwner={isOwner} asPublic={asPublic} />
       {tab === 'overview' && <OverviewTab b={b} copies={copies} isOwner={isOwner} viewer={session?.username} mine={mine} />}
       {tab === 'collection' && <CollectionTab b={b} grid={grid} isOwner={isOwner} tradeWith={session && !isOwner ? lower : undefined} prefs={prefs} mine={mine} />}
       {tab === 'stats' && (isOwner && session

@@ -37,7 +37,7 @@ function Row({ label, help, checked, onChange, id }: { label: string; help: stri
   );
 }
 
-export function SettingsForm({ initial, username, cards, isStaff = false }: { initial: UserSettings; username: string; isStaff?: boolean; cards: { number: number; name: string; stars: number }[] }) {
+export function SettingsForm({ initial, username, cards, isStaff = false, alertLine }: { initial: UserSettings; username: string; isStaff?: boolean; /** How alerts are doing, worked out on the server when the page loaded. */ alertLine: string; cards: { number: number; name: string; stars: number }[] }) {
   const router = useRouter();
   const [saved, setSaved] = useState(initial);
   const [s, setS] = useState(initial);
@@ -135,6 +135,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
 
       <Section icon="search" id="alerts" title="Saved alerts" hint="Tell me when someone lists a card, in a version you choose. Cards on your Looking for list alert in every version automatically.">
         <div className="space-y-2 pb-1" id="watches">
+          <p className="text-xs text-gray-400">{alertLine}</p>
           <div className="flex flex-wrap gap-1.5">
             {s.watches.length === 0 && <span className="text-xs text-gray-600">No saved alerts yet.</span>}
             {s.watches.map((w, i) => (

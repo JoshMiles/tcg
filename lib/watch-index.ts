@@ -22,6 +22,19 @@ async function applySync(username: string, prev: Cards | null, next: Cards): Pro
   for (const c of before) if (!after.has(c)) await kv.srem(setKey(c), u);
 }
 
+const firedKey = (u: string) => `watch:last:${u.toLowerCase()}`;
+
+/** Remembers that a listing alert just reached this viewer (read back by `lastAlertAt` for Settings). Never throws. */
+export async function markAlertFired(username: string, at = Date.now()): Promise<void> {
+  try { await kv.set(firedKey(username), at); } catch { /* best effort */ }
+}
+
+/** When a listing alert last reached this viewer, or null (never, or not readable). */
+export async function lastAlertAt(username: string): Promise<number | null> {
+  const v = await kv.get<number>(firedKey(username)).catch(() => null);
+  return typeof v === 'number' ? v : null;
+}
+
 /** Brings the index in line with a viewer's settings after a save. `prev` null = nothing was stored before. Never throws. */
 export async function syncWatchIndex(username: string, prev: Cards | null, next: Cards): Promise<void> {
   try { await applySync(username, prev, next); } catch { /* the index is rebuilt from settings on demand */ }
