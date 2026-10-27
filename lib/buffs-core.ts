@@ -100,6 +100,8 @@ export interface BuffDef {
   achievementId?: string;
   /** Flat amount (POINTS_MIN..POINTS_MAX) for score-bonus (points) and currency-grant (currency). */
   points?: number;
+  /** Answers the Stream Deck webhook (ROADMAP 55.2). Off unless switched on; never for grant-achievement. */
+  streamDeck?: boolean;
 }
 
 /** An applied personal or community buff instance (stored on a viewer or in `buffs:community`). */
@@ -151,6 +153,12 @@ export function clampDuration(unit: unknown, n: unknown): BuffDuration {
 }
 
 export function normalizeBuffDef(raw: unknown): BuffDef | null {
+  const def = normalizeBuffDefBase(raw);
+  if (def && def.type !== 'grant-achievement' && (raw as Record<string, unknown>).streamDeck === true) def.streamDeck = true;
+  return def;
+}
+
+function normalizeBuffDefBase(raw: unknown): BuffDef | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
   const id = typeof r.id === 'string' ? r.id.trim().slice(0, 60) : '';
@@ -184,6 +192,12 @@ export function normalizeBuffDef(raw: unknown): BuffDef | null {
 
 /** Validates and cleans raw form/input fields into a BuffDef, returning a human-readable error when invalid. */
 export function cleanBuffDefInput(raw: Record<string, unknown>, existingId?: string): { ok: true; def: BuffDef } | { ok: false; message: string } {
+  const r = cleanBuffDefBase(raw, existingId);
+  if (r.ok && r.def.type !== 'grant-achievement' && raw.streamDeck === true) r.def.streamDeck = true;
+  return r;
+}
+
+function cleanBuffDefBase(raw: Record<string, unknown>, existingId?: string): { ok: true; def: BuffDef } | { ok: false; message: string } {
   const id = (existingId ?? (typeof raw.id === 'string' ? raw.id.trim() : '')).slice(0, 60);
   if (!id) return { ok: false, message: 'Missing buff ID.' };
   const name = (typeof raw.name === 'string' ? raw.name.trim() : '').slice(0, BUFF_NAME_MAX);

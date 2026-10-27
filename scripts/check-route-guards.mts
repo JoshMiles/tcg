@@ -85,6 +85,7 @@ const R: Record<string, Kind[] | { public: string }> = {
   'app/api/webhooks/pull/route.ts': ['webhook'],
   'app/api/webhooks/show-card/route.ts': ['webhook'],
   'app/api/webhooks/stream/route.ts': ['webhook'],
+  'app/api/webhooks/buff/route.ts': ['webhook'],
   'app/api/webhooks/notify/route.ts': ['overlay'],
   'app/api/webhooks/queue/route.ts': ['overlay'],
   'app/api/overlay/heartbeat/route.ts': ['overlay'],

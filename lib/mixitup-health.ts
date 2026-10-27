@@ -14,7 +14,7 @@ export interface OutResult { at: number; ok: boolean; detail: string }
 /** What staff call each incoming route. */
 export const ROUTE_NAMES: Record<string, string> = {
   '/api/webhooks/pull': '!pack', '/api/webhooks/command': 'chat commands', '/api/webhooks/show-card': 'show-off',
-  '/api/webhooks/grant-card': 'card reward', '/api/webhooks/collection': 'collection', '/api/webhooks/stream': 'stream start/end',
+  '/api/webhooks/grant-card': 'card reward', '/api/webhooks/collection': 'collection', '/api/webhooks/stream': 'stream start/end', '/api/webhooks/buff': 'Stream Deck',
 };
 export const routeName = (route: string) => ROUTE_NAMES[route] ?? route.replace('/api/webhooks/', '');
 
