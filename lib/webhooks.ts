@@ -6,6 +6,7 @@ import { sendWebhook } from './webhook-send';
 import { cleanLogin } from './staff-core';
 import { limitWebhook } from './rate-limit';
 import { noteSecretUsed } from './secret-used';
+import { noteIncoming } from './mixitup-health';
 import { NextResponse } from 'next/server';
 
 // ── Types ─────────────────────────────────────────────────
@@ -132,6 +133,8 @@ function sameSecret(given: string, expected: string): boolean {
 export async function incomingSecretValid(secret: unknown, route: string): Promise<boolean> {
   const ok = typeof secret === 'string' && sameSecret(secret, (await getWebhookSettings()).incomingSecret);
   if (ok) noteSecretUsed('INCOMING_WEBHOOK_SECRET', route);
+  if (ok) void noteIncoming(route, 'ok');
+  else if (typeof secret === 'string' && secret) void noteIncoming(route, 'bad');
   return ok;
 }
 
