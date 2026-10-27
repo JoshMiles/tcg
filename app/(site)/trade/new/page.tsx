@@ -17,8 +17,8 @@ import type { TradeItem } from '@/lib/trade-core';
 
 export const metadata: Metadata = { title: 'New trade offer', robots: { index: false, follow: false } };
 
-export default async function NewTradePage({ searchParams }: { searchParams: Promise<{ to?: string; counter?: string; season?: string; want?: string; print?: string }> }) {
-  const { to, counter, season: seasonParam, want, print } = await searchParams;
+export default async function NewTradePage({ searchParams }: { searchParams: Promise<{ to?: string; counter?: string; season?: string; want?: string; print?: string; listing?: string; give?: string }> }) {
+  const { to, counter, season: seasonParam, want, print, listing, give } = await searchParams;
   const session = await getSession();
   if (!session) redirect(`/auth/twitch?returnTo=${encodeURIComponent('/trade/new')}`);
 
@@ -68,6 +68,10 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
   // ?print=<copy id> (from "Offer a trade for this edition" on a copy page) asks for that exact edition, only while ?to= still holds it; otherwise the builder opens with just the holder.
   const printedCopy = print && to && !original && parseCopyId(print) ? await getCopy(season.collectionName, print).catch(() => null) : null;
   const printItem: TradeItem[] = printedCopy && printedCopy.owner === to!.trim().toLowerCase().replace(/^@/, '') ? [{ cardNumber: printedCopy.card, variant: printedCopy.variant, count: 1, ids: [printedCopy.id] }] : [];
+  // ?listing=1&give=<card>.<variant>.<count> (from Duplicates) opens a board listing with those spares ticked, capped at what you hold.
+  const gave = !original && /^(\d{1,6})\.(regular|reverse|full|shiny|golden)\.(\d{1,3})$/.exec(give ?? '');
+  const giveHeld = gave ? mine[Number(gave[1])]?.[gave[2] as Variant] ?? 0 : 0;
+  const giveItems: TradeItem[] = gave && giveHeld > 0 ? [{ cardNumber: Number(gave[1]), variant: gave[2] as Variant, count: Math.min(Number(gave[3]), giveHeld) }] : [];
   const startGet: TradeItem[] = print ? printItem : original ? original.give.map(({ ids: _ids, ...i }) => i) : wanted && VARIANTS.includes(wanted[2] as Variant) ? [{ cardNumber: Number(wanted[1]), variant: wanted[2] as Variant, count: 1 }] : [];
 
   return wrap(
@@ -85,7 +89,7 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
         myWanted={prefs.wanted}
         maxStacks={settings.maxStacksPerSide}
         expiryHours={settings.expiryHours}
-        initial={{ kind: 'direct', to: original?.from ?? to ?? '', give: startGive, get: startGet, counterOf: original?.id }}
+        initial={{ kind: listing === '1' && !original ? 'listing' : 'direct', to: original?.from ?? to ?? '', give: original ? startGive : giveItems, get: startGet, counterOf: original?.id }}
       />
     </>,
   );
