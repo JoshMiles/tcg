@@ -70,3 +70,4 @@ Track 56 (TCG Bridge versions, releases, dashboard card, README): one agent per 
 - 2026-10-28: Josh: event reward packs keep going through while pulls are paused or the viewer is blocked, like Stream Deck free packs (for now).
 - 2026-10-28: Josh: merge 55.5 (#603) without the test import. Every PR touching bridge/ bumps the bridge minor; releases publish on merge; the About tab shows the commit; the dashboard shows the latest bridge; README rewrite (Track 56).
 - 2026-10-28: Josh: Track 58 through TCG Bridge (EventSub in the app), no custom rewards (awards on existing ones, mods refund by hand), Twitch wins over Mix It Up events; 58.6 chat commands replace the Mix It Up ones, replies as the channel account with an optional bot account.
+- 2026-10-28: Josh: 58.1 accepts any Twitch account as the channel, for testing; a test account shows a warning and never switches Mix It Up off. 56.1 merged (#619); first automatic release bridge-v0.12.0 published by the workflow.
