@@ -132,5 +132,13 @@ ok(!d.incoming, 'a wrong secret keeps the Mix It Up to the site step open');
 const sc = (await import('../lib/mixitup-setup')).incomingSetup('https://x/api/webhooks/stream', 's3', { event: 'live' });
 ok(sc.url === 'https://x/api/webhooks/stream' && JSON.parse(sc.body).secret === 's3' && JSON.parse(sc.body).event === 'live', 'a setup card holds the address and a body with the secret');
 
+// ── Built-in !pack (wizard and Commands tab share packSetup) ──
+const pk = (await import('../lib/mixitup-setup')).packSetup('https://x', 's4');
+ok(pk.url === 'https://x/api/webhooks/pull' && JSON.parse(pk.body).secret === 's4' && JSON.parse(pk.body).pack === '$allargs', 'the !pack setup has the pull address, the secret and $allargs');
+ok(pk.preset.name === 'pack' && pk.preset.path === 'pull', 'the !pack download is the pull command');
+const cc = await import('../lib/commands-core');
+ok(cc.builtInClash([{ name: '!Pack' }]) !== null && cc.builtInClash([{ name: 'flex', aliases: ['pack'] }]) !== null, 'a custom command cannot be named or aliased pack');
+ok(cc.builtInClash([{ name: 'showoff' }, { name: 'stats', aliases: 'a b' }]) === null, 'ordinary names are accepted');
+
 console.log('mixitup page checks passed');
 process.exit(0);

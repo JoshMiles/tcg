@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
-import { cleanCommands, argsFrom, flatReply, type ChatCommand } from '@/lib/commands-core';
+import { builtInClash, cleanCommands, argsFrom, flatReply, type ChatCommand } from '@/lib/commands-core';
 import { runCommand, saveCommands } from '@/lib/commands';
 
 export type SaveResult = { ok: true; commands: ChatCommand[] } | { ok: false; message: string };
@@ -11,6 +11,8 @@ export async function saveCommandsAction(json: string): Promise<SaveResult> {
   await requireAdmin();
   let raw: unknown;
   try { raw = JSON.parse(json); } catch { return { ok: false, message: 'Could not read the commands.' }; }
+  const clash = builtInClash(raw);
+  if (clash) return { ok: false, message: clash };
   const r = cleanCommands(raw);
   if (!r.ok) return r;
   await saveCommands(r.commands);
