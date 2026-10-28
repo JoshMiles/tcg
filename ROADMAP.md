@@ -22,9 +22,9 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 47 | Access hardening (47.11) | Blocked (Josh, from 2026-11-02) | S |
 | 50 | Swap finder trial (50.3) | Blocked (trial readout from 2026-11-24) | S |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
-| 61 | Stream Deck plugin: fix the keys that do not work (61.1), then queue, staff, live info and OBS / overlay keys (61.2 to 61.5) | 61.1 done (#658); 61.2 on after Track 58 | M |
-| 63 | Admin Mix It Up page redesign: too messy; reorganise by job (63.1 design pass, then build items) | Ready (63.1 design first; site only, can run beside the TCG Bridge work) | M to L |
-| 58 | Twitch through TCG Bridge: sign in to the app with Twitch, connect the channel, EventSub in the app, awards for existing channel points rewards, bits / subs / raids, chat commands replacing the Mix It Up ones (58.0 to 58.6) | After 61.1 (Track 59 done) | L |
+| 61 | Stream Deck plugin: fix the keys that do not work (61.1), then queue, staff, live info and OBS / overlay keys (61.2 to 61.5) | 61.1 to 61.3 done (#658, #661, #663); 61.4 and 61.5 run beside Track 58, one bridge item at a time | M |
+| 63 | Admin Mix It Up page redesign: too messy; reorganise by job (63.1 design pass, then build items) | After Track 58 (Twitch first); choices made and mockup agreed, 63.1 to 63.5 below | M to L |
+| 58 | Twitch through TCG Bridge: sign in to the app with Twitch, connect the channel, EventSub in the app, awards for existing channel points rewards, bits / subs / raids, chat commands replacing the Mix It Up ones (58.0 to 58.6) | 58.0 and 58.1 done (#649, #660, #662); 58.2 building | L |
 | 62 | Native OBS plugin for TCG Bridge (62.1 design pass, then build items) | After Track 58 | L |
 | 60 | Staff wiki refresh: every page brought up to date, new pages for TCG Bridge, Twitch, the Stream Deck plugin and the OBS plugin (60.1) | Last, after Tracks 61 and 62 | M |
 
@@ -72,7 +72,7 @@ Josh: bring Twitch features into TCG Bridge and the admin portal, for example aw
 
 **How the token flows.** The site keeps the Twitch app's secret, so the broadcaster connects once on the site (an authorization-code sign-in like the staff one, with the scopes below) and the site stores the refresh token encrypted in KV. TCG Bridge asks the site for a short-lived access token over its paired link when it needs one (never the refresh token), opens the EventSub WebSocket with it and creates its subscriptions with Helix. Same client id throughout, so no second Twitch app is needed.
 
-### 58.0 Sign in to TCG Bridge with Twitch (site half done: #649, 2026-10-28; app half 58.0b next after 61.1)
+### 58.0 Sign in to TCG Bridge with Twitch (Done except item 3: site #649, app #660 (bridge 0.35.0); item 3, removing pairing codes, waits for Josh's first real sign-in)
 Josh (2026-10-28): the app is linked to a Twitch account instead of a pairing code, and the account's site role gives it its permissions. The channel connection (58.1) stays separate.
 Site half (58.0a, #649): `POST /api/bridge/link` `{ name }` -> `{ id, code, secret, url, expiresAt }`; `POST /api/bridge/link/poll` `{ id, secret }` -> pending / denied / expired / `{ token, login, role }` once; the `/bridge/link` Allow page; role-based staff tools (Josh 2026-10-28: a mod-linked PC gets only what mods can do on the site: trading, block, unblock, scene and the reads); role re-read at most once a minute. Left for 58.0b (app, after 61.1): the Connect screen's Sign in with Twitch button and polling, "Signed in as" on the TCG account row, Sign out, then removing pairing codes (item 3).
 1. **Linking.** The app's pairing screen becomes **Sign in with Twitch**: the app asks the site for a one-time link request (an id and a short code shown in the app), opens the system browser on the site's `/bridge/link?id=...`, the streamer signs in with the site's existing Twitch sign-in, sees "Link TCG Bridge on <PC name>? Code <code>" and clicks Allow. The app polls the request (every 2 s, 10 minutes, then expires) and receives its bridge token, exactly what pairing gives it today. No Twitch token ever reaches the app.
@@ -81,10 +81,10 @@ Site half (58.0a, #649): `POST /api/bridge/link` `{ name }` -> `{ id, code, secr
 4. **App.** Status / About show "Signed in as <name> (<role>)"; **Sign out** unlinks this PC.
 5. **Checks:** a link request expires and is single-use; a non-staff account is refused; the role decides the staff switch; a role removed on the site revokes at the next status call; old paired tokens still work.
 
-### 58.1 Connect the Twitch channel (Ready, M)
+### 58.1 Connect the Twitch channel (Done, #662, 2026-10-28)
 Admin-only **Connect Twitch channel** on the Mix It Up page's Connection tab: OAuth authorization code with `channel:read:redemptions`, `bits:read`, `channel:read:subscriptions` (and `moderator:read:followers` only if a later item needs it). Any Twitch account can be connected as the channel (Josh, 2026-10-28: so he can test on a spare account); everything in Track 58 uses the connected account's user id as the broadcaster. When it is not `CHANNEL_LOGIN`, the Connection tab, the app's Status tab and the checklist (57.1) show "Testing on <login>, not the live channel", and the 58.4 / 58.6 switch-overs that ignore Mix It Up requests stay off, so the live channel's Mix It Up setup keeps working during a test. Store `{ userId, scopes, refreshToken (encrypted with the existing secret helper), connectedAt, by }` at `twitch:channel-auth`. A pure token refresh helper; a refresh that Twitch rejects marks it disconnected and sends a staff notice. Status (connected as, scopes, since) and **Disconnect** (revokes the token at Twitch, deletes the key). Audit lines for both. A staff-only bridge route hands a paired, staff-enabled-or-not bridge an access token and its expiry (rate limited, never logged).
 
-### 58.2 EventSub WebSocket in TCG Bridge (Ready, M to L)
+### 58.2 EventSub WebSocket in TCG Bridge (Building, M to L)
 When the channel is connected and the app is paired, the app opens `wss://eventsub.wss.twitch.tv/ws`, handles welcome, keepalive (reconnects when a keepalive is missed), `session_reconnect` and revocation, and on each new session creates subscriptions with Helix (`POST /helix/eventsub/subscriptions`, transport `websocket` + session id): `channel.channel_points_custom_reward_redemption.add`, `channel.cheer`, `channel.subscription.gift`, `channel.raid` (to the channel), `stream.online`, `stream.offline`. Each notification goes to the site over the paired link with its message id; the site drops a repeated message id (10 minutes, SET NX). A dropped token asks the site for a new one. State (connected, subscriptions, last event) on the app's Status tab and the site's Connection tab; an Alert when it drops while live (the 0.3.0 alert rules). Stream online / offline also feed the site's live state, like the bridge's OBS stream start. A fake EventSub server for `npm run check`.
 
 ### 58.3 Awards for existing channel points rewards (Ready, M)
@@ -129,8 +129,33 @@ Suggestions for 63.1 to weigh (not decisions):
 7. **Phone-friendly Live section** for mods watching on a phone during a stream.
 8. **Room for Track 58:** channel point awards beside paid pulls in What viewers get, Twitch events in the Live feed, Twitch chat commands beside the Mix It Up ones.
 
-### 63.1 Design pass (Ready; Needs design: Opus, then Josh)
-Walk every tab, panel and the Setup wizard as they stand (screenshots against the mock KV with demo data), finish the audit, and propose two or three directions with mockups (one built on suggestion 1). Mockups for Josh to pick from before any build; then split into build items (63.2 onward), one PR each. Keep every existing setting, test and log reachable; no change to what the settings do.
+**Josh's choices (2026-10-28):**
+- **Structure:** group by job, five sections: Live, What viewers get, Connections, Test, History (suggestion 1).
+- **Name:** the page becomes **Stream** at `/admin/stream`; `/admin/mixitup` and its sub-pages redirect.
+- **Setup wizard:** becomes the page's first-run state until something is connected; afterwards its steps live in Connections. `/admin/mixitup/setup` redirects.
+- **Devices:** desktop first; the Live section works on a phone.
+- **Live:** this stream's numbers with Pause pulls, Happy hour and Pack goal; the queue and this stream's blocks; overlay controls (refresh, test pull, show a card, scene); one merged live feed (requests, pulls, events, refusals, errors) with filters, replacing Latest requests and the Log tab's recent list. Desktop layout: controls on the left, the feed on the right; stacked on a phone.
+- **What viewers get:** one card per reward type (Paid pulls, `!pack` packs, Event rewards, Raid shout-out, Big pull rules, Chat commands, Stream Deck buffs; Track 58's channel points join later), each showing a one-line summary and opening its settings.
+- **Saving:** one Save per card with an "Unsaved changes" marker, Discard, and a warning when leaving with changes.
+- **Hints:** one short line per card, the rest behind a "How?" toggle.
+- **Direct addresses:** kept, folded under "Advanced: connect without TCG Bridge" in Connections.
+- **Mockup:** a clickable mockup of the whole page with demo data (https://claude.ai/artifact/MYndvn2Skt8Hx5fiabKkMZ, private to Josh); Josh likes it, so it is the direction for 63.1.
+- **Build split:** section by section; old tabs stay reachable until their section lands.
+
+### 63.1 Design pass (After Track 58; Needs design: Opus, then Josh)
+Walk every tab, panel and the Setup wizard as they stand, finish the audit (every setting, test and log mapped to its new section), and build the clickable mockup from the choices above. Josh comments; adjust until he signs off. No change to what any setting does.
+
+### 63.2 Shell, status strip and Live (After 63.1)
+The Stream page with its five sections, the status strip, the rename and redirects, and the Live section. The old tabs stay reachable from the sections not yet built.
+
+### 63.3 What viewers get (After 63.2)
+The reward cards and the save-per-card pattern, with the one "Mix It Up commands" helper (webhook address and secret once) shared by every reward.
+
+### 63.4 Connections and first-run setup (After 63.2)
+TCG Bridge PCs with their accounts, Mix It Up, OBS, the Twitch channel (from Track 58), the command check and error reports; direct addresses under Advanced; the Setup wizard as the first-run state.
+
+### 63.5 Test and History (After 63.2)
+Every test in one place; History with the full log and filters, the ledger check, uptime and backups. Removes the old tabs.
 
 ## Track 61: Stream Deck plugin fix and more keys (2026-10-28)
 
@@ -142,10 +167,10 @@ Josh: the plugin's keys don't work; fix that, then add queue, staff, live info a
 3. Fix every cause found; the app shows the link state plainly on the Stream Deck plugin connection (59.6) and in the status pill when the plugin is installed but not linked.
 4. **Checks:** an end-to-end check in `bridge/scripts/check-deck.ts` that runs the built plugin's link and key code against the real `DeckServer` for each existing key (buff, last buff, pause pulls, happy hour); a pack check that the `.streamDeckPlugin` holds everything the manifest points at.
 
-### 61.2 Queue keys (After Track 58, S)
+### 61.2 Queue keys (Done, #661, bridge 0.36.0)
 Skip next pull, Clear queue (hold 1 s, like ending a happy hour), and a key that shows how many are waiting (polled from the app, not the site, at most every 5 s). Paid pulls skipped or cleared are refunded as today.
 
-### 61.3 Staff keys (After 61.2, S)
+### 61.3 Staff keys (Done, #663, bridge 0.37.0)
 Pause / resume trading, switch to a chosen scene, open the preview overlay. Shown only on a staff PC and refused with the 58.0 role rules (a mod-linked PC gets only mod actions).
 
 ### 61.4 Live info keys (After 61.3, S)
