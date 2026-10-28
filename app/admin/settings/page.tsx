@@ -89,7 +89,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const { tab: tabParam, saved, backupError, error, note, q } = await searchParams;
   // The overlay layout and look now live in the Overlay Editor (old links keep working).
   if (tabParam === 'achievements') redirect('/admin/achievements');
-  if (tabParam === 'mixitup') redirect('/admin/mixitup');
+  if (tabParam === 'mixitup') redirect('/admin/stream');
   if (tabParam === 'layout' || tabParam === 'look') redirect('/admin/overlay');
   const tab = pickTab(TABS, tabParam);
 

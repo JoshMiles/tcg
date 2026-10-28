@@ -34,7 +34,7 @@ export function TwitchChannelCard({ channel, ready }: { channel: TwitchChannelVi
             </ul>
           )}
           <div className="flex flex-wrap gap-2">
-            <a href="/admin/mixitup/twitch" className={channel.chat ? 'btn btn-sm btn-outline' : 'btn btn-sm btn-primary'}>{channel.chat ? 'Connect another account' : 'Reconnect to allow chat'}</a>
+            <a href="/admin/stream/twitch" className={channel.chat ? 'btn btn-sm btn-outline' : 'btn btn-sm btn-primary'}>{channel.chat ? 'Connect another account' : 'Reconnect to allow chat'}</a>
             <ArmedButton
               disabled={pending}
               onConfirm={() => start(async () => { await disconnectTwitchChannelAction(); router.refresh(); })}
@@ -62,7 +62,7 @@ export function TwitchChannelCard({ channel, ready }: { channel: TwitchChannelVi
               </select>
             </label>
             <div className="flex flex-wrap gap-2">
-              <a href="/admin/mixitup/twitch-bot" className="btn btn-sm btn-outline">{channel.bot ? 'Connect another bot account' : 'Connect bot account'}</a>
+              <a href="/admin/stream/twitch-bot" className="btn btn-sm btn-outline">{channel.bot ? 'Connect another bot account' : 'Connect bot account'}</a>
               {channel.bot && (
                 <ArmedButton
                   disabled={pending}
@@ -78,7 +78,7 @@ export function TwitchChannelCard({ channel, ready }: { channel: TwitchChannelVi
         <div className="space-y-2">
           <p className="text-sm text-gray-400">Not connected.</p>
           {ready
-            ? <a href="/admin/mixitup/twitch" className="btn btn-sm btn-primary">Connect Twitch channel</a>
+            ? <a href="/admin/stream/twitch" className="btn btn-sm btn-primary">Connect Twitch channel</a>
             : <p className="text-xs text-amber-300">Needs TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET and BACKUP_ENCRYPTION_KEY set on the site.</p>}
         </div>
       )}

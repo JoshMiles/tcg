@@ -7,13 +7,13 @@ export type PageTab = { id: string; label: string; icon?: IconName; count?: numb
  * Server-rendered tab bar driven by `?tab=`. Each tab is a plain link, so there is no client state and the
  * address bar always says where you are. `keep` carries other query params across tabs (e.g. ?season=).
  */
-export function PageTabs({ tabs, active, base, keep, label = 'Page sections' }: {
-  tabs: readonly PageTab[]; active: string; base: string; keep?: Record<string, string | undefined>; label?: string;
+export function PageTabs({ tabs, active, base, keep, label = 'Page sections', param = 'tab' }: {
+  tabs: readonly PageTab[]; active: string; base: string; keep?: Record<string, string | undefined>; label?: string; /** The query parameter that carries the tab id (the Stream page has two rows: `section` and `tab`). */ param?: string;
 }) {
   const href = (id: string) => {
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries(keep ?? {})) if (v) q.set(k, v);
-    q.set('tab', id);
+    q.set(param, id);
     return `${base}?${q.toString()}`;
   };
   return (

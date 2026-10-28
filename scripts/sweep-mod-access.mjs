@@ -9,7 +9,7 @@ const PACK = 'pack-wheel', SEASON = 'season2';
 const ADMIN_PAGES = ['/admin', '/admin/activity', '/admin/seasons', '/admin/seasons/new', `/admin/seasons/${SEASON}`, '/admin/packs', '/admin/packs/new', `/admin/packs/${PACK}`,
   `/admin/packs/${PACK}/cards`, `/admin/packs/${PACK}/cards/w1`, '/admin/users', '/admin/users/alice', '/admin/staff', '/admin/trades', '/admin/serials', '/admin/overlay',
   '/admin/assets', '/admin/settings', '/admin/settings?tab=environment', '/admin/sandbox',
-  '/admin/achievements', '/admin/buffs', '/admin/changelog', '/admin/faq', '/admin/feedback', '/admin/mixitup', '/admin/wiki', '/admin/webhooks'];
+  '/admin/achievements', '/admin/buffs', '/admin/changelog', '/admin/faq', '/admin/feedback', '/admin/stream','/admin/wiki', '/admin/webhooks'];
 // GET API routes and what they should answer a mod / a stranger.
 const ADMIN_API = [
   { path: '/api/admin/overlay-status', mod: [200] }, // read-only, for the mod stream desk

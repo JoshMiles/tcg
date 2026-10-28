@@ -15,7 +15,7 @@ import { endHappyHour, getHappyHour, happyHourWhat, startHappyHour } from './hap
 import type { HappyHour } from './mixitup-core';
 import { getEventFeed, type MixItUpEvent } from './mixitup';
 import { LAST_BUFF, runStreamDeck } from './streamdeck';
-import { awardsPaused, setAwardsPaused } from './twitch-awards';
+import { awardsPaused, pauseAwards } from './twitch-awards';
 import { readCommandCheck } from './mixitup-command-check';
 import { missingLabels } from './mixitup-command-check-core';
 
@@ -53,7 +53,7 @@ export async function runBridgeAction(body: Record<string, unknown>, pc?: Bridge
     }
     case 'pause-awards': { // ROADMAP 58.5: same guard as `pause`; redemptions are still recorded, their awards are not run (lib/twitch-awards.ts)
       const on = typeof body.on === 'boolean' ? body.on : !(await awardsPaused());
-      if (await setAwardsPaused(on)) await recordAudit('everyone', `${BY}: channel point awards ${on ? 'paused' : 'resumed'}`);
+      await pauseAwards(on, BY);
       return done(true, on ? 'Channel point awards are paused.' : 'Channel point awards are on.', { awardsPaused: on });
     }
     case 'scene-pause': { // ROADMAP 57.2: `scene` is the OBS scene on air when it is one the streamer picked, else null

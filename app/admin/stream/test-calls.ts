@@ -16,7 +16,7 @@ export async function runBalanceTest(user: string): Promise<TestResult> {
   if (!hasBalanceRoute(s)) return { ok: false, message: s.connection === 'bridge' ? 'Pair TCG Bridge and save the currency first.' : 'Save the balance address first.' };
   const { balance, error } = await fetchBalance(s, user);
   await logMixItUp({ username: user, what: 'balance', ok: balance !== null, detail: balance !== null ? `${balance} ${s.currency} (test)` : `${error ?? 'no answer'} (test)` });
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return balance === null ? { ok: false, message: `Mix It Up did not give a balance: ${error ?? 'no answer'}.` } : { ok: true, message: `${user} has ${balance.toLocaleString()} ${s.currency}.` };
 }
 
@@ -26,7 +26,7 @@ export async function runSendTest(): Promise<TestResult> {
   if (s.connection === 'addresses' && !s.balanceUrl && !s.deductUrl) return { ok: false, message: 'Save an address first.' };
   const r = await sendTest(s);
   await logMixItUp({ username: 'tcg-test', what: 'test', ok: r.ok, detail: r.ok ? `HTTP ${r.status}` : r.error ?? `HTTP ${r.status}` });
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return r.ok ? { ok: true, message: `Mix It Up answered (HTTP ${r.status}). The test message was sent with an amount of 0.` } : { ok: false, message: `Mix It Up did not accept the test: ${r.error ?? `HTTP ${r.status}`}.` };
 }
 
@@ -36,6 +36,6 @@ export async function runStreamExtra(raw: string, by: string): Promise<TestResul
   if (n === null) return { ok: false, message: 'Type a whole number, 0 or more.' };
   await setStreamPullBuff(n, await currentStreamKey(), by);
   await recordAudit('everyone', n === 0 ? 'Stream pull bonus cleared' : 'Stream pull bonus set', n === 0 ? undefined : `+${n} pulls while this stream lasts`);
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return { ok: true, message: n === 0 ? 'The extra pulls for this stream are cleared.' : `Everyone gets ${n} extra pull${n === 1 ? '' : 's'} this stream.` };
 }

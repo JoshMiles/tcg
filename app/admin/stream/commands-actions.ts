@@ -16,7 +16,7 @@ export async function saveCommandsAction(json: string): Promise<SaveResult> {
   const r = cleanCommands(raw);
   if (!r.ok) return r;
   await saveCommands(r.commands);
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return { ok: true, commands: r.commands };
 }
 

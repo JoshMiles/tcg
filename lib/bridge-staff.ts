@@ -81,7 +81,7 @@ export async function runStaffAction(pc: BridgeToken, body: Record<string, unkno
       if (n === null) return done(false, 'Type a whole number, 0 or more.');
       await setStreamPullBuff(n, await currentStreamKey(), `TCG Bridge (${pc.by ?? pc.name})`);
       await audit(null, n === 0 ? 'Stream pull bonus cleared' : 'Stream pull bonus set', n === 0 ? undefined : `+${n} pulls while this stream lasts`);
-      revalidatePath('/admin/mixitup');
+      revalidatePath('/admin/stream');
       return done(true, n === 0 ? 'The extra pulls for this stream are cleared.' : `Everyone gets ${n} extra pull${n === 1 ? '' : 's'} this stream.`);
     }
     case 'trading': { // on = true resumes trading
@@ -99,14 +99,14 @@ export async function runStaffAction(pc: BridgeToken, body: Record<string, unkno
       const thisStream = body.mode !== 'until-lifted';
       await blockPulls(user, pc.by ?? pc.name, thisStream);
       await audit(user, 'Blocked from pulls', thisStream ? 'for this stream' : 'until lifted');
-      revalidatePath('/admin/mixitup');
+      revalidatePath('/admin/stream');
       return done(true, `${user} is blocked from pulls ${thisStream ? 'for this stream' : 'until you lift it'}.`);
     }
     case 'unblock': {
       if (!user) return done(false, NO_USER);
       if (!(await liftPullBlock(user))) return done(false, `${user} was not blocked.`);
       await audit(user, 'Pull block lifted');
-      revalidatePath('/admin/mixitup');
+      revalidatePath('/admin/stream');
       return done(true, `${user} can pull again.`);
     }
     case 'backup': { // the same backup as Admin Settings > Back up now (ROADMAP 55.13)

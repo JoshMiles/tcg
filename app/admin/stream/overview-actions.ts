@@ -5,6 +5,7 @@ import type { ActionResult } from '../action-types';
 import { revalidatePath } from 'next/cache';
 import { recordAudit } from '@/lib/audit';
 import { setPauseChat, setPullsPaused } from '@/lib/pull-pause';
+import { pauseAwards } from '@/lib/twitch-awards';
 import { runBalanceTest, runSendTest, runStreamExtra } from './test-calls';
 
 // The Overview tab's quick actions. Each answers with a message the page shows under its button (useActionState), instead of redirecting.
@@ -27,12 +28,21 @@ export async function setStreamExtraAction(_prev: ActionResult | null, formData:
   return runStreamExtra(formData.get('intent') === 'clear' ? '0' : String(formData.get('amount') ?? ''), staff.login);
 }
 
+/** Pause or resume channel point awards (63.2): the same effect and audit line as TCG Bridge's `pause-awards`. Redemptions are still recorded; only the award is skipped. */
+export async function setAwardsPausedAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const staff = await requireAdmin();
+  const on = formData.get('intent') === 'pause';
+  await pauseAwards(on, `${staff.login} on the Stream page`);
+  revalidatePath('/admin/stream');
+  return { ok: true, message: on ? 'Channel point awards are paused. Redemptions are still recorded.' : 'Channel point awards are on.' };
+}
+
 /** Pause or resume pulls (ROADMAP 55.9). The checkbox says whether TCG Bridge also posts a line in chat when this changes. */
 export async function setPausedAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   const staff = await requireAdmin();
   const on = formData.get('intent') === 'pause';
   await setPauseChat(formData.get('chat') === 'on');
   if (await setPullsPaused(on)) await recordAudit('everyone', `Pulls ${on ? 'paused' : 'resumed'}`, `By ${staff.login} on the Mix It Up page`);
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return { ok: true, message: on ? 'Pulls are paused. Viewers are told "Packs are paused, back soon".' : 'Pulls are open.' };
 }

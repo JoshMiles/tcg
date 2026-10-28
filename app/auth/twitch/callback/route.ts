@@ -20,7 +20,7 @@ function fail(req: NextRequest, reason: string) {
 /** The OAuth return of an admin's channel connection: only that admin's own state cookie counts, and no viewer session is made. */
 async function channelReturn(req: NextRequest, code: string, state: string, cookie: string) {
   const back = (error?: string) => {
-    const res = NextResponse.redirect(new URL(`/admin/mixitup?tab=connection${error ? `&error=${encodeURIComponent(error)}` : ''}`, req.url));
+    const res = NextResponse.redirect(new URL(`/admin/stream?tab=connection${error ? `&error=${encodeURIComponent(error)}` : ''}`, req.url));
     res.cookies.delete(OAUTH_COOKIE);
     return res;
   };
@@ -34,7 +34,7 @@ async function channelReturn(req: NextRequest, code: string, state: string, cook
 /** The OAuth return of "Connect bot account" (58.6): same rules as the channel's, with the `bot` cookie marker; the bot cannot be the channel's own account. */
 async function botReturn(req: NextRequest, code: string, state: string, cookie: string) {
   const back = (error?: string) => {
-    const res = NextResponse.redirect(new URL(`/admin/mixitup?tab=connection${error ? `&error=${encodeURIComponent(error)}` : ''}`, req.url));
+    const res = NextResponse.redirect(new URL(`/admin/stream?tab=connection${error ? `&error=${encodeURIComponent(error)}` : ''}`, req.url));
     res.cookies.delete(OAUTH_COOKIE);
     return res;
   };

@@ -2,7 +2,7 @@
 title: Live tools
 summary: The overlay, chat webhooks, Mix It Up, and the Twitch panel.
 order: 40
-covers: app/admin/mixitup/**, app/admin/settings/OverlayPanels.tsx, app/admin/settings/WebhookConfig.tsx, lib/mixitup.ts
+covers: app/admin/stream/**, app/admin/settings/OverlayPanels.tsx, app/admin/settings/WebhookConfig.tsx, lib/mixitup.ts
 ---
 
 ## The overlay
@@ -21,7 +21,7 @@ The on-stream test panel can reset a collection. Those buttons write real data, 
 
 ## Chat webhooks
 
-While chat comes through TCG Bridge (the channel connected on the Mix It Up page with chat allowed, and the app listening), chat commands run from Twitch chat directly and the pull (without an event), show-a-card and chat-command webhooks answer "ignored"; the Mix It Up commands are then only a fallback for when that connection is down. Incoming webhooks (pull, show a card, show a collection, grant a card, chat commands) share one secret. It is generated the first time the settings are opened and shown under [Settings, Webhooks](/admin/settings?tab=webhooks). The bot (Mix It Up or similar) sends it in the JSON body with the viewer's login.
+While chat comes through TCG Bridge (the channel connected on the Stream page with chat allowed, and the app listening), chat commands run from Twitch chat directly and the pull (without an event), show-a-card and chat-command webhooks answer "ignored"; the Mix It Up commands are then only a fallback for when that connection is down. Incoming webhooks (pull, show a card, show a collection, grant a card, chat commands) share one secret. It is generated the first time the settings are opened and shown under [Settings, Webhooks](/admin/settings?tab=webhooks). The bot (Mix It Up or similar) sends it in the JSON body with the viewer's login.
 
 A pull webhook asks the server to roll a card and queue it. It does not pick the card. A grant webhook does pick a card number and a version, and adds that print. Treat the grant URL like a password: anyone with the secret can mint cards.
 
@@ -31,7 +31,7 @@ There is no "link your Discord account" step for viewers. Direct messages are no
 
 ## Mix It Up paid pulls
 
-[Mix It Up](/admin/mixitup) can charge a channel currency before a pull counts. It stays off until you fill in the webhook, check the balance, send a test, and switch it on. While it is on, a refused payment queues nothing. If the charge is not confirmed after the pull is saved, the print is taken back and nothing is recorded as a pull.
+[Mix It Up](/admin/stream) can charge a channel currency before a pull counts. It stays off until you fill in the webhook, check the balance, send a test, and switch it on. While it is on, a refused payment queues nothing. If the charge is not confirmed after the pull is saved, the print is taken back and nothing is recorded as a pull.
 
 Paid pulls do not run inside a sandbox. Try the form's buttons there, and try a real charge on production only when you mean to.
 

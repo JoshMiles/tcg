@@ -196,7 +196,7 @@ await resetRates();
 
 // ── The bot account ──
 const startOAuth = async (marker: 'channel' | 'bot' | 'plain', state = 'st-1', by = 'josh') =>
-  JSON.stringify(marker === 'plain' ? { state, returnTo: '/' } : { state, [marker]: true, by, returnTo: '/admin/mixitup?tab=connection' });
+  JSON.stringify(marker === 'plain' ? { state, returnTo: '/' } : { state, [marker]: true, by, returnTo: '/admin/stream?tab=connection' });
 ok(ch.botStateOk(await startOAuth('bot'), 'st-1', 'josh'), 'bot state: the same admin with the bot marker passes');
 ok(!ch.botStateOk(await startOAuth('bot'), 'st-1', 'other-admin'), 'bot state: another admin is refused');
 ok(!ch.botStateOk(await startOAuth('bot'), 'wrong', 'josh') && !ch.botStateOk(undefined, 'st-1', 'josh') && !ch.botStateOk('not json', 'st-1', 'josh'), 'bot state: a wrong state, no cookie or a broken cookie is refused');

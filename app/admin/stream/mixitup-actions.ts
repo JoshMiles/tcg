@@ -13,7 +13,7 @@ import { cleanEventRewardsInput, EVENT_NAMES } from '@/lib/event-rewards-core';
 import { getBuffDefs } from '@/lib/buffs';
 import { saveRewardAwards } from '@/lib/twitch-awards';
 
-const back = (tab: string, kind: 'saved' | 'error' | 'note', text: string): never => redirect(`/admin/mixitup?tab=${tab}&${kind}=${encodeURIComponent(text)}`);
+const back = (tab: string, kind: 'saved' | 'error' | 'note', text: string): never => redirect(`/admin/stream?tab=${tab}&${kind}=${encodeURIComponent(text)}`);
 
 /**
  * Saves one of the two settings forms. Each form posts only its own fields, so they are laid over what is stored: the Paid pulls form
@@ -26,7 +26,7 @@ async function saveSettings(formData: FormData, tab: 'paid' | 'connection'): Pro
   const fields = Object.fromEntries([...formData.entries()].filter(([, v]) => typeof v === 'string'));
   // The setup wizard posts the same forms with `returnTo=setup` and comes back to its own step.
   const end = (kind: 'saved' | 'error', text: string): never => formData.get('returnTo') === 'setup'
-    ? redirect(`/admin/mixitup/setup?step=${tab === 'paid' ? 'rules' : 'outgoing'}&${kind === 'saved' ? 'note=Saved.' : `error=${encodeURIComponent(text)}`}`)
+    ? redirect(`/admin/stream/setup?step=${tab === 'paid' ? 'rules' : 'outgoing'}&${kind === 'saved' ? 'note=Saved.' : `error=${encodeURIComponent(text)}`}`)
     : back(tab, kind, text);
   const r = cleanMixItUpInput({ ...cur, ...fields, enabled: tab === 'paid' ? formData.get('enabled') === 'on' : cur.enabled, firstPackFree: tab === 'paid' ? formData.get('firstPackFree') === 'on' : cur.firstPackFree });
   if (!r.ok) return end('error', r.message);
@@ -35,7 +35,7 @@ async function saveSettings(formData: FormData, tab: 'paid' | 'connection'): Pro
     if (c) r.settings.currency = c.name;
   }
   await saveMixItUpSettings(r.settings);
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return end('saved', 'mixitup');
 }
 
@@ -58,7 +58,7 @@ export async function savePullRulesAction(formData: FormData): Promise<void> {
   if (!r.ok) return back('bigpulls', 'error', r.message);
   await saveMixItUpSettings({ ...s, pullRules: r.rules });
   await recordAudit('everyone', 'Big pull rules saved', `${r.rules.length} rule${r.rules.length === 1 ? '' : 's'}, ${r.rules.filter(x => x.on).length} on`);
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return back('bigpulls', 'note', 'Big pull rules saved.');
 }
 
@@ -68,7 +68,7 @@ export async function saveWatchdogAction(formData: FormData): Promise<void> {
   const on = formData.get('overlayWatchdog') === 'on';
   await saveMixItUpSettings({ ...(await getMixItUpSettings()), overlayWatchdog: on });
   await recordAudit('everyone', `Overlay watchdog ${on ? 'on' : 'off'}`);
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return back('bigpulls', 'note', on ? 'The overlay watchdog is on.' : 'The overlay watchdog is off.');
 }
 
@@ -79,7 +79,7 @@ export async function saveChatAction(formData: FormData): Promise<void> {
   const chat = normalizeChat({ startOn: on('startOn'), startText: formData.get('startText'), endOn: on('endOn'), endText: formData.get('endText'), backup: on('backup'), check: on('check') });
   await saveMixItUpSettings({ ...(await getMixItUpSettings()), chat });
   await recordAudit('everyone', 'Chat and Brie Bucks settings saved', `start post ${chat.startOn ? 'on' : 'off'}, end post ${chat.endOn ? 'on' : 'off'}, backup ${chat.backup ? 'on' : 'off'}, check ${chat.check ? 'on' : 'off'}`);
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return back('chat', 'note', 'Chat and Brie Bucks settings saved.');
 }
 
@@ -95,7 +95,7 @@ export async function saveEventRewardsAction(formData: FormData): Promise<void> 
   }
   await saveMixItUpSettings({ ...(await getMixItUpSettings()), eventRewards: r.rewards });
   await recordAudit('everyone', 'Event rewards saved', EVENT_NAMES.map(n => `${n} ${r.rewards[n].on ? 'on' : 'off'}`).join(', ') + `, raid shout-out ${r.rewards.raidShoutout.on ? `on from ${r.rewards.raidShoutout.minViewers}` : 'off'}`);
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return back('events', 'note', 'Event rewards saved.');
 }
 
@@ -104,7 +104,7 @@ export async function saveRewardAwardsAction(formData: FormData): Promise<void> 
   await requireAdmin();
   const get = (k: string) => { const v = formData.get(k); return typeof v === 'string' ? v : undefined; };
   const r = await saveRewardAwards(get, formData.getAll('reward').filter((v): v is string => typeof v === 'string'));
-  if (r.ok) revalidatePath('/admin/mixitup');
+  if (r.ok) revalidatePath('/admin/stream');
   return back('events', r.ok ? 'note' : 'error', r.message);
 }
 
@@ -114,7 +114,7 @@ export async function deletePullRuleAction(id: string): Promise<void> {
   const s = await getMixItUpSettings();
   await saveMixItUpSettings({ ...s, pullRules: s.pullRules.filter(r => r.id !== id) });
   await recordAudit('everyone', 'Big pull rule deleted');
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return back('bigpulls', 'note', 'Rule deleted.');
 }
 

@@ -48,7 +48,7 @@ The Cheesy TCG is a trading card game played live on the Cheesygidds Twitch chan
 | **Public site** | Profiles, binders, the dex, leaderboard, trading, print pages | `app/` (public routes) |
 | **Admin and mod portals** | Seasons, packs, cards, the Overlay Editor, the Mix It Up page, staff roles, backups (admin); a slimmer moderation panel (mod) | `app/admin`, `app/mod` |
 | **Twitch Extension** | A channel panel where viewers see their collection and trades | `public/twitch-panel`, `twitch-extension` |
-| **Mix It Up integration** | Paid pulls with Brie Bucks, chat commands, event rewards | `app/admin/mixitup` and the `lib/mixitup*` and `lib/bridge*` files |
+| **Mix It Up integration** | Paid pulls with Brie Bucks, chat commands, event rewards | `app/admin/stream` and the `lib/mixitup*` and `lib/bridge*` files |
 | **TCG Bridge** | A Windows app on the stream PC that carries the site's requests to Mix It Up and watches OBS | `bridge/` |
 
 The site is Next.js on Vercel. Data lives in Upstash Redis, reached only through `lib/db.ts`; card art and backups are in Vercel Blob. Mix It Up's Developer API only listens on the stream PC, so the cloud site cannot call it. Mix It Up calls the site when a viewer uses a chat command; TCG Bridge on the stream PC asks the site for jobs (take Brie Bucks, post a chat line, run a command), runs them against Mix It Up and posts the answers back.
