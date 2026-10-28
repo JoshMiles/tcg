@@ -38,7 +38,7 @@ export async function recordTwitchEvent(e: CleanEvent, now = Date.now()): Promis
     await kv.lpush(EVENTS_KEY, line);
     await kv.ltrim(EVENTS_KEY, 0, EVENTS_KEPT - 1);
     const stream = e.type === 'stream.online' || e.type === 'stream.offline';
-    if (stream) await noteFeedEvent({ at: now, username: '', event: e.type === 'stream.online' ? 'stream-online' : 'stream-offline', ok: true, detail: line.text }); // 58.5: the app's event feed
+    if (stream && !channel.testing) await noteFeedEvent({ at: now, username: '', event: e.type === 'stream.online' ? 'stream-online' : 'stream-offline', ok: true, detail: line.text }); // 58.5: the app's event feed
     if (stream && !channel.testing) {
       await setLiveFromBridge(e.type === 'stream.online');
       return { status: 'recorded', live: e.type === 'stream.online' };
