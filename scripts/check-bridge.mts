@@ -38,6 +38,8 @@ ok(c.hasAddRoute({ connection: 'bridge', currencyId: 'x', addUrl: '' }) && !c.ha
 // ── Pure: shapes ──
 ok(core.cleanResult({ id: 'a', ok: true, balance: 12.9 })?.balance === 12 && core.cleanResult({ id: 'a b', ok: true }) === null && core.cleanResult({ id: 'a', ok: 'yes' }) === null && core.cleanResult({ id: 'a', ok: true, balance: -1 }) === null && core.cleanResult({ id: 'a', ok: true, users: [1] }) === null && core.cleanResult({ id: 'a', ok: true, users: ['x', 'y'] })?.users?.length === 2, 'results are validated');
 ok(core.cleanHello({ version: '1.0', currencies: [{ id: 'g', name: 'Bucks' }, { id: '', name: 'x' }, 5] })?.currencies.length === 1 && core.cleanHello({ version: '1' }) === null, 'hello keeps only complete currencies');
+ok(core.cleanHello({ version: '1', currencies: [], commit: ' ABC1234 ' })?.commit === 'abc1234' && core.cleanHello({ version: '1', currencies: [] })?.commit === undefined, 'hello keeps a commit (trimmed, lowercase hex) and accepts an older app without one');
+ok(['xyz', '', 12, 'a'.repeat(41), 'abc 123'].every(c => core.cleanHello({ version: '1', currencies: [], commit: c })?.commit === undefined) && core.cleanHello({ version: '1', currencies: [], commit: 'a'.repeat(40) })?.commit?.length === 40, 'a commit that is not hex or is over 40 characters is dropped');
 ok(core.normalizeCode('abcd-efgh') === 'ABCDEFGH' && core.normalizeCode('ABC') === '' && core.normalizeCode('0000-1111') === '' && core.newPairCode().length === 8, 'codes are normalised and an ambiguous character is refused');
 
 // ── Pairing: a code works once, expires, and a wrong one is refused ──
@@ -73,6 +75,9 @@ ok(helloRes.status === 200 && helloBody.ok === true, 'hello is accepted');
 ok(helloBody.channel === 'Cheesygidds' && typeof helloBody.currencyId === 'string', 'hello answers with the channel name and the chosen currency id');
 const state = await b.readBridge();
 ok(state.version === '0.1.0' && state.currencies[0].id === 'cur-1', 'hello fills the currency list');
+ok(state.commit === '', 'an older app without a commit stores none');
+await post(helloRoute, 'hello', tokenA, { version: '0.1.0', currencies: [{ id: 'cur-1', name: 'Bucks' }], commit: 'ABCDEF1' });
+ok((await b.readBridge()).commit === 'abcdef1', 'hello stores the commit beside the version');
 ok((await post(helloRoute, 'hello', tokenA, { version: 1 })).status === 400 && (await post(resultRoute, 'result', tokenA, { id: 'x' })).status === 400, 'a wrong shape is a 400');
 ok((await post(resultRoute, 'result', tokenA, { id: 'r1', ok: true, balance: 7 })).status === 200 && (await kv.get('bridge:result:r1')), 'a result is stored');
 

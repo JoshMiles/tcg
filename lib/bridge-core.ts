@@ -74,8 +74,8 @@ export function cleanResult(raw: unknown): BridgeResult | null {
   return r;
 }
 
-/** The version, currencies and (since TCG Bridge 0.4.0) Mix It Up commands a bridge announces. `commands` is undefined from an older app. Null when the shape is wrong. */
-export function cleanHello(raw: unknown): { version: string; currencies: BridgeCurrency[]; commands?: BridgeCommand[] } | null {
+/** The version, currencies, (since TCG Bridge 0.4.0) Mix It Up commands and (since 0.12.0) the app's commit, as lowercase hex up to 40, a bridge announces. `commands` and `commit` are undefined from an older app or a dev run. Null when the shape is wrong. */
+export function cleanHello(raw: unknown): { version: string; currencies: BridgeCurrency[]; commands?: BridgeCommand[]; commit?: string } | null {
   if (!raw || typeof raw !== 'object') return null;
   const o = raw as Record<string, unknown>;
   if (!Array.isArray(o.currencies)) return null;
@@ -92,7 +92,8 @@ export function cleanHello(raw: unknown): { version: string; currencies: BridgeC
       if (typeof x.id === 'string' && GUID.test(x.id.trim()) && typeof x.name === 'string' && x.name.trim()) commands.push({ id: x.id.trim().toLowerCase(), name: x.name.trim().slice(0, 100) });
     }
   }
-  return { version: typeof o.version === 'string' ? o.version.trim().slice(0, 40) : '', currencies, ...(commands ? { commands } : {}) };
+  const commit = typeof o.commit === 'string' ? o.commit.trim().toLowerCase() : '';
+  return { version: typeof o.version === 'string' ? o.version.trim().slice(0, 40) : '', currencies, ...(commands ? { commands } : {}), ...(/^[0-9a-f]{1,40}$/.test(commit) ? { commit } : {}) };
 }
 
 /** What TCG Bridge last saw in OBS (ROADMAP 55.6b): only facts, never the overlay address or key. `at` is when the site stored it. */

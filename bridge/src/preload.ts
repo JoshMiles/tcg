@@ -36,5 +36,6 @@ contextBridge.exposeInMainWorld('bridge', {
   staff: (req: Record<string, unknown>): Promise<{ ok: boolean; text: string; data?: Record<string, unknown> }> => ipcRenderer.invoke('staff', req),
   staffTrading: (pause: boolean): Result => ipcRenderer.invoke('staff-trading', !!pause),
   openRelease: (): Promise<void> => ipcRenderer.invoke('open-release'),
+  openCommit: (): Promise<void> => ipcRenderer.invoke('open-commit'),
   dismissUpdated: (): Promise<void> => ipcRenderer.invoke('dismiss-updated'),
 });

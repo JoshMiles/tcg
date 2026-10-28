@@ -267,12 +267,12 @@ async function touchBridge(hash: string, version?: string, now = Date.now()): Pr
   return true;
 }
 
-export interface BridgeState { at: number | null; version: string; currencies: BridgeCurrency[]; commands: BridgeCommand[] }
+export interface BridgeState { at: number | null; version: string; commit: string; currencies: BridgeCurrency[]; commands: BridgeCommand[] }
 /** What the bridge last said (for the currency select and the health chip). */
 export async function readBridge(): Promise<BridgeState> {
-  const h = await kv.hgetall<{ at?: number | string; version?: string; currencies?: BridgeCurrency[]; commands?: BridgeCommand[] }>(STATE).catch(() => null);
+  const h = await kv.hgetall<{ at?: number | string; version?: string; commit?: string; currencies?: BridgeCurrency[]; commands?: BridgeCommand[] }>(STATE).catch(() => null);
   const at = Number(h?.at);
-  return { at: Number.isFinite(at) && at > 0 ? at : null, version: h?.version ?? '', currencies: Array.isArray(h?.currencies) ? h.currencies : [], commands: Array.isArray(h?.commands) ? h.commands : [] };
+  return { at: Number.isFinite(at) && at > 0 ? at : null, version: h?.version ?? '', commit: h?.commit ?? '', currencies: Array.isArray(h?.currencies) ? h.currencies : [], commands: Array.isArray(h?.commands) ? h.commands : [] };
 }
 
 // ── The API routes' side ──
@@ -351,10 +351,10 @@ export async function readObs(): Promise<ObsSnapshot | null> {
   return o && Number.isFinite(at) ? { at, ...o } : null;
 }
 
-/** Stores what a bridge announces: its version, the currencies the select offers and the Mix It Up commands the rules offer. An older app sends no commands: the stored list is kept. False when the shape is wrong. */
+/** Stores what a bridge announces: its version, its commit (empty from an older app or a dev run, so a stale one never stays), the currencies the select offers and the Mix It Up commands the rules offer. An older app sends no commands: the stored list is kept. False when the shape is wrong. */
 export async function storeHello(raw: unknown): Promise<boolean> {
   const h = cleanHello(raw);
   if (!h) return false;
-  await kv.hset(STATE, { at: Date.now(), version: h.version, currencies: h.currencies, ...(h.commands ? { commands: h.commands } : {}) });
+  await kv.hset(STATE, { at: Date.now(), version: h.version, commit: h.commit ?? '', currencies: h.currencies, ...(h.commands ? { commands: h.commands } : {}) });
   return true;
 }

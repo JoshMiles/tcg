@@ -14,6 +14,8 @@ import { cleanFeed, cleanFeedSettings, cleanSummary, defaultFeed, shouldPlay, su
 import { commandWait, isKnownKind, runJob } from '../src/jobs';
 import { cleanNotice, cleanNoticeSwitches, defaultNotices, siteUrl } from '../src/notices';
 import { diagnosticsText } from '../src/diagnostics';
+import { aboutText, cleanBuildInfo, commitUrl, readBuildInfo, stampText } from '../src/buildinfo';
+import { versionProblems } from './check-version';
 import { defaultMixItUpPath, defaultObsPath, isMixItUpExe, isObsExe, obsRunning, startMixItUp, startObs } from '../src/launch';
 import { Logger, redact } from '../src/log';
 import { MixItUpClient } from '../src/mixitup';
@@ -112,7 +114,7 @@ function fakeMixItUp() {
 function fakeSite() {
   const s = {
     jobs: [] as BridgeJob[],
-    hellos: [] as { version: string; currencies: { id: string; name: string }[]; commands?: { id: string; name: string }[] }[],
+    hellos: [] as { version: string; currencies: { id: string; name: string }[]; commands?: { id: string; name: string }[]; commit?: string }[],
     results: [] as BridgeResult[],
     reports: [] as Record<string, unknown>[],
     ledgers: [] as { id: string; user: string; amount: number; answer: string }[][],
@@ -356,6 +358,8 @@ async function main() {
   svc.start();
   await waitFor('hello', () => si.s.hellos.length > 0);
   assert.deepEqual(si.s.hellos[0], { version: '1.10.0.0', currencies: [{ id: CUR, name: 'Brie Bucks' }], commands: [{ id: CMD_SOUND, name: 'Big pull sound' }] }); // the version stays a string; hello carries the enabled, named commands
+  await new SiteClient(siSrv.url, TOKEN, '0.12.0', 'abc1234').hello([], '1.10.0.0');
+  assert.equal(si.s.hellos.at(-1)?.commit, 'abc1234', 'a stamped build sends its commit with hello');
   await waitFor('connected', () => svc.state.site === 'connected' && svc.state.mix.found);
   assert.equal(svc.state.tray, 'connected');
 
@@ -677,6 +681,32 @@ async function main() {
   assert.match(jobLines[0], / say failed 7ms - failed Bearer \[hidden\] key=\[hidden\] \[hidden\]$/);
   assert.match(diagnosticsText({ versions: { app: '1', electron: '2', windows: '3' }, site: 'https://x.test', paired: false, alerts: false, state: null }, t => t), /paired: no/);
   rmSync(logDir, { recursive: true, force: true });
+
+  // ── The About line and the version rule (ROADMAP 56.1) ──
+  const stamp = cleanBuildInfo({ commit: 'ignored', full: 'ABCDEF0123456789abcdef0123456789abcdef01', date: '2026-10-28T12:34:56.000Z', pr: 77 });
+  assert.deepEqual(stamp, { commit: 'abcdef0', full: 'abcdef0123456789abcdef0123456789abcdef01', date: '2026-10-28', pr: 77 });
+  assert.equal(aboutText('0.12.0', stamp), 'Version 0.12.0, built from abcdef0 (PR #77) on 2026-10-28');
+  assert.equal(aboutText('0.12.0', cleanBuildInfo({ full: 'abcdef0123456789', date: '2026-10-28' })), 'Version 0.12.0, built from abcdef0 on 2026-10-28', 'a commit with no PR number');
+  assert.equal(aboutText('0.12.0', null), 'Version 0.12.0, dev build', 'a dev run has no stamp');
+  assert.equal(stampText(stamp), 'built from abcdef0 (PR #77) on 2026-10-28');
+  assert.equal(stampText(null), 'dev build');
+  assert.equal(commitUrl(stamp!.full), 'https://github.com/JoshMiles/tcg/commit/abcdef0123456789abcdef0123456789abcdef01');
+  assert.match(diagnosticsText({ versions: { app: '0.12.0', electron: '2', windows: '3', build: stampText(stamp) }, site: 'https://x.test', paired: false, alerts: false, state: null }, t => t), /^TCG Bridge 0\.12\.0 \(built from abcdef0 \(PR #77\) on 2026-10-28\), Electron 2/);
+  assert.match(diagnosticsText({ versions: { app: '0.12.0', electron: '2', windows: '3', build: stampText(null) }, site: 'https://x.test', paired: false, alerts: false, state: null }, t => t), /^TCG Bridge 0\.12\.0 \(dev build\), Electron 2/);
+  assert.equal(cleanBuildInfo({ full: 'nothex', date: '2026-10-28' }), null);
+  assert.equal(cleanBuildInfo({ full: 'abcdef0', date: 'yesterday' }), null);
+  assert.equal(cleanBuildInfo('x'), null);
+  assert.equal(readBuildInfo(join(tmpdir(), 'tcg-bridge-no-such-build-info.json')), null, 'a missing file is a dev build');
+  const lockOf = (v: string, w = v) => ({ version: v, packages: { '': { version: w } } });
+  assert.deepEqual(versionProblems(['bridge/src/main.ts', 'app/page.tsx'], '0.11.0', '0.12.0', lockOf('0.12.0')), [], 'a minor bump with a matching lock is fine');
+  assert.deepEqual(versionProblems(['bridge/README.md', 'lib/bridge.ts'], '0.11.0', '0.11.0', lockOf('0.11.0')), [], 'a README-only change needs no bump');
+  assert.deepEqual(versionProblems(['app/page.tsx'], '0.11.0', '0.11.0', lockOf('0.11.0')), [], 'a change outside bridge/ needs no bump');
+  assert.match(versionProblems(['bridge/src/main.ts'], '0.11.0', '0.11.0', lockOf('0.11.0'))[0], /raise the minor version above main's 0\.11\.0 with patch 0/, 'no bump fails');
+  assert.equal(versionProblems(['bridge/package.json'], '0.11.0', '0.11.1', lockOf('0.11.1')).length, 1, 'a patch bump fails');
+  assert.equal(versionProblems(['bridge/package.json'], '0.11.0', '0.12.1', lockOf('0.12.1')).length, 1, 'a bump that leaves a patch fails');
+  assert.equal(versionProblems(['bridge/package.json'], '0.11.0', '0.10.0', lockOf('0.10.0')).length, 1, 'going back fails');
+  assert.equal(versionProblems(['bridge/package.json'], '0.11.0', '1.0.0', lockOf('1.0.0')).length, 0, 'a major bump with patch 0 passes');
+  assert.match(versionProblems(['bridge/src/main.ts'], '0.11.0', '0.12.0', lockOf('0.12.0', '0.11.0'))[0], /package-lock\.json must say 0\.12\.0 in both/, 'a lock that lags fails');
 
   // ── Starting Mix It Up: only a file called MixItUp.exe, at the saved or the default path, no shell ──
   const exeDir = mkdtempSync(join(tmpdir(), 'tcg-bridge-exe-'));

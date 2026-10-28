@@ -44,7 +44,7 @@ export async function pair(site: string, code: string, name: string): Promise<st
 }
 
 export class SiteClient {
-  constructor(readonly base: string, private token: string, private version: string) {}
+  constructor(readonly base: string, private token: string, private version: string, private commit = '') {}
 
   private async call(path: string, body: Record<string, unknown>, signal?: AbortSignal) {
     const r = await post(this.base, path, body, this.token, signal);
@@ -54,7 +54,7 @@ export class SiteClient {
 
   /** The site answers with the channel name and the chosen currency's id; an older site sends neither. */
   async hello(currencies: BridgeCurrency[], mixItUpVersion: string, commands: BridgeCommand[] = []): Promise<{ channel: string; currencyId: string }> {
-    const r = await this.call('/api/bridge/hello', { version: mixItUpVersion, currencies, commands }, AbortSignal.timeout(15_000));
+    const r = await this.call('/api/bridge/hello', { version: mixItUpVersion, currencies, commands, ...(this.commit ? { commit: this.commit } : {}) }, AbortSignal.timeout(15_000));
     if (r.status !== 200) throw new SiteError(r.status, `hello: the site answered ${r.status}`);
     return { channel: typeof r.json.channel === 'string' ? r.json.channel : '', currencyId: typeof r.json.currencyId === 'string' ? r.json.currencyId : '' };
   }

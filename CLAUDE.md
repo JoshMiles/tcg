@@ -115,5 +115,6 @@ Full rules, including the comment-reading command, in [docs/git-and-prs.md](docs
 
 - **IMPORTANT: never write real data from local work.** Develop against the mock KV, never production KV. On the production overlay, never turn off "Don't save" in the test panel or call `drawCard` without `dry`: a saved draw writes a real pull (it once left a stray `tester` user). Saves now need a server ticket, but the panel's Reset buttons always write real data.
 - Before committing: stop dev servers and mock processes, and delete `.env.local` and `.claude/launch.json`.
+- **TCG Bridge version rule:** a PR that changes anything under `bridge/` except `bridge/README.md` must raise the minor of `bridge/package.json` above `main`'s with patch 0 (0.11.0 to 0.12.0) and keep `bridge/package-lock.json`'s two version fields equal; CI fails otherwise, and the merge to `main` builds and publishes the `bridge-v<version>` release by itself (no hand tag).
 - The Claude app's browser pane can't measure frame rate or animation (see docs/local-dev.md). Say plainly in PR descriptions what wasn't checked in real OBS.
 - Left to the user (can't be checked locally): OBS (stream status permission, real frame rate), Discord webhook delivery, Vercel Blob uploads, the Twitch panel inside Twitch.

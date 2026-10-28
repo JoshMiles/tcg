@@ -5,6 +5,7 @@ import { mkdirSync } from 'node:fs';
 import { hostname, release, tmpdir, version as osVersion } from 'node:os';
 import { dirname, join } from 'node:path';
 import { Alerts, snapshotOf } from './alerts';
+import { aboutParts, commitUrl, readBuildInfo, stampText } from './buildinfo';
 import { Ledger } from './bucks';
 import { buttonUrl, ControlServer, HOTKEY_ACTION, HOTKEYS, Hotkeys, newControlKey, type ControlAction, type ControlResult, type HotkeyMap, type HotkeyName } from './control';
 import { diagnosticsText } from './diagnostics';
@@ -25,6 +26,7 @@ import { checkText, releaseUrl, updatedTo, updateText, type UpdateStage } from '
 // Development only: `npm start -- --demo-startup [--shots=<folder>]` walks the start-up window through its states and then shows the
 // window with made-up data (and saves PNGs of each when a folder is given). Ignored in the installed app.
 const DEMO = !app.isPackaged && process.argv.includes('--demo-startup');
+const build = readBuildInfo(join(__dirname, '..', 'build-info.json')); // written by `npm run dist`; none in a dev run
 if (process.env.TCG_BRIDGE_DATA) app.setPath('userData', process.env.TCG_BRIDGE_DATA); // for trying the app against a local site
 else if (DEMO) app.setPath('userData', join(tmpdir(), 'tcg-bridge-demo')); // never the real settings
 app.setAppUserModelId('app.cheesytcg.bridge'); // Windows notifications need it
@@ -94,6 +96,7 @@ const appState = (): object => demoState ?? ({
   notices: settings.notices,
   control: { error: control?.error ?? '', paused, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
   appVersion: app.getVersion(),
+  about: aboutParts(app.getVersion(), build),
   update: updateText(update),
   updatedTo: updatedNote,
   service: service?.state ?? null,
@@ -163,7 +166,7 @@ const obsConfig = () => ({ enabled: settings.obsEnabled, address: settings.obsAd
 function connect(): void {
   logger?.addSecret(settings.token);
   logger?.addSecret(settings.obsPassword);
-  const site = new SiteClient(settings.site, settings.token, app.getVersion());
+  const site = new SiteClient(settings.site, settings.token, app.getVersion(), build?.commit);
   client = site;
   const obs = new ObsWatcher({ site: settings.site, report: body => site.report(body) }, obsConfig());
   alerts = new Alerts();
@@ -583,7 +586,7 @@ function setupIpc(): void {
   });
   ipcMain.handle('copy-diagnostics', () => {
     clipboard.writeText(diagnosticsText({
-      versions: { app: app.getVersion(), electron: process.versions.electron, windows: `${osVersion()} (${release()})` },
+      versions: { app: app.getVersion(), electron: process.versions.electron, windows: `${osVersion()} (${release()})`, build: stampText(build) },
       site: settings.site, paired: !!settings.token, alerts: settings.alerts, state: service?.state ?? null,
     }, text => logger?.redact(text) ?? text));
     return { ok: true, text: 'Copied. Paste it into your message.' };
@@ -600,6 +603,7 @@ function setupIpc(): void {
     }
   });
   ipcMain.handle('open-release', () => shell.openExternal(releaseUrl(app.getVersion())));
+  ipcMain.handle('open-commit', () => (build ? shell.openExternal(commitUrl(build.full)) : undefined));
   ipcMain.handle('dismiss-updated', async () => {
     updatedNote = '';
     settings = { ...settings, lastSeenVersion: app.getVersion() };

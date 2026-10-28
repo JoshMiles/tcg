@@ -2,7 +2,7 @@
 // Plain TypeScript, no Electron.
 import type { BridgeState } from './service';
 
-export interface Versions { app: string; electron: string; windows: string }
+export interface Versions { app: string; electron: string; windows: string; build?: string } // build = the About line's stamp ("built from abc1234 on 2026-10-28" or "dev build")
 export interface DiagnosticsInput { versions: Versions; site: string; paired: boolean; alerts: boolean; state: BridgeState | null; now?: number }
 
 const yes = (b: boolean) => (b ? 'yes' : 'no');
@@ -11,7 +11,7 @@ const stamp = (ms: number) => new Date(ms).toISOString();
 export function diagnosticsText(i: DiagnosticsInput, redact: (text: string) => string): string {
   const s = i.state;
   const lines = [
-    `TCG Bridge ${i.versions.app}, Electron ${i.versions.electron}, ${i.versions.windows}`,
+    `TCG Bridge ${i.versions.app}${i.versions.build ? ` (${i.versions.build})` : ''}, Electron ${i.versions.electron}, ${i.versions.windows}`,
     `Taken at ${stamp(i.now ?? Date.now())}`,
     `Alerts on: ${yes(i.alerts)}`,
     `Site: ${i.site}, paired: ${yes(i.paired)}${s ? `, ${s.site}${s.siteError ? ` (${s.siteError})` : ''}, last poll ${s.lastPollAt ? stamp(s.lastPollAt) : 'never'}` : ''}`,
