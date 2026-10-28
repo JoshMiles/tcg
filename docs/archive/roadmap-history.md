@@ -1578,3 +1578,15 @@ Josh picked all thirteen; 57.12 (beta channel and rollback) was dropped as not n
 - **57.12 Beta channel and rollback.** Dropped (Josh, not needed).
 - **57.13 Stream Deck plugin (Done, #640 0.24.0, #644 0.26.0).** `streamdeck/` (Elgato Node SDK), packed into the installer, Install / Update from Settings, a 127.0.0.1 WebSocket with a token file, keys: Buff, Last buff again, Pause pulls, Happy hour, Test pull, Show a card (named viewer only), Stat (queue skips on a double press). The plugin's version is the bridge's. zod forced to 4.6.7 for Dependabot #23 (the SDK only imports `zod/v4-mini`). Not yet tried on a real Stream Deck.
 - Also in this run: the docs check on every PR (#641: `docs/doc-map.json`, wiki `covers:` lines, a required `## Docs` section with a reasoned opt-out, and the review bot checking accuracy).
+
+## Track 59: TCG Bridge redesign (2026-10-28)
+
+Josh: the app was cluttered, its UX poor, the window small; done before the Twitch work. 59.1 design pass: three directions mocked up, Josh chose A (a Live Home dashboard and a sidebar grouped by job), 1280 x 800 default, Mix It Up jobs in the Home feed under a Jobs filter, Staff as its own sidebar group.
+- **59.2 Bigger, remembered window (Done, #647, 0.27.0).** 1280 x 800 default, 960 x 620 minimum, size, place and maximised state remembered and clamped to a visible screen (`bridge/src/winstate.ts`).
+- **59.3 Status pill and card kit (Done, #648, 0.28.0).** One title-bar pill replaces the banners (`bridge/src/status.ts`); "Updated to" is a toast; one card, button and empty-state style.
+- **59.4 Grouped navigation (Done, #650, 0.29.0).** Sidebar groups Live, Stream tools, Staff, Setup, About; cards moved as they were.
+- **59.5 Home dashboard (Done, #651, 0.30.0).** Connection chips, Pulls, Happy hour, queue, This stream numbers, one live feed with filters (`bridge/src/home.ts`); pull details also flow while OBS is live.
+- **59.6 Connections page (Done, #653, 0.31.0).** List and detail per connection, OBS settings gathered, first-run Connect screen ready for 58.0b (`bridge/src/connections.ts`).
+- **59.7 Staff pages (Done, #655, 0.32.0).** Viewer-first search and viewer card, This stream; `staffActionsFor` ready for 58.0b (`bridge/src/staffpages.ts`).
+- **59.8 Tool windows and polish (Done, #656, 0.33.0).** Feed, summary and preview windows share the style; feed filters; an accessibility check of every page (`bridge/src/a11y.ts`).
+- Also in this run: 58.0a, the site side of Sign in with Twitch (#649).
