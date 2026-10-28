@@ -144,8 +144,12 @@ function renderChips() {
   const d = state.deck;
   $('chip-deck').hidden = !(d && d.installed);
   if (d && d.installed) setChip('chip-deck', d.connected && d.on ? 'ok' : d.on ? 'warn' : 'off', d.connected && d.on ? 'Connected' : d.on ? 'Not connected' : 'Off');
+  const tw = state.twitch;
+  const twOn = !!(tw && (tw.state !== 'off' || tw.why === 'ended' || tw.why === 'site')); // quiet while no channel is connected on the site
+  $('chip-twitch').hidden = !twOn;
+  if (twOn) setChip('chip-twitch', tw.state === 'connected' && !tw.why ? 'ok' : tw.state === 'off' ? '' : 'warn', tw.state === 'connected' ? (tw.testing ? 'Listening (testing)' : 'Listening') : tw.state === 'off' ? 'Needs attention' : 'Reconnecting');
 }
-for (const [chip, conn] of [['chip-site', 'account'], ['chip-mix', 'mix'], ['chip-obs', 'obs'], ['chip-deck', 'deck']]) $(chip).addEventListener('click', () => goTo('conn-' + conn));
+for (const [chip, conn] of [['chip-site', 'account'], ['chip-mix', 'mix'], ['chip-obs', 'obs'], ['chip-deck', 'deck'], ['chip-twitch', 'twitch']]) $(chip).addEventListener('click', () => goTo('conn-' + conn));
 
 const HOTKEYS = ['refresh', 'pause', 'lastBuff'];
 let hotkeysFilled = false;
@@ -419,6 +423,20 @@ function renderDeck() {
   $('deck-install-label').textContent = d.offer ? 'Update the Stream Deck plugin' : d.installed ? 'Reinstall Stream Deck plugin' : 'Install Stream Deck plugin';
 }
 
+// The Twitch channel (58.2): which account, since when, the last event and each subscription. textContent only.
+function renderTwitch() {
+  const t = state.twitch;
+  const clock = ms => (ms ? new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'none yet');
+  $('twitch-testing').hidden = !(t && t.testingLine);
+  $('twitch-testing').textContent = t ? t.testingLine : '';
+  $('twitch-login').textContent = t && t.login ? t.login : 'Not connected';
+  $('twitch-since').textContent = t && t.state === 'connected' ? clock(t.since) : 'Not listening';
+  $('twitch-last').textContent = t ? clock(t.lastEventAt) : 'none yet';
+  const subs = t ? t.subs : [];
+  $('twitch-subs-empty').hidden = subs.length > 0;
+  $('twitch-subs').replaceChildren(...subs.map(s => { const li = document.createElement('li'); li.textContent = `${s.type}: ${s.status === 'enabled' ? 'on' : s.status}${s.error ? ` (${s.error})` : ''}`; return li; }));
+}
+
 function render() {
   if (!state) return;
   const svc = state.service;
@@ -457,6 +475,7 @@ function render() {
   renderFeed('history');
   renderControl();
   renderDeck();
+  renderTwitch();
   renderScenePause();
   renderObsStats();
   const level = svc ? svc.tray : 'offline';

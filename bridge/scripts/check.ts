@@ -36,6 +36,7 @@ import { homeChecks } from './check-home';
 import { staffPagesChecks } from './check-staffpages';
 import { signInChecks } from './check-signin';
 import { a11yChecks } from './check-a11y';
+import { eventSubChecks } from './check-eventsub';
 import { BridgeService } from '../src/service';
 import { cleanStaffAction, StaffTools } from '../src/staff';
 import { cleanCanvas, previewAddress, previewFrameAllowed } from '../src/preview';
@@ -239,7 +240,7 @@ async function main() {
     assert.deepEqual(lastObs(), { type: 'obs', connected: true, scene: 'Gameplay', overlay: { found: true, inProgram: true, visible: true, sourceName: 'TCG Overlay' }, scenes: ['Gameplay', 'Just Chatting'], sources: ['Cam'] });
     assert.deepEqual(streamReports(), [false], 'the stream state is reported once on connect');
     assert.equal(svc.state.tray, 'connected');
-    assert.deepEqual(snapshotOf(svc.state), { site: true, mix: true, obs: true, streaming: false }, 'what the alerts are fed');
+    assert.deepEqual(snapshotOf(svc.state), { site: true, mix: true, obs: true, streaming: false, twitch: null }, 'what the alerts are fed');
     assert.equal(fake.subscriptions.at(-1), 4 | 8 | 64 | 128, 'scenes, inputs, outputs and scene items only');
     const wire = JSON.stringify(si.s.reports);
     assert.ok(!wire.includes('SECRETKEY') && !wire.includes('pw-123') && !wire.includes('127.0.0.1:'), 'no key, password or address is sent');
@@ -1103,6 +1104,7 @@ async function main() {
   staffPagesChecks();
   await signInChecks();
   a11yChecks();
+  await eventSubChecks();
 
   miSrv.server.close();
   siSrv.server.close();

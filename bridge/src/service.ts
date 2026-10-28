@@ -2,6 +2,7 @@
 import { csvOf, writeBackup, type Ledger } from './bucks';
 import { commandWait, isKnownKind, Refused, runJob, undoLate, type BucksTasks, type Sinks } from './jobs';
 import { ErrorReporter, type ErrorPart } from './errors';
+import { EventSubClient, type EsStatus, type EventSubOptions } from './eventsub';
 import { MixItUpClient, MixItUpDown, MixItUpError } from './mixitup';
 import { redact as redactText } from './log';
 import type { ObsConfig, ObsState, ObsWatcher } from './obs';
@@ -23,9 +24,13 @@ export interface BridgeState {
   jobs: JobEntry[];
   tray: TrayLevel;
   obs: ObsState;
+  /** Twitch EventSub (58.2): the same object the EventSubClient updates. */
+  twitch: EsStatus;
 }
 
 export interface ServiceOptions {
+  /** EventSub settings; the checks point it at a fake Twitch. */
+  eventsub?: Partial<EventSubOptions>;
   client: SiteClient;
   mix: MixItUpClient;
   obs: ObsWatcher;
@@ -74,26 +79,29 @@ export class BridgeService {
   /** Whether Mix It Up answered at the last report to the site, and when: the site keeps the uptime history from these (55.11). */
   private mixReported: boolean | null = null;
   private mixReportAt = 0;
-  private o: Required<Omit<ServiceOptions, 'ledger' | 'backupDir' | 'sinks' | 'version' | 'commit' | 'redact'>> & Pick<ServiceOptions, 'ledger' | 'backupDir' | 'sinks'>;
+  private o: Required<Omit<ServiceOptions, 'ledger' | 'backupDir' | 'sinks' | 'version' | 'commit' | 'redact' | 'eventsub'>> & Pick<ServiceOptions, 'ledger' | 'backupDir' | 'sinks'>;
   private errors: ErrorReporter;
+  private es: EventSubClient;
 
   constructor(opts: ServiceOptions) {
     this.o = { log: () => undefined, mixCheckMs: 5000, commandsMs: 300_000, backoffMs: { min: 1000, max: 30_000 }, retryMs: 300, ...opts };
     this.errors = new ErrorReporter({ send: b => opts.client.report(b), redact: opts.redact ?? redactText, version: opts.version ?? '', commit: opts.commit, canSend: () => this.state.site === 'connected' });
     opts.obs.onError = (part, message) => this.errors.report(part, message);
-    this.state = { site: 'connecting', siteError: '', lastPollAt: null, mix: { found: false, version: '' }, currency: '', currencyId: '', channel: '', jobs: [], tray: 'offline', obs: opts.obs.state };
+    this.es = new EventSubClient(opts.client, { log: l => this.o.log(l), onChange: () => this.changed(), ...opts.eventsub });
+    this.state = { site: 'connecting', siteError: '', lastPollAt: null, mix: { found: false, version: '' }, currency: '', currencyId: '', channel: '', jobs: [], tray: 'offline', obs: opts.obs.state, twitch: this.es.state };
   }
 
   start(): void {
     this.o.obs.onChange = () => this.changed();
     this.o.obs.start();
+    this.es.start();
     this.done = Promise.all([this.pollLoop(), this.mixLoop()]);
   }
 
-  /** Stops the loops and OBS and waits for them. */
+  /** Stops the loops, OBS and the Twitch events connection and waits for them. */
   async stop(): Promise<void> {
     this.abort.abort();
-    await Promise.all([this.done, this.o.obs.stop()]);
+    await Promise.all([this.done, this.o.obs.stop(), this.es.stop()]);
   }
 
   /** For the window's "Check OBS". */
@@ -134,6 +142,7 @@ export class BridgeService {
     this.state.siteError = 'Pair again';
     this.abort.abort();
     void this.o.obs.stop();
+    void this.es.stop();
     this.changed();
   }
 

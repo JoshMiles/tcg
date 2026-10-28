@@ -136,6 +136,7 @@
               <button type="button" id="chip-mix" class="chip"><span class="dot off"></span><b>Mix It Up</b><span class="chip-state"></span></button>
               <button type="button" id="chip-obs" class="chip" hidden><span class="dot off"></span><b>OBS</b><span class="chip-state"></span></button>
               <button type="button" id="chip-deck" class="chip" hidden><span class="dot off"></span><b>Stream Deck plugin</b><span class="chip-state"></span></button>
+              <button type="button" id="chip-twitch" class="chip" hidden><span class="dot off"></span><b>Twitch events</b><span class="chip-state"></span></button>
             </div>
 
             <div class="home-cols">
@@ -387,7 +388,7 @@
                 <li><button type="button" class="conn-row" data-conn="mix"><span class="dot off"></span><span class="conn-text"><b>Mix It Up</b><small></small></span></button></li>
                 <li><button type="button" class="conn-row" data-conn="obs"><span class="dot off"></span><span class="conn-text"><b>OBS</b><small></small></span></button></li>
                 <li><button type="button" class="conn-row" data-conn="deck"><span class="dot off"></span><span class="conn-text"><b>Stream Deck plugin</b><small></small></span></button></li>
-                <!-- 58.1: the "Twitch channel" row goes here (data-conn="twitch" and a pane below); not shown until it exists. -->
+                <li><button type="button" class="conn-row" data-conn="twitch"><span class="dot off"></span><span class="conn-text"><b>Twitch channel</b><small></small></span></button></li>
               </ul>
             </nav>
 
@@ -493,6 +494,22 @@
                 <label class="switch-row"><span><b>Link to the Stream Deck plugin</b><small>Lets the TCG Bridge plugin in the Stream Deck app talk to this app, on this PC only. Install turns it on.</small></span><input id="deck-on" class="switch" type="checkbox"></label>
                 <p class="uses muted small">The plugin's keys and the Website buttons are on <button type="button" id="go-buttons" class="link">Buttons and hotkeys</button>.</p>
                 <details class="more how"><summary>How?</summary><p class="small">Needs the Elgato Stream Deck app. The plugin adds Buff, Last buff again, Pause pulls and Happy hour keys; the Mix It Up Stream Deck commands and the Website buttons on the Buttons and hotkeys page keep working.</p></details>
+              </section>
+
+              <!-- Twitch channel (58.2): the EventSub connection. The channel itself is connected on the site (Mix It Up, Connection tab). -->
+              <section id="detail-twitch" class="card conn-pane" data-conn="twitch" aria-labelledby="twitch-title" hidden>
+                <header class="detail-head"><span id="twitch-dot" class="dot off"></span><h2 id="twitch-title" tabindex="-1"></h2></header>
+                <p id="twitch-testing" class="note" role="status" hidden></p>
+                <div class="fix" id="twitch-fix" hidden><h3>To fix this</h3><ol></ol></div>
+                <dl>
+                  <dt>Channel</dt><dd id="twitch-login"></dd>
+                  <dt>Listening since</dt><dd id="twitch-since"></dd>
+                  <dt>Last event</dt><dd id="twitch-last"></dd>
+                </dl>
+                <h3>Subscriptions</h3>
+                <p id="twitch-subs-empty" class="empty" hidden>None yet.</p>
+                <ul id="twitch-subs" class="links"></ul>
+                <details class="more how"><summary>How?</summary><p class="small">TCG Bridge listens to Twitch for channel point rewards, bits, gifted subs, raids and the stream going live or offline, and passes each one to the site, which records it. Nothing is awarded yet. The channel is connected on the site (Mix It Up, Connection tab); only a PC signed in as an admin listens. TCG Bridge talks to api.twitch.tv and eventsub.wss.twitch.tv for this, and gets a short-lived token from the site, never the long-lived one.</p></details>
               </section>
             </div>
           </div>
