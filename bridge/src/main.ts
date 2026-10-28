@@ -8,8 +8,8 @@ import { Alerts, snapshotOf } from './alerts';
 import { aboutParts, commitUrl, readBuildInfo, stampText } from './buildinfo';
 import { Ledger } from './bucks';
 import { buttonUrl, ControlServer, HOTKEY_ACTION, HOTKEYS, Hotkeys, newControlKey, type ControlAction, type ControlResult, type HotkeyMap, type HotkeyName } from './control';
-import { DeckServer, deckStats, runStaffKey } from './deck';
-import type { DeckState } from './deckprotocol';
+import { DeckServer, deckStaff, deckStats, runStaffKey, runStaffPcKey } from './deck';
+import type { DeckStaff, DeckState } from './deckprotocol';
 import { installedPluginVersion, PLUGIN_FILE, pluginOutdated, realEnv, streamDeckAppFound } from './deckinstall';
 import { diagnosticsText } from './diagnostics';
 import { HAPPY_PRESETS, happyText, type HappyFacts } from './happyhour';
@@ -137,7 +137,8 @@ function deckInfo() {
     offer: settings.deckOfferedFor !== app.getVersion() && pluginOutdated(deckFacts.installed, app.getVersion()), // "Update the Stream Deck plugin", once per app version
   };
 }
-const deckState = (): DeckState => ({ ready: !!client, paused, reason: pauseReason, happy, buffs, stats: deckStats(statFacts) });
+const deckStaffNow = (): DeckStaff | null => deckStaff(staff && !!staffTools, staffShown(settings), tradingPaused, service?.obs.state.scene ?? '', sceneList());
+const deckState = (): DeckState => ({ ready: !!client, paused, reason: pauseReason, happy, buffs, stats: deckStats(statFacts), staff: deckStaffNow() });
 /** The Stream Deck link's part of the Connections facts. */
 function deckLink() {
   const d = deckInfo();
@@ -275,7 +276,14 @@ async function applyDeck(): Promise<void> {
         if (!r.ok) log(`Stream Deck key ${a.action} refused: ${r.text}`);
         return r;
       },
-      staff: body => runStaffKey(staffTools, staff, body, log),
+      staff: body => runStaffKey(staffTools, staff, body, log, staffShown(settings)),
+      staffPc: r => runStaffPcKey({
+        staff: deckStaffNow,
+        setTrading: pause => setTrading(pause, false),
+        scene: async name => { const s = await staffTools!.run({ op: 'scene', name }); return { ok: s.ok, text: s.text }; },
+        openPreview,
+        log,
+      }, r),
     });
     deck = d;
     await d.start();
@@ -610,10 +618,10 @@ function createTray(): void {
 const ADMIN_LINKS = [{ label: 'Dashboard', path: '/admin' }, { label: 'Mix It Up', path: '/admin/mixitup' }, { label: 'Overlay Editor', path: '/admin/overlay' }, { label: 'Users', path: '/admin/users' }];
 const sceneList = (): string[] => service?.obs.sceneNames() ?? [];
 
-/** Pauses or opens trading from the Staff tab or the tray (55.12). Pausing asks first, in a Windows dialog, so a mis-click cannot stop trading. */
-async function setTrading(pause: boolean): Promise<{ ok: boolean; text: string }> {
+/** Pauses or opens trading from the Staff tab or the tray (55.12). Pausing asks first, in a Windows dialog, so a mis-click cannot stop trading; the Stream Deck key (61.3) passes `ask` false because it needs a 1 second hold instead. */
+async function setTrading(pause: boolean, ask = true): Promise<{ ok: boolean; text: string }> {
   if (!staffTools || !staff) return { ok: false, text: 'Staff tools are off for this PC' };
-  if (pause) {
+  if (pause && ask) {
     const options = { type: 'question' as const, buttons: ['Pause trading', 'Cancel'], defaultId: 1, cancelId: 1, title: 'Pause trading', message: 'Pause trading for everyone?', detail: 'Viewers cannot send or accept trades until you open it again.' };
     const answer = win && !win.isDestroyed() && win.isVisible() ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options);
     if (answer.response !== 0) return { ok: false, text: 'Trading was left as it was.' };

@@ -10,8 +10,8 @@ import { join } from 'node:path';
 import { inflateRawSync } from 'node:zlib';
 import { WebSocketServer, type WebSocket } from 'ws';
 import type { ControlAction } from '../src/control';
-import { DeckServer } from '../src/deck';
-import type { DeckState } from '../src/deckprotocol';
+import { DeckServer, runStaffPcKey } from '../src/deck';
+import type { DeckStaff, DeckState } from '../src/deckprotocol';
 import { PLUGIN_UUID } from '../src/deckinstall';
 import { ACTION_KIND } from '../../streamdeck/src/keys';
 
@@ -81,7 +81,8 @@ function built(root: string): { dir: string; packed: string } {
   return { dir, packed };
 }
 
-const state = (over: Partial<DeckState> = {}): DeckState => ({ ready: true, paused: false, reason: '', happy: null, buffs: [{ id: 'b1', name: 'Speed up' }], stats: { queue: 3 }, ...over });
+const state = (over: Partial<DeckState> = {}): DeckState => ({ ready: true, paused: false, reason: '', happy: null, buffs: [{ id: 'b1', name: 'Speed up' }], stats: { queue: 3 }, staff: null, ...over });
+const adminStaff: DeckStaff = { can: ['trading', 'scene', 'preview-url'], tradingPaused: false, scene: 'Main', scenes: ['Main', 'Break'] };
 
 export async function deckPluginChecks(): Promise<void> {
   const root = join(__dirname, '..', '..');
@@ -107,11 +108,18 @@ export async function deckPluginChecks(): Promise<void> {
   let skipOk = false; // the Skip next pull key gets the app's answer; the Queue stat key's second press is refused
   const ran: ControlAction[] = [];
   const staffRan: Record<string, unknown>[] = [];
+  const pcRan: string[] = []; // the staff keys of 61.3 that reached the app's staff code
   const serve = async () => {
     const s = new DeckServer({
       file: join(appData, 'TCG Bridge', 'streamdeck.json'), version: '0.0.0', state: () => st, onChange: () => undefined, log: () => undefined, ports: [0],
       run: async a => { ran.push(a); return a.action === 'skip' && !skipOk ?{ ok: false, text: 'The queue is empty' } : { ok: true, text: 'Done' }; },
       staff: async b => { staffRan.push(b); return { ok: true, text: 'Done' }; },
+      staffPc: r => runStaffPcKey({
+        staff: () => st.staff, log: () => undefined,
+        setTrading: async pause => { pcRan.push(`trading ${pause}`); return { ok: true, text: 'Done' }; },
+        scene: async name => { pcRan.push(`scene ${name}`); return { ok: true, text: 'Done' }; },
+        openPreview: () => { pcRan.push('preview'); },
+      }, r),
     });
     await s.start();
     assert.equal(s.error, '');
@@ -119,7 +127,7 @@ export async function deckPluginChecks(): Promise<void> {
   };
   let server = await serve();
 
-  const keys = { buff: { buff: 'b1' }, 'last-buff': {}, pause: {}, 'happy-hour': { preset: 'p15' }, 'test-pull': {}, 'show-card': { viewer: '@Alice' }, stat: { stat: 'queue' }, skip: {}, 'clear-queue': {}, queue: {} } as Record<string, Record<string, unknown>>;
+  const keys = { buff: { buff: 'b1' }, 'last-buff': {}, pause: {}, 'happy-hour': { preset: 'p15' }, 'test-pull': {}, 'show-card': { viewer: '@Alice' }, stat: { stat: 'queue' }, skip: {}, 'clear-queue': {}, queue: {}, trading: {}, scene: { scene: 'Break' }, preview: {} } as Record<string, Record<string, unknown>>;
   const seen: Record<string, { title: string; ok: number; alert: number }> = {};
   const ctx = (name: string) => `ctx-${name}`;
   for (const name of Object.keys(keys)) seen[ctx(name)] = { title: '', ok: 0, alert: 0 };
@@ -234,6 +242,40 @@ export async function deckPluginChecks(): Promise<void> {
     st = state({ stats: { queue: 7 } });
     server.broadcast();
     await until('the new waiting count', () => seen[ctx('queue')].title === 'Waiting\n7');
+
+    // Staff keys (61.3). A PC that is not a staff PC: "Staff only", an alert, nothing reaches the app's staff code.
+    for (const name of ['trading', 'scene', 'preview']) assert.equal(seen[ctx(name)].title, 'Staff only');
+    for (const name of ['trading', 'scene', 'preview']) await answered(name, () => press(name), 'alert');
+    assert.deepEqual(pcRan, [], 'a refused staff key does nothing');
+    // A staff PC: the keys show the state; Switch scene and Preview overlay are one press; pausing trading needs a hold, resuming does not.
+    st = state({ staff: adminStaff });
+    server.broadcast();
+    await until('the staff keys', () => seen[ctx('trading')].title === 'Trading\nopen' && seen[ctx('scene')].title === 'Scene\nBreak' && seen[ctx('preview')].title === 'Preview\noverlay');
+    await answered('scene', () => press('scene'));
+    await answered('preview', () => press('preview'));
+    assert.deepEqual(pcRan.splice(0), ['scene Break', 'preview']);
+    await answered('trading', () => press('trading'), 'alert');
+    assert.deepEqual(pcRan, [], 'a short press does not pause trading');
+    assert.equal(seen[ctx('trading')].title, 'Hold 1 second\nto pause');
+    down('trading');
+    await wait(1100);
+    await answered('trading', () => up('trading'));
+    assert.deepEqual(pcRan.splice(0), ['trading true']);
+    st = state({ staff: { ...adminStaff, tradingPaused: true } });
+    server.broadcast();
+    await until('the paused trading key', () => seen[ctx('trading')].title === 'Trading\npaused');
+    await answered('trading', () => press('trading'));
+    assert.deepEqual(pcRan.splice(0), ['trading false'], 'one press resumes trading');
+    // A mod-linked PC: trading and scene as above, the preview refused with its title.
+    st = state({ staff: { ...adminStaff, can: ['trading', 'scene'] } });
+    server.broadcast();
+    await until('the mod keys', () => seen[ctx('preview')].title === 'Admins only' && seen[ctx('scene')].title === 'Scene\nBreak');
+    await answered('preview', () => press('preview'), 'alert');
+    await answered('scene', () => press('scene'));
+    assert.deepEqual(pcRan.splice(0), ['scene Break'], 'the preview did not open for a mod');
+    st = state({ stats: { queue: 7 } });
+    server.broadcast();
+    await until('the staff keys to go back to Staff only', () => seen[ctx('trading')].title === 'Staff only');
 
     // The app closes and comes back (a new port and token): the keys notice and recover without a restart of the plugin.
     await server.stop();

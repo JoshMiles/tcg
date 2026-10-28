@@ -10,7 +10,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { same, type ControlAction, type ControlResult } from './control';
 import { Unauthorized } from './site';
 import type { StaffTools } from './staff';
-import { CLOSE_REFUSED, DECK_HOST, DECK_PORTS, DECK_STATS, HELLO_MS, MAX_MESSAGE, PROTOCOL, parseClient, type DeckLinkFile, type DeckRequest, type DeckState, type DeckStatKind, type DeckStats, type ServerMessage } from './deckprotocol';
+import { CLOSE_REFUSED, DECK_HOST, DECK_PORTS, DECK_STATS, HELLO_MS, MAX_MESSAGE, PROTOCOL, parseClient, type DeckLinkFile, type DeckRequest, type DeckState, type DeckStaff, type DeckStatKind, type DeckStats, type ServerMessage } from './deckprotocol';
 import type { StatFacts } from './obsstats';
 
 export interface DeckOptions {
@@ -21,6 +21,8 @@ export interface DeckOptions {
   run: (a: ControlAction) => Promise<ControlResult>;
   /** Test pull and Show a card: one staff action (the body of StaffTools' `do`), refused with a reason on a PC that is not a staff PC. */
   staff: (body: Record<string, unknown>) => Promise<ControlResult>;
+  /** Pause / resume trading, Switch scene and Open preview (61.3): refused unless this is a staff PC whose role may do it (runStaffPcKey). */
+  staffPc: (r: StaffPcRequest) => Promise<ControlResult>;
   /** A client came or went. */
   onChange: () => void;
   /** The set of stats the keys show changed (`wanted`). */
@@ -41,7 +43,10 @@ export function toAction(r: DeckRequest): ControlAction | null {
     case 'skip': return { action: 'skip' };
     case 'clear-queue': return { action: 'clear-queue' };
     case 'test-pull':
-    case 'show-card': return null;
+    case 'show-card':
+    case 'trading':
+    case 'scene':
+    case 'preview': return null;
     case 'buff': return { action: 'buff', id: r.id };
     case 'last-buff': return { action: 'last-buff' };
     case 'pause': return { action: 'pause' };
@@ -57,10 +62,51 @@ export function toStaff(r: DeckRequest): Record<string, unknown> | null {
   return null;
 }
 
-/** A Test pull or Show a card key: the same staff action as the Preview overlay window, and only on a staff PC (else the key's alert, and the log says why). */
-export async function runStaffKey(tools: Pick<StaffTools, 'run'> | null, isStaff: boolean, body: Record<string, unknown>, log: (line: string) => void): Promise<ControlResult> {
+/** The three staff keys of 61.3 and the staffpages.ts action each needs (STAFF_NEEDS: a mod may trade and switch scenes, the preview address is admin). */
+export type StaffPcRequest = Extract<DeckRequest, { what: 'trading' | 'scene' | 'preview' }>;
+export const isStaffPcRequest = (r: DeckRequest): r is StaffPcRequest => r.what === 'trading' || r.what === 'scene' || r.what === 'preview';
+const STAFF_KEY_NEEDS: Record<StaffPcRequest['what'], string> = { trading: 'trading', scene: 'scene', preview: 'preview-url' };
+/** The staff actions the keys use, in the order of DeckStaff.can. */
+export const DECK_STAFF_ACTIONS = ['trading', 'scene', 'preview-url'];
+
+/** What the keys are told about the staff side: null on a PC that is not a staff PC; `can` null = a PC paired with a code (every action), else the account's role list. */
+export function deckStaff(isStaff: boolean, can: string[] | null, tradingPaused: boolean, scene: string, scenes: string[]): DeckStaff | null {
+  return isStaff ? { can: DECK_STAFF_ACTIONS.filter(a => !can || can.includes(a)), tradingPaused, scene, scenes } : null;
+}
+
+export interface StaffPcEnv {
+  /** Read at each press, so a role that changed is used at once. */
+  staff: () => DeckStaff | null;
+  /** The same function as the Staff tab and the tray (pausing is not asked about in a Windows dialog: the key needs a 1 second hold). */
+  setTrading: (pause: boolean) => Promise<ControlResult>;
+  /** The Staff tab's scene switch (OBS, then the site's audit log). */
+  scene: (name: string) => Promise<ControlResult>;
+  openPreview: () => void;
+  log: (line: string) => void;
+}
+
+/** Pause / resume trading, Switch scene and Open preview. The refusal is here, not only on the key: a PC that is not a staff PC, or whose role cannot do it, is turned away. */
+export async function runStaffPcKey(env: StaffPcEnv, r: StaffPcRequest): Promise<ControlResult> {
+  const staff = env.staff();
+  let out: ControlResult;
+  if (!staff) out = { ok: false, text: 'Staff tools are off for this PC' };
+  else if (!staff.can.includes(STAFF_KEY_NEEDS[r.what])) out = { ok: false, text: 'This account\'s role cannot do that' };
+  else {
+    try {
+      if (r.what === 'trading') out = await env.setTrading(r.pause);
+      else if (r.what === 'scene') out = await env.scene(r.name);
+      else { env.openPreview(); out = { ok: true, text: 'Opened the preview overlay' }; }
+    } catch (e) { out = { ok: false, text: e instanceof Unauthorized ? 'Pair again' : e instanceof Error ? e.message : 'Something went wrong' }; }
+  }
+  env.log(`Staff: ${r.what} (Stream Deck key): ${out.ok ? 'ok' : 'refused'}, ${out.text}`);
+  return { ok: out.ok, text: out.text };
+}
+
+/** A Test pull or Show a card key: the same staff action as the Preview overlay window, and only on a staff PC whose role may do it (else the key's alert, and the log says why). `can` null = every action. */
+export async function runStaffKey(tools: Pick<StaffTools, 'run'> | null, isStaff: boolean, body: Record<string, unknown>, log: (line: string) => void, can: string[] | null = null): Promise<ControlResult> {
   let r: ControlResult;
   if (!tools || !isStaff) r = { ok: false, text: 'Staff tools are off for this PC' };
+  else if (can && !can.includes(String(body.action))) r = { ok: false, text: 'This account\'s role cannot do that' };
   else {
     try { r = await tools.run({ op: 'do', ...body }); } catch (e) { r = { ok: false, text: e instanceof Unauthorized ? 'Pair again' : e instanceof Error ? e.message : 'Something went wrong' }; }
   }
@@ -176,7 +222,7 @@ export class DeckServer {
       if (msg?.t !== 'do') return refuse();
       const n = msg.n;
       const action = toAction(msg.req);
-      const job = action ? this.o.run(action) : this.o.staff(toStaff(msg.req) ?? {});
+      const job = action ? this.o.run(action) : isStaffPcRequest(msg.req) ? this.o.staffPc(msg.req) : this.o.staff(toStaff(msg.req) ?? {});
       job.catch(() => ({ ok: false, text: 'Something went wrong' })).then(r => send({ t: 'done', n, ok: r.ok, text: r.text.slice(0, 500) }));
     });
     ws.on('close', () => {
