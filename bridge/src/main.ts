@@ -34,6 +34,7 @@ import { Startup, type StartupEvent, type StartupStep } from './startup';
 import { clearReleaseCache, loadReleases, releaseBlocks, RELEASES_API, RELEASES_URL, releasesBetween, type Note } from './releases';
 import { checkText, releaseUrl, updatedTo, updateText, type UpdateStage } from './update';
 import { attentionItems } from './status';
+import { FEED_KEEP, keepPull, mergeFeed, pullEntry, readySummary, streamNumbers, type PullEntry } from './home';
 
 // Development only: `npm start -- --demo-startup [--shots=<folder>]` walks the start-up window through its states and then shows the
 // window with made-up data (and saves PNGs of each when a folder is given). Ignored in the installed app.
@@ -85,6 +86,9 @@ let eventLines: EventLine[] = []; // the last event rewards the site sent (57.7)
 let eventsAt = 0; // when the site was last asked for them
 const EVENTS_OPEN_MS = 5000; // while the window or the feed window is open
 const EVENTS_IDLE_MS = 30_000; // otherwise
+let pulls: PullEntry[] = []; // the pulls the site told this app about (55.11 feed), newest first: the Home feed and "This stream" numbers
+let streamSince = Date.now(); // "this stream" counts from here: the app starting, then OBS going live
+let wasLive = false;
 let buffs: { id: string; name: string }[] = []; // the buffs switched on for the Stream Deck
 let staff = false; // the site says an admin switched "Staff tools on this PC" on (55.12)
 let tradingPaused = false;
@@ -141,10 +145,11 @@ const appState = (): object => demoState ?? ({
   mixItUp: { startWithBridge: settings.startMixItUp, path: settings.mixItUpPath || defaultMixItUpPath() },
   tools: { feed: settings.feed, summary: settings.summary, startObs: settings.startObs, obsPath: settings.obsPath || defaultObsPath() },
   staff,
-  checklist: lastChecklist,
+  checklist: readySummary(lastChecklist),
   notices: settings.notices,
   scenePause: { ...settings.scenePause, obsScenes: sceneList() },
   events: eventLines,
+  home: { feed: mergeFeed(pulls, eventLines, service?.state.jobs ?? [], FEED_KEEP), numbers: streamNumbers(pulls, ledger?.all() ?? [], streamSince) },
   commandsMissing,
   obsStats: { map: settings.obsStats, texts: service?.obs.textSources() ?? [], stats: STAT_IDS.map(id => ({ id, label: STAT_LABELS[id] })) },
   control: { error: control?.error ?? '', paused, reason: pauseReason, happy, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
@@ -183,6 +188,9 @@ function tickHappy(): void {
 }
 
 function push(): void {
+  const live = service?.state.obs.streaming === true;
+  if (live && !wasLive) streamSince = Date.now(); // OBS went live: the "This stream" numbers start again
+  wasLive = live;
   const level = service?.state.tray ?? 'offline';
   tray?.setImage(trayIcon(level));
   tray?.setToolTip(trayTip(level));
@@ -379,9 +387,9 @@ async function startMixWithBridge(): Promise<void> {
   log(r.ok ? 'Started Mix It Up with TCG Bridge' : `Could not start Mix It Up: ${r.error}`);
 }
 
-/** Tells the site whether the feed window is open: it queues a pull's details for this app only while it is (55.11). */
+/** Tells the site whether the feed window or the main window is open: it queues a pull's details for this app only while one is (55.11, 59.5). */
 function reportFeed(): void {
-  void client?.report({ type: 'feed', on: !!feedWin }).catch(() => undefined);
+  void client?.report({ type: 'feed', on: !!feedWin || !!win?.isVisible() }).catch(() => undefined);
 }
 
 /** A small second window with the same lock-down as the others. It loads only its own file. */
@@ -417,7 +425,10 @@ function applyFeedWindow(): void {
 /** One pull reveal from the site, for the feed window. Cleaned here: the image is dropped unless it is from the site or Vercel Blob. */
 function showPull(raw: unknown): void {
   const item = cleanFeed(raw, settings.site);
-  if (!item || !feedWin || feedWin.isDestroyed()) return;
+  if (!item) return;
+  pulls = keepPull(pulls, pullEntry(item, Date.now()));
+  push();
+  if (!feedWin || feedWin.isDestroyed()) return;
   feedWin.webContents.send('feed-item', { item, play: shouldPlay(item.stars, settings.feed), volume: settings.feed.volume });
 }
 
@@ -515,6 +526,8 @@ function createWindow(show: boolean): void {
     void store.save(settings);
     push();
   });
+  win.on('show', reportFeed);
+  win.on('hide', reportFeed);
   win.on('close', e => { if (!quitting) { e.preventDefault(); win?.hide(); } });
   void win.loadFile(join(RENDERER, 'index.html'));
 }
@@ -741,7 +754,8 @@ function setupIpc(): void {
     push();
     return hotkeyErrors;
   });
-  ipcMain.handle('queue', async () => { // read only while the window's queue section is open; at most every 5 s
+  ipcMain.handle('queue', async () => { // read while Home is on screen; at most every 5 s
+    if (demoState) return { ok: true, text: '', rows: (demoState as { queue?: QueueRow[] }).queue ?? [] }; // the demo's made-up queue
     if (!client) return { ok: false, text: 'Pair TCG Bridge first', rows: [] };
     if (Date.now() - queueAt >= 5000) {
       try { queueRows = await client.queue(); queueAt = Date.now(); } catch (e) { return { ok: false, text: e instanceof Error ? e.message : 'Could not read the queue', rows: queueRows }; }
