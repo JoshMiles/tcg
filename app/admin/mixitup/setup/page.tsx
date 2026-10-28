@@ -9,6 +9,7 @@ import { statusCards } from '@/lib/mixitup-page';
 import { incomingSetup, packSetup } from '@/lib/mixitup-setup';
 import { STEPS, pickStep, stepsDone, type StepId } from '@/lib/mixitup-wizard';
 import { listBridges, readBridge, readObs } from '@/lib/bridge';
+import { bridgeAccount, isStaffPc } from '@/lib/bridge-core';
 import { getWebhookSettings } from '@/lib/webhooks';
 import { SITE_URL } from '@/lib/site';
 import { timeAgo } from '@/lib/site-data';
@@ -99,7 +100,7 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
         <>
           {bridgeMode ? (
             <>
-              <BridgeCard version={bridge.appVersion} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never', staff: !!b.staff, by: b.by ?? '' }))} />
+              <BridgeCard version={bridge.appVersion} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never', staff: isStaffPc(b), account: bridgeAccount(b), by: b.by ?? '' }))} />
               <Card card={outgoing} />
               {outgoing.tone !== 'ok' && <AutoRefresh />}
               {bridge.currencies.length > 0 && (

@@ -16,5 +16,5 @@ export async function GET(req: NextRequest) {
   const g = await bridgeStaffGuard(req);
   if (!g.ok) return g.response;
   const p = new URL(req.url).searchParams;
-  return NextResponse.json(await runStaffRead(p.get('what'), (p.get('q') ?? '').slice(0, 80)));
+  return NextResponse.json(await runStaffRead(g.pc, p.get('what'), (p.get('q') ?? '').slice(0, 80)));
 }

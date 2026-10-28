@@ -12,6 +12,7 @@ import { categoryOf, plainText } from './activity-view';
 import { paletteRecords } from './palette-items';
 import { rankItems } from './palette';
 import type { BridgeToken } from './bridge';
+import { staffRefusal } from './bridge-core';
 import { getActivity } from './activity';
 import { getActiveSeasonWithPacks, getAllCollectionUsers, getUserCards } from './kv';
 import { getSeasonLeaderboardCached } from './leaderboard';
@@ -31,9 +32,11 @@ const done = (ok: boolean, message: string, extra: Partial<StaffResult> = {}): S
 const NO_USER = 'Type a valid Twitch name (letters, numbers and underscores).';
 
 /** "via TCG Bridge on Stream PC, paired by cheesygidds": the end of every audit line this file writes. */
-const via = (pc: BridgeToken) => `via TCG Bridge on ${pc.name}, paired by ${pc.by ?? 'an admin'}`;
+const via = (pc: BridgeToken) => `via TCG Bridge on ${pc.name}, ${pc.userId ? `signed in as ${pc.login}` : `paired by ${pc.by ?? 'an admin'}`}`;
 
 export async function runStaffAction(pc: BridgeToken, body: Record<string, unknown>): Promise<StaffResult> {
+  const refused = staffRefusal(pc, body.action); // a PC signed in with Twitch may only do what its account's role may do on the site (58.0)
+  if (refused) return done(false, refused);
   const user = cleanUsername(typeof body.username === 'string' ? body.username : null);
   const audit = (who: string | null, what: string, detail?: string) => recordAudit(who ?? 'everyone', `${what} ${via(pc)}`, detail);
   switch (body.action) {
@@ -132,7 +135,9 @@ export async function runStaffAction(pc: BridgeToken, body: Record<string, unkno
 }
 
 /** The reads: `state` (what the controls show), `users` (the names to complete), `cards` (a search of the active season) and `viewer` (a look-up). */
-export async function runStaffRead(what: string | null, q: string): Promise<Record<string, unknown>> {
+export async function runStaffRead(pc: BridgeToken, what: string | null, q: string): Promise<Record<string, unknown>> {
+  const refused = staffRefusal(pc, what);
+  if (refused) return { error: refused };
   switch (what) {
     case 'state': {
       const [trading, buff, blocks, stream] = await Promise.all([getTradeSettings(), getStreamBuff(), listPullBlocks(), currentStreamKey()]);

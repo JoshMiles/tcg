@@ -3,6 +3,7 @@
 import { createHash, randomInt } from 'crypto';
 import { VIEWERS_MAX } from './mixitup-core';
 import type { StreamSummary } from './bridge-chat-core';
+import { ROLE_LABELS, roleCan, type Capability, type StaffRole } from './staff-core';
 
 /** One pull for the app's live feed window (ROADMAP 55.11), sent on its reveal. `image` is the card's image address; the app loads it only from the site or Vercel Blob. */
 export interface PullFeed { viewer: string; card: string; rarity: string; stars: number; variant: string; serial?: number; image?: string }
@@ -46,6 +47,39 @@ export const showCode = (code: string): string => `${code.slice(0, 4)}-${code.sl
 export function normalizeCode(raw: unknown): string {
   const c = typeof raw === 'string' ? raw.toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
   return c.length === 8 && [...c].every(ch => ALPHABET.includes(ch)) ? c : '';
+}
+
+// ── Sign in with Twitch (ROADMAP 58.0) ──
+export const LINK_TTL_S = 600;
+export const ROLE_CHECK_MS = 60_000;
+/** The short code both the app and the link page show, so the streamer can see the two belong together. */
+export const newLinkCode = (): string => Array.from({ length: 6 }, () => ALPHABET[randomInt(ALPHABET.length)]).join('');
+
+/** What a PC linked to a Twitch account carries (an old paired PC has none of these). */
+export interface LinkedFields { userId?: string; login?: string; role?: StaffRole; staff?: boolean }
+/** Are the staff tools on for this PC? A linked PC follows its account's role; an old paired PC follows the admin's switch. */
+export const isStaffPc = (pc: LinkedFields): boolean => (pc.userId ? !!pc.role : !!pc.staff);
+/** "cheesygidds (Admin)" for a linked PC, '' for an old paired one. */
+export const bridgeAccount = (pc: LinkedFields): string => (pc.userId ? `${pc.login ?? 'unknown'} (${pc.role ? ROLE_LABELS[pc.role] : 'no role'})` : '');
+
+/**
+ * What the site's panels let each role do, for every staff action and read of lib/bridge-staff.ts. A name that is not listed needs 'admin'.
+ * Mod: the mod panel's own powers (look a viewer up, watch activity, stop a viewer or trading). Everything that gives packs or cards, spends
+ * the stream's money, opens a preview or backs up is admin panel only.
+ */
+export const STAFF_CAPABILITY: Record<string, Capability> = {
+  // actions
+  gift: 'admin', 'show-collection': 'admin', 'show-card': 'admin', 'preview-url': 'admin', 'test-pull': 'admin', grant: 'admin', 'stream-extra': 'admin', backup: 'admin',
+  trading: 'mod', block: 'mod', unblock: 'mod', scene: 'mod',
+  // reads
+  state: 'mod', users: 'mod', activity: 'mod', viewer: 'mod', cards: 'admin', search: 'admin',
+};
+/** Null when this PC may run the staff action or read `name`, else the message to show. An old paired PC is never refused here (the switch decides). */
+export function staffRefusal(pc: LinkedFields, name: unknown): string | null {
+  if (!pc.userId) return null;
+  const cap = (typeof name === 'string' && STAFF_CAPABILITY[name]) || 'admin';
+  if (roleCan(pc.role, cap)) return null;
+  return `Your account (${pc.role ? ROLE_LABELS[pc.role] : 'no role'}) cannot do that on the TCG site${cap === 'admin' ? ': it needs an admin' : ''}.`;
 }
 
 export const cleanName = (raw: unknown): string => (typeof raw === 'string' ? raw.trim().slice(0, 40) : '') || 'TCG Bridge';

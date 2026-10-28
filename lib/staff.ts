@@ -10,7 +10,7 @@ import { inSandbox, isPreview, prodKv, runInSandbox } from './db';
 import { getUserProfile } from './kv';
 import { createTtlCache } from './ttl-cache';
 import {
-  SUPER_ADMINS, canManage, canModerate, cleanLogin, isSuperAdmin, isTwitchId, sanitizeStaffRecord,
+  SUPER_ADMINS, canManage, canModerate, cleanLogin, isSuperAdmin, isTwitchId, resolveRole, sanitizeStaffRecord,
   type AssignableRole, type ModAction, type ModActor, type ModTarget, type ModVerdict, type StaffRecord, type StaffRole,
 } from './staff-core';
 
@@ -48,6 +48,12 @@ async function readStaffRecord(login: string): Promise<StaffRecord | null> {
   const l = cleanLogin(login);
   if (!l) return null;
   try { return await loadStaffRecord(l); } catch { return null; }
+}
+
+/** The role a Twitch account holds right now, no cache. Throws when KV cannot be read, so a caller never mistakes an outage for a removed role. */
+export async function liveRole(login: string, twitchId: string): Promise<StaffRole | null> {
+  const l = cleanLogin(login);
+  return l ? resolveRole({ login: l, twitchId }, await loadStaffRecord(l)) : null;
 }
 
 /** The record for the access guards: up to 15 s old (see above). A failed read is null and is not kept. */
