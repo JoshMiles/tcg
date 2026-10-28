@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Goal
-Track 59 (bridge redesign, 59.2 to 59.5 done, 59.6 building) then 58 (58.0a site half done), then 60 (wiki); Track 57 done (Josh, 2026-10-28: keep going after 56): one fresh agent per item, Opus reviews, reads all comments, merges on green, next. 57.12 and 57.13 need an Opus design pass first; Track 58 needs Josh to connect a Twitch account (any account, 58.1) before 58.2 is tried for real.
+Track 59 (bridge redesign, 59.2 to 59.5 done, 59.6 building), 61.1 (Stream Deck keys fix), then 58 (58.0a site half done), 61.2 to 61.5, 62 (native OBS plugin), then 60 (wiki); Track 57 done (Josh, 2026-10-28: keep going after 56): one fresh agent per item, Opus reviews, reads all comments, merges on green, next. 57.12 and 57.13 need an Opus design pass first; Track 58 needs Josh to connect a Twitch account (any account, 58.1) before 58.2 is tried for real.
 
 ## Done
 - Track 45 (#480 to #483), 34.8 (#484, panel 0.0.2 submitted, under Twitch review).
@@ -88,3 +88,4 @@ Track 59 (bridge redesign, 59.2 to 59.5 done, 59.6 building) then 58 (58.0a site
 - 2026-10-28: 58.0a merged (#649): site side of Sign in with Twitch (link request, /bridge/link Allow page, poll, role-based staff tools, mod PCs limited to trading/block/unblock/scene and reads, role re-read each minute). App half (58.0b) after 59.6.
 - 2026-10-28: 59.4 merged (#650, bridge 0.29.0): grouped sidebar; Happy hour and queue on Controls, Pause pulls on Home; Feed and history staff-only until 59.5.
 - 2026-10-28: 59.5 merged (#651, bridge 0.30.0): Home dashboard; pull details also flow while OBS is live so This stream counts stay whole (Opus fix).
+- 2026-10-28: Josh: add a native OBS plugin (Track 62, design pass first, after Track 58) and fix the Stream Deck plugin (keys don't work: 61.1, right after Track 59, before 58) then expand it with queue, staff, live info and OBS / overlay keys (61.2 to 61.5, after 58). Wiki (60) stays last.
