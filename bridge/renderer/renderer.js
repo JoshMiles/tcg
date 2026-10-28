@@ -59,6 +59,25 @@ function renderChecklist(c) {
 }
 setInterval(() => { if (state) renderChecklist(state.checklist); }, 15_000); // keeps "N seconds ago" honest
 
+// The event feed (57.7): the last event rewards from the site, newest first. The app sends ready-made text lines.
+function renderEvents(lines) {
+  const rows = Array.isArray(lines) ? lines : [];
+  $('events-empty').hidden = rows.length > 0;
+  $('events-lines').replaceChildren(...rows.map(e => {
+    const li = document.createElement('li');
+    const when = document.createElement('span');
+    when.textContent = e.time;
+    const what = document.createElement('strong');
+    what.textContent = e.event;
+    const who = document.createElement('span');
+    who.textContent = e.amount !== '-' ? `${e.viewer}, ${e.amount}` : e.viewer;
+    const result = document.createElement('span');
+    result.textContent = e.result;
+    li.append(when, what, who, result);
+    return li;
+  }));
+}
+
 const HOTKEYS = ['refresh', 'pause', 'lastBuff'];
 let hotkeysFilled = false;
 let buttonsKey = '';
@@ -253,6 +272,7 @@ function render() {
   }
   renderObs(svc && svc.obs, state.obsSettings);
   renderChecklist(state.checklist);
+  renderEvents(state.events);
   const jobs = svc ? svc.jobs : [];
   $('no-jobs').hidden = jobs.length > 0;
   $('jobs').hidden = jobs.length === 0;

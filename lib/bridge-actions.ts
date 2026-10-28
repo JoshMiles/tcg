@@ -11,10 +11,11 @@ import { isPullsPaused, pauseReason, setPullsPaused, setScenePause } from './pul
 import { clearQueueRefunding, skipNext } from './queue-control';
 import { endHappyHour, getHappyHour, happyHourWhat, startHappyHour } from './happyhour';
 import type { HappyHour } from './mixitup-core';
+import { getEventFeed, type MixItUpEvent } from './mixitup';
 import { LAST_BUFF, runStreamDeck } from './streamdeck';
 
 const BY = 'TCG Bridge';
-export interface BridgeActionResult { ok: boolean; message: string; paused?: boolean; /** Why pulls are paused: "scene <name>", or '' for a pause set by hand (57.2). */ reason?: string; buffs?: { id: string; name: string }[]; /** ROADMAP 55.12: this PC's staff switch, and (with it) whether trading is paused. */ staff?: boolean; tradingPaused?: boolean; /** ROADMAP 57.3: the running happy hour (null = none); sent by `status`, `happy-hour-start` and `happy-hour-end`. */ happyHour?: { what: string; endsAt: number } | null; /** ROADMAP 57.4: the answer to `stats`. */ stats?: BridgeStats }
+export interface BridgeActionResult { ok: boolean; message: string; paused?: boolean; /** Why pulls are paused: "scene <name>", or '' for a pause set by hand (57.2). */ reason?: string; buffs?: { id: string; name: string }[]; /** ROADMAP 55.12: this PC's staff switch, and (with it) whether trading is paused. */ staff?: boolean; tradingPaused?: boolean; /** ROADMAP 57.3: the running happy hour (null = none); sent by `status`, `happy-hour-start` and `happy-hour-end`. */ happyHour?: { what: string; endsAt: number } | null; /** ROADMAP 57.4: the answer to `stats`. */ stats?: BridgeStats; /** ROADMAP 57.7: the answer to `events`, newest first. */ events?: MixItUpEvent[] }
 const hhFacts = (h: HappyHour | null) => (h ? { what: happyHourWhat(h), endsAt: h.endsAt } : null);
 const done = (ok: boolean, message: string, extra: Partial<BridgeActionResult> = {}): BridgeActionResult => ({ ok, message, ...extra });
 const words = async (r: Promise<{ ok: boolean; message: string }>) => { const x = await r; return done(x.ok, x.message || 'That buff is not switched on for the Stream Deck.'); };
@@ -27,6 +28,8 @@ export async function runBridgeAction(body: Record<string, unknown>, pc?: Bridge
     }
     case 'stats': // ROADMAP 57.4: only the stats the app has mapped to an OBS text source (`stats`: a list of keys), plus the happy hour it counts down
       return done(true, '', { happyHour: hhFacts(await getHappyHour()), stats: await readBridgeStats(cleanWanted(body.stats)) });
+    case 'events': // ROADMAP 57.7: the last event rewards (the Mix It Up log's event lines), only those after `after` (ms)
+      return done(true, '', { events: await getEventFeed(typeof body.after === 'number' && body.after > 0 ? body.after : 0) });
     case 'buff': {
       const def = typeof body.id === 'string' ? await getBuffDef(body.id) : null;
       if (!def) return done(false, 'That buff does not exist.');
