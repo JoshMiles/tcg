@@ -34,7 +34,7 @@ export interface DeckOptions {
 
 /** The stats the Stat keys show, from what the site last said for the OBS text sources (57.4). */
 export function deckStats(f: StatFacts | null): DeckStats {
-  return { ...(typeof f?.queue === 'number' ? { queue: f.queue } : {}), ...(typeof f?.packs === 'number' ? { packs: f.packs } : {}), ...(f?.goal !== undefined ? { goal: f.goal } : {}) };
+  return { ...(typeof f?.queue === 'number' ? { queue: f.queue } : {}), ...(typeof f?.packs === 'number' ? { packs: f.packs } : {}), ...(f?.goal !== undefined ? { goal: f.goal } : {}), ...(f?.lastBig !== undefined ? { lastBig: f.lastBig } : {}), ...(f?.topPuller !== undefined ? { topPuller: f.topPuller } : {}) };
 }
 
 /** A key's request as the action the Control tab and the tray run; null for the two that are staff actions (toStaff). */

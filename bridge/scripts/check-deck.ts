@@ -106,7 +106,8 @@ export async function deckChecks(): Promise<void> {
   assert.deepEqual(toStaff({ what: 'test-pull' }), { action: 'test-pull' });
   assert.deepEqual(toStaff({ what: 'show-card', username: 'cheesy_1' }), { action: 'show-card', username: 'cheesy_1' });
   assert.equal(toStaff({ what: 'skip' }), null);
-  assert.deepEqual(deckStats({ queue: 2, packs: 0, goal: 'Goal: 3 / 50', lastBig: null }), { queue: 2, packs: 0, goal: 'Goal: 3 / 50' });
+  assert.deepEqual(deckStats({ queue: 2, packs: 0, goal: 'Goal: 3 / 50', lastBig: null }), { queue: 2, packs: 0, goal: 'Goal: 3 / 50', lastBig: null }, 'nobody yet is said, not left out');
+  assert.deepEqual(deckStats({ lastBig: { username: 'brie_fan', cardName: 'Brie' }, topPuller: { username: 'cheese', packs: 9 } }), { lastBig: { username: 'brie_fan', cardName: 'Brie' }, topPuller: { username: 'cheese', packs: 9 } });
   assert.deepEqual(deckStats(null), {});
 
   // ── Asking the site for stats: only while OBS has a mapped stat or a Stat key is on a deck ──
@@ -164,6 +165,35 @@ export async function deckChecks(): Promise<void> {
   assert.equal(requestFor('stat', { stat: 'packs' }), null, 'only the queue key asks for anything');
   assert.equal(HOLD_MS, 1000);
   assert.equal(SKIP_MS, 3000);
+
+  // ── The 61.4 live info options of the Stat key: last big pull, top puller, happy hour time left, pack goal cut to fit ──
+  const wired = parseServer(JSON.stringify({ t: 'state', state: { ...state(), stats: { lastBig: { username: 'brie_fan', cardName: 'Brie', junk: 1 }, topPuller: { username: 'cheese', packs: 9 } } } }));
+  assert.deepEqual(wired?.t === 'state' ? wired.state.stats : null, { lastBig: { username: 'brie_fan', cardName: 'Brie' }, topPuller: { username: 'cheese', packs: 9 } }, 'the two names survive the wire, rebuilt field by field');
+  const nobody = parseServer(JSON.stringify({ t: 'state', state: { ...state(), stats: { lastBig: null, topPuller: null } } }));
+  assert.deepEqual(nobody?.t === 'state' ? nobody.state.stats : null, { lastBig: null, topPuller: null });
+  const junkNames = parseServer(JSON.stringify({ t: 'state', state: { ...state(), stats: { lastBig: { username: 5 }, topPuller: 'x' } } }));
+  assert.deepEqual(junkNames?.t === 'state' ? junkNames.state.stats : null, {}, 'a malformed name is left out');
+  assert.deepEqual(parseClient(JSON.stringify({ t: 'stats', want: ['topPuller', 'lastBig', 'happy'] })), { t: 'stats', want: ['lastBig', 'topPuller'] }, 'the happy hour time is not a site stat, so it is never wanted');
+  assert.equal(view('stat', state({ stats: { lastBig: { username: 'brie_fan', cardName: 'Charizard' } } }), { stat: 'lastBig' }, now).title, 'brie_fan\nCharizard');
+  assert.equal(view('stat', state({ stats: { lastBig: { username: 'a_very_long_viewer_name', cardName: 'Pikachu VMAX Rainbow' } } }), { stat: 'lastBig' }, now).title, 'a_very_lo.\nPikachu V.', 'long names are cut with a dot');
+  assert.equal(view('stat', state({ stats: { lastBig: null } }), { stat: 'lastBig' }, now).title, 'Big pull\nnone yet');
+  assert.equal(view('stat', state(), { stat: 'lastBig' }, now).title, 'Big pull\n-', 'before the site has said');
+  assert.equal(view('stat', state({ stats: { topPuller: { username: 'cheese', packs: 9 } } }), { stat: 'topPuller' }, now).title, 'cheese\n9 packs');
+  assert.equal(view('stat', state({ stats: { topPuller: null } }), { stat: 'topPuller' }, now).title, 'Top puller\nnone yet');
+  assert.equal(view('stat', state(), { stat: 'topPuller' }, now).title, 'Top puller\n-');
+  assert.equal(view('stat', state({ happy: { what: 'Free packs', endsAt: now + 754_000 } }), { stat: 'happy' }, now).title, 'Happy hour\n12:34', 'counts down');
+  assert.equal(view('stat', state({ happy: { what: 'Free packs', endsAt: now + 1_000 } }), { stat: 'happy' }, now + 2_000).title, 'No happy\nhour', 'a happy hour that has ended');
+  assert.equal(view('stat', state(), { stat: 'happy' }, now).title, 'No happy\nhour');
+  assert.equal(view('stat', state({ stats: { goal: 'Open the legendary pack: 37 / 50' } }), { stat: 'goal' }, now).title, 'Open the .\n37 / 50', 'a long goal label is cut to fit');
+  for (const stat of ['lastBig', 'topPuller', 'happy', 'goal']) {
+    assert.match(view('stat', null, { stat }, now).title, /App closed/);
+    assert.match(view('stat', state({ ready: false }), { stat }, now).title, /Not paired/);
+    assert.equal(requestFor('stat', { stat }), null, `${stat}: a press asks for nothing`);
+  }
+  for (const stat of ['lastBig', 'topPuller', 'happy', 'goal', 'packs']) {
+    const full = state({ happy: { what: '25% off packs', endsAt: now + 3_599_000 }, stats: { packs: 1234, goal: 'Open the legendary pack: 137 / 150', lastBig: { username: 'a_very_long_viewer_name', cardName: 'Pikachu VMAX Rainbow' }, topPuller: { username: 'a_very_long_viewer_name', packs: 1234 } } });
+    for (const line of view('stat', full, { stat }, now).title.split('\n')) assert.ok(line.length <= 10, `${stat}: "${line}" fits a key`);
+  }
 
   // ── The 61.2 queue keys: Skip next pull, Clear queue (hold), Pulls waiting ──
   assert.deepEqual(parseRequest({ what: 'clear-queue' }), { what: 'clear-queue' });
@@ -398,7 +428,7 @@ export async function deckChecks(): Promise<void> {
     assert.deepEqual(calls, [{ action: 'happy-hour-end' }], 'a hold of a second ends it');
 
     // Test pull and Show a card: a PC that is not a staff PC refuses, the key shows its alert and the log says why.
-    const x = { test: new FakeKey(), card: new FakeKey(), nocard: new FakeKey(), queue: new FakeKey(), packs: new FakeKey(), goal: new FakeKey() };
+    const x = { test: new FakeKey(), card: new FakeKey(), nocard: new FakeKey(), queue: new FakeKey(), packs: new FakeKey(), goal: new FakeKey(), big: new FakeKey(), top: new FakeKey(), happy: new FakeKey() };
     keys.add('k-test', 'test-pull', x.test, {});
     keys.add('k-card', 'show-card', x.card, { viewer: '@Cheesy_1' });
     keys.add('k-nocard', 'show-card', x.nocard, {});
@@ -465,6 +495,25 @@ export async function deckChecks(): Promise<void> {
     assert.equal(x.packs.alerts + x.goal.alerts, 0);
     for (const id of ['k-queue', 'k-packs', 'k-goal']) keys.remove(id);
     await until('no stats wanted', () => server.wanted.length === 0);
+
+    // 61.4 live info: last big pull and top puller are wanted from the site like the other stats; the happy hour time left is not (the app already holds it, so no polling).
+    keys.add('k-happy', 'stat', x.happy, { stat: 'happy' });
+    await wait(50);
+    assert.deepEqual(server.wanted, [], 'a happy hour time key asks the site for nothing');
+    assert.equal(statsPlan(noStatMap(), false, server.wanted).poll, false, 'and nothing is polled for it');
+    keys.add('k-big', 'stat', x.big, { stat: 'lastBig' });
+    keys.add('k-top', 'stat', x.top, { stat: 'topPuller' });
+    await until('the two name stats to be wanted', () => server.wanted.join() === 'lastBig,topPuller');
+    assert.deepEqual(statsPlan(noStatMap(), false, server.wanted).ask, ['lastBig', 'topPuller']);
+    current = state({ happy: { what: 'Free packs', endsAt: clockNow + 754_000 }, stats: { lastBig: { username: 'brie_fan', cardName: 'Charizard' }, topPuller: { username: 'cheese', packs: 9 } } });
+    server.broadcast();
+    await until('the live info to show', () => x.big.title === 'brie_fan\nCharizard' && x.top.title === 'cheese\n9 packs' && x.happy.title === 'Happy hour\n12:34');
+    calls.length = 0;
+    for (const id of ['k-happy', 'k-big', 'k-top']) { await keys.down(id); await keys.up(id); }
+    assert.deepEqual(calls, [], 'a press on a live info key does nothing');
+    assert.equal(x.big.alerts + x.top.alerts + x.happy.alerts, 0);
+    for (const id of ['k-happy', 'k-big', 'k-top']) keys.remove(id);
+    await until('no stats wanted after the live info keys', () => server.wanted.length === 0);
 
     // Queue keys: Skip next pull is one press; Clear queue only after a hold of a second, a short press shows the hint; Pulls waiting wants the queue stat and does nothing when pressed.
     const q = { skip: new FakeKey(), clear: new FakeKey(), count: new FakeKey() };

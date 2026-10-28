@@ -41,8 +41,14 @@ export const HOLD_MS = 1000;
 /** A Queue key skips the next pull only when it is pressed again within this long. */
 export const SKIP_MS = 3000;
 
+/** What a Stat key can show: the stats the site gives, and the happy hour time left, which is already in the state (so it asks the site for nothing). */
+export const STAT_CHOICES = [...DECK_STATS, 'happy'] as const;
+export type StatChoice = (typeof STAT_CHOICES)[number];
 /** The stat a Stat key shows, or null when none is picked. */
-export const statOf = (s: Settings): DeckStatKind | null => DECK_STATS.find(k => k === s.stat) ?? null;
+export const statOf = (s: Settings): StatChoice | null => STAT_CHOICES.find(k => k === s.stat) ?? null;
+
+/** A name cut to fit one line of a key (about 10 characters). */
+export const fit = (t: string, n = 10): string => (t.length <= n ? t : `${t.slice(0, n - 1)}.`);
 
 /** The viewer a Show a card key names: no @, lowercase, a Twitch login; '' when none (the site and the app check it again). */
 export function viewerOf(s: Settings): string {
@@ -136,7 +142,7 @@ export function view(kind: KeyKind, state: DeckState | null, s: Settings, now: n
       const who = viewerOf(s);
       return { title: who ? `Show card\n${who}` : 'Name a viewer', image: icon('show-card', who ? 'idle' : 'off') };
     }
-    case 'stat': return statView(statOf(s), state.stats);
+    case 'stat': return statView(statOf(s), state, now);
     case 'skip': return { title: 'Skip\nnext pull', image: icon('skip', 'idle') };
     case 'clear-queue': return { title: 'Clear\nqueue', image: icon('clear-queue', 'idle') };
     case 'queue': { const n = state.stats.queue; return { title: `Waiting\n${n ?? '-'}`, image: icon('queue', n ? 'on' : 'idle') }; }
@@ -150,13 +156,26 @@ export function view(kind: KeyKind, state: DeckState | null, s: Settings, now: n
 }
 
 /** A Stat key: the label and the number, or "-" until the site has said. The goal is the site's own text ("Label: 37 / 50"), split at its last ": ". */
-function statView(stat: DeckStatKind | null, st: DeckState['stats']): View {
+function statView(stat: StatChoice | null, state: DeckState, now: number): View {
+  const st = state.stats;
   if (!stat) return { title: 'Pick a stat', image: icon('stat', 'off') };
+  if (stat === 'happy') {
+    const h = state.happy;
+    return h && h.endsAt > now ? { title: `Happy hour\n${clock(h.endsAt - now)}`, image: icon('stat', 'on') } : { title: 'No happy\nhour', image: icon('stat', 'idle') };
+  }
   if (stat === 'goal') {
     if (st.goal === undefined) return { title: 'Goal\n-', image: icon('stat', 'idle') };
     if (st.goal === null) return { title: 'Goal\nnone set', image: icon('stat', 'idle') };
     const i = st.goal.lastIndexOf(': ');
-    return { title: i < 0 ? st.goal : `${st.goal.slice(0, i)}\n${st.goal.slice(i + 2)}`, image: icon('stat', 'on') };
+    return { title: i < 0 ? fit(st.goal) : `${fit(st.goal.slice(0, i))}\n${fit(st.goal.slice(i + 2))}`, image: icon('stat', 'on') };
+  }
+  if (stat === 'lastBig') {
+    if (st.lastBig === undefined) return { title: 'Big pull\n-', image: icon('stat', 'idle') };
+    return st.lastBig ? { title: `${fit(st.lastBig.username)}\n${fit(st.lastBig.cardName)}`, image: icon('stat', 'on') } : { title: 'Big pull\nnone yet', image: icon('stat', 'idle') };
+  }
+  if (stat === 'topPuller') {
+    if (st.topPuller === undefined) return { title: 'Top puller\n-', image: icon('stat', 'idle') };
+    return st.topPuller ? { title: `${fit(st.topPuller.username)}\n${st.topPuller.packs} packs`, image: icon('stat', 'on') } : { title: 'Top puller\nnone yet', image: icon('stat', 'idle') };
   }
   const n = st[stat];
   return { title: `${stat === 'queue' ? 'Queue' : 'Packs'}\n${n ?? '-'}`, image: icon('stat', n === undefined ? 'idle' : 'on') };

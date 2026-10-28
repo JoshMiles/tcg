@@ -19,10 +19,10 @@ export const CLOSE_REFUSED = 4401;
 export interface DeckLinkFile { port: number; token: string }
 
 /** The stats a Stat key can show (57.4 / 57.5 data). The app asks the site for them only while a key shows one. */
-export const DECK_STATS = ['queue', 'packs', 'goal'] as const;
+export const DECK_STATS = ['queue', 'packs', 'goal', 'lastBig', 'topPuller'] as const;
 export type DeckStatKind = (typeof DECK_STATS)[number];
-/** What the site last said for those; a missing one = not said yet, `goal` null = no pack goal for this stream. */
-export interface DeckStats { queue?: number; packs?: number; goal?: string | null }
+/** What the site last said for those; a missing one = not said yet, `goal` null = no pack goal for this stream, `lastBig` / `topPuller` null = nobody yet. */
+export interface DeckStats { queue?: number; packs?: number; goal?: string | null; lastBig?: { username: string; cardName: string } | null; topPuller?: { username: string; packs: number } | null }
 
 /**
  * What the staff keys show (ROADMAP 61.3); `staff` in the state is null on a PC that is not a staff PC. `can` lists the staff actions this PC's account may use
@@ -99,6 +99,12 @@ function parseState(v: unknown): DeckState | null {
     if (num(v.stats.queue)) stats.queue = v.stats.queue;
     if (num(v.stats.packs)) stats.packs = v.stats.packs;
     if (v.stats.goal === null || text(v.stats.goal, 200)) stats.goal = v.stats.goal;
+    const big = v.stats.lastBig;
+    if (big === null) stats.lastBig = null;
+    else if (isObject(big) && text(big.username, 80) && text(big.cardName, 80)) stats.lastBig = { username: big.username, cardName: big.cardName };
+    const top = v.stats.topPuller;
+    if (top === null) stats.topPuller = null;
+    else if (isObject(top) && text(top.username, 80) && num(top.packs)) stats.topPuller = { username: top.username, packs: top.packs };
   }
   let staff: DeckStaff | null = null;
   const s = v.staff;
