@@ -8,20 +8,30 @@ function attr(attrs: string, name: string): string | null {
   return m ? (m[2] ?? m[3] ?? '') : null;
 }
 
-/** Applies `strip` until the text stops changing, so a removal cannot leave a new comment or tag behind (only ever run on the app's own pages). */
-function untilStable(text: string, strip: (s: string) => string): string {
-  for (let prev = ''; prev !== text; ) { prev = text; text = strip(text); }
-  return text;
+/**
+ * One pass over the text that drops comments, and `<script>` / `<style>` elements whole; with `tags`, every other tag too. A scanner rather than
+ * regex replaces, so nothing removed can join up into a new comment or tag.
+ */
+function strip(html: string, tags: boolean): string {
+  let out = '';
+  for (let i = 0; i < html.length; ) {
+    if (html.startsWith('<!--', i)) { const end = html.indexOf('-->', i + 4); i = end < 0 ? html.length : end + 3; continue; }
+    const raw = /^<(script|style)\b/i.exec(html.slice(i, i + 7));
+    if (raw) { const end = html.toLowerCase().indexOf(`</${raw[1].toLowerCase()}`, i); const close = end < 0 ? -1 : html.indexOf('>', end); i = close < 0 ? html.length : close + 1; continue; }
+    if (tags && html[i] === '<') { const end = html.indexOf('>', i); i = end < 0 ? html.length : end + 1; continue; }
+    out += html[i++];
+  }
+  return out;
 }
 
 /** Text with tags and comments removed, entities left as they are. */
 function plain(html: string): string {
-  return untilStable(html, s => s.replace(/<!--[\s\S]*?-->/g, '').replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
+  return strip(html, true).replace(/\s+/g, ' ').trim();
 }
 
 /** Problems found in one page, each a short sentence naming the element. An empty list means the page passes. */
 export function auditHtml(source: string): string[] {
-  const html = untilStable(source, s => s.replace(/<!--[\s\S]*?-->/g, '').replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, ''));
+  const html = strip(source, false);
   const problems: string[] = [];
   const ids = new Set<string>();
   for (const m of html.matchAll(/\sid\s*=\s*"([^"]*)"/gi)) {
