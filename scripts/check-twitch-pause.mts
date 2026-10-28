@@ -14,7 +14,7 @@ const realFetch = globalThis.fetch;
 const fake = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const u = String(input instanceof Request ? input.url : input);
   if (u.startsWith(url)) return realFetch(input, init);
-  if (u.endsWith('/oauth2/token')) return new Response(JSON.stringify({ access_token: 'ACCESS-1', refresh_token: 'REFRESH-1', expires_in: 14000, scope: ['channel:read:redemptions', 'bits:read', 'channel:read:subscriptions'] }), { status: 200 });
+  if (u.endsWith('/oauth2/token')) return new Response(JSON.stringify({ access_token: 'ACCESS-1', refresh_token: 'REFRESH-1', expires_in: 14000, scope: ['channel:read:redemptions', 'bits:read', 'channel:read:subscriptions', 'user:read:chat', 'user:write:chat', 'channel:bot'] }), { status: 200 });
   if (u.endsWith('/helix/users')) return new Response(JSON.stringify({ data: [{ id: '4242', login: 'SpareAccount' }] }), { status: 200 });
   return new Response('{}', { status: 200 });
 }) as typeof fetch;
