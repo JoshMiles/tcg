@@ -132,10 +132,10 @@ Every panel today and where it goes. No change to what any setting does, except 
 - **History:** the full log with filters (`MixItUpLog`); Brie Bucks ledger check result (`readLedgerCheck`); Uptime (`readUptime`); backups; the Twitch card's recent events stay on the card.
 - **Links to move or redirect:** `?tab=` ids overview, connection, paid, bigpulls, chat, commands, streamdeck, events, log map to the new sections; `/admin/mixitup/setup`; the twitch and twitch-bot routes' `returnTo` and the OAuth callback; `lib/admin-nav.ts`, `lib/mixitup-page.ts` fix links, `lib/bridge-notice.ts`, `lib/twitch-channel.ts`, `lib/twitch-chat.ts`, `app/admin/BridgeRelease.tsx`, `app/admin/settings/DataHealthPanel.tsx` and `page.tsx`, `app/admin/buffs/BuffEditorClient.tsx`, `revalidatePath` calls (`app/bridge/link/actions.ts`, `lib/bridge-staff.ts`), TCG Bridge's menu and pair-page links (`bridge/src/main.ts`; old links keep working through the redirect, so the app can follow later), `scripts/check-route-guards.mts`, `scripts/sweep-mod-access.mjs`, the check fixtures, and the docs (`docs/admin/mixitup.md`, `content/wiki/live-tools.md` `covers:`, `docs/doc-map.json`).
 
-### 63.2 Shell, status strip and Live (After 63.1)
+### 63.2 Shell, status strip and Live (Done, #676)
 The Stream page with its five sections, the status strip, the rename and redirects, and the Live section. The old tabs stay reachable from the sections not yet built.
 
-### 63.3 What viewers get (After 63.2)
+### 63.3 What viewers get (Done, #677)
 The reward cards and the save-per-card pattern, with the one "Mix It Up commands" helper (webhook address and secret once) shared by every reward.
 
 ### 63.4 Connections and first-run setup (Done, #678)
