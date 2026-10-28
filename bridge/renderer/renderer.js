@@ -1,6 +1,6 @@
 // The window: draws the state main.js sends and sends the actions back. Text only (textContent), never HTML.
 const $ = id => document.getElementById(id);
-const SITE_TEXT = { connecting: 'Connecting', connected: 'Connected', offline: 'Cannot reach the site, trying again', revoked: 'Pair again' };
+const SITE_TEXT = { connecting: 'Connecting', connected: 'Connected', offline: 'Cannot reach the site, trying again', revoked: 'Sign in again' };
 const TRAY_TEXT = { connected: 'All connected', partly: 'Partly connected', offline: 'Not connected' };
 
 const ago = ms => {
@@ -135,7 +135,7 @@ function setChip(id, kind, text) {
 function renderChips() {
   const svc = state.service;
   const site = svc ? svc.site : 'connecting';
-  setChip('chip-site', site === 'connected' ? 'ok' : site === 'connecting' ? 'warn' : '', site === 'connected' ? (svc.lastPollAt ? shortAgo(svc.lastPollAt) : 'Connected') : site === 'revoked' ? 'Pair again' : site === 'offline' ? 'Offline' : 'Connecting');
+  setChip('chip-site', site === 'connected' ? 'ok' : site === 'connecting' ? 'warn' : '', site === 'connected' ? (svc.lastPollAt ? shortAgo(svc.lastPollAt) : 'Connected') : site === 'revoked' ? 'Sign in again' : site === 'offline' ? 'Offline' : 'Connecting');
   const found = !!(svc && svc.mix.found);
   setChip('chip-mix', found ? 'ok' : '', found ? 'Connected' : 'API off');
   const obs = svc && svc.obs;
@@ -463,19 +463,22 @@ function render() {
   setDot('rail-dot', level === 'connected' ? 'ok' : level === 'partly' ? 'warn' : '');
   $('rail-text').textContent = state.paired ? TRAY_TEXT[level] : 'Not paired';
   const pc = state.pcName && state.pcName !== state.pairedAs ? `PC: ${state.pcName}` : '';
-  $('rail-pc').textContent = state.paired ? [`Paired as ${state.pairedAs}`, pc].filter(Boolean).join(', ') : pc;
+  $('rail-pc').textContent = state.paired ? [state.account, pc].filter(Boolean).join(', ') : pc;
   if (!state.paired) {
     if (!$('site').value) $('site').value = state.site;
-    $('pair-note').textContent = svc && svc.site === 'revoked'
-      ? 'Pair again: the site no longer accepts this PC. On the site, open Admin > Mix It Up > Paid pulls, press "Pair TCG Bridge" and type the new code here.'
-      : 'On the site, open Admin > Mix It Up > Paid pulls and press "Pair TCG Bridge". Type the code it shows here.';
+    renderConnect(!!(svc && svc.site === 'revoked'));
     return;
   }
   const site = svc ? svc.site : 'connecting';
   $('site-url').textContent = state.site;
-  $('paired-as').textContent = state.pairedAs;
+  $('paired-as').textContent = state.account;
   $('last-poll').textContent = svc && svc.lastPollAt ? ago(svc.lastPollAt) : 'not yet';
-  $('account-text').textContent = `Paired with ${state.site} as ${state.pairedAs}. ${SITE_TEXT[site]}${svc && svc.siteError && site !== 'revoked' ? ` (${svc.siteError})` : ''}.`;
+  $('account-text').textContent = `${state.linked ? `Signed in with Twitch on ${state.site}` : `Paired with ${state.site} as ${state.pairedAs}`}. ${SITE_TEXT[site]}${svc && svc.siteError && site !== 'revoked' ? ` (${svc.siteError})` : ''}.`;
+  unpairWord = state.linked ? 'Sign out' : 'Unpair';
+  if (!unpairTimer) $('unpair-label').textContent = unpairWord;
+  $('unpair-help').textContent = state.linked
+    ? 'Signing out makes this PC forget its key and brings back the Connect screen; sign in with Twitch again to use it. The site is not told: to remove this PC there too, an admin presses Unlink on the Mix It Up page, Connection tab. Your role is read from the site, so a role change shows here within a minute.'
+    : "Unpairing makes this PC forget the site's key; the Connect screen comes back and Sign in with Twitch (or a new code from the site) sets it up again.";
   const found = !!(svc && svc.mix.found);
   $('mix-version').textContent = found ? svc.mix.version : '-';
   $('mix-currency').textContent = svc && svc.currency ? svc.currency : 'The site chooses it; shown after the first job';
@@ -505,6 +508,36 @@ for (const b of document.querySelectorAll('.rail-btn')) b.addEventListener('clic
 $('win-min').addEventListener('click', () => window.bridge.minimize());
 $('win-close').addEventListener('click', () => window.bridge.closeToTray());
 
+// The Connect screen (59.6, 58.0b): Sign in with Twitch is the way in; the pairing code form hides behind a link. `signIn` in the state is the poll's progress (null = idle).
+let showPair = false;
+function renderConnect(revoked) {
+  const v = state.signIn;
+  const phase = v ? v.phase : 'idle';
+  const waiting = phase === 'starting' || phase === 'waiting' || phase === 'allowed';
+  const failed = phase === 'denied' || phase === 'expired' || phase === 'error';
+  $('revoked-note').hidden = !revoked || waiting;
+  $('signin-idle').hidden = showPair || waiting || failed;
+  $('signin-wait').hidden = !waiting;
+  $('signin-result').hidden = !failed;
+  $('pair-block').hidden = !showPair || waiting || failed;
+  $('signin-code').textContent = phase === 'waiting' ? v.code : '';
+  $('signin-wait-text').textContent = phase === 'waiting' ? 'Check the site shows this code:' : phase === 'allowed' ? 'Signed in. Opening TCG Bridge...' : 'Asking the site for a sign-in...';
+  $('signin-note').textContent = phase === 'waiting' ? [v.note, 'Your browser opened on the TCG site. Sign in there and press Allow. This waits up to 10 minutes.'].filter(Boolean).join(' ') : '';
+  $('signin-message').textContent = phase === 'expired' ? 'That sign-in took too long.' : failed ? v.message : '';
+}
+$('signin-btn').addEventListener('click', async () => {
+  $('signin-error').textContent = '';
+  const r = await window.bridge.signIn($('site').value);
+  if (!r.ok) $('signin-error').textContent = r.error || 'Could not start signing in';
+});
+$('signin-retry').addEventListener('click', async () => {
+  const r = await window.bridge.signIn($('site').value);
+  if (!r.ok) $('signin-message').textContent = r.error || 'Could not start signing in';
+});
+$('signin-cancel').addEventListener('click', () => { void window.bridge.cancelSignIn(); });
+$('show-pair').addEventListener('click', () => { showPair = true; render(); });
+$('hide-pair').addEventListener('click', () => { showPair = false; render(); });
+
 $('pair-form').addEventListener('submit', async e => {
   e.preventDefault();
   $('pair-btn').disabled = true;
@@ -524,16 +557,17 @@ $('obs-form').addEventListener('submit', e => { e.preventDefault(); void saveObs
 $('obs-forget').addEventListener('click', () => { void saveObs(''); });
 // Unpair asks twice (the site's ArmedButton way): the first press arms it for 4 seconds, the second unpairs.
 let unpairTimer = 0;
+let unpairWord = 'Unpair'; // "Sign out" for a PC signed in with Twitch (set in render)
 function disarmUnpair() {
   clearTimeout(unpairTimer);
   unpairTimer = 0;
-  $('unpair-label').textContent = 'Unpair';
+  $('unpair-label').textContent = unpairWord;
   $('unpair-result').textContent = '';
 }
 $('unpair').addEventListener('click', () => {
   if (unpairTimer) { disarmUnpair(); window.bridge.unpair(); return; }
-  $('unpair-label').textContent = 'Sure? Unpair';
-  $('unpair-result').textContent = 'Press Unpair again within 4 seconds to forget the pairing.';
+  $('unpair-label').textContent = `Sure? ${unpairWord}`;
+  $('unpair-result').textContent = `Press ${unpairWord} again within 4 seconds to ${unpairWord === 'Sign out' ? 'forget the sign-in' : 'forget the pairing'}.`;
   unpairTimer = setTimeout(disarmUnpair, 4000);
 });
 $('unpair').addEventListener('blur', disarmUnpair);
@@ -688,8 +722,11 @@ const fill = (list, items) => list.replaceChildren(...items.map(text => { const 
 
 function renderStaff() {
   $('rail-staff-group').hidden = !(state && state.staff);
-  $('preview-card').hidden = !(state && state.staff);
+  // A role-limited account (58.0b) hides, not just disables, what it cannot do: data-staff lists the actions a block needs; staffCan null = everything.
+  const can = state && Array.isArray(state.staffCan) ? state.staffCan : null;
+  $('preview-card').hidden = !(state && state.staff) || (!!can && !can.includes('preview-url'));
   if (state && !state.staff && ['viewers', 'stream'].some(p => !document.querySelector(`[data-panel="${p}"]`).hidden)) showTab('home');
+  for (const el of document.querySelectorAll('[data-staff]')) el.hidden = !!can && !el.dataset.staff.split(' ').some(a => can.includes(a));
   const s = staffState;
   if (!s) return;
   $('staff-extra-now').textContent = s.extra > 0 ? `Everyone gets ${s.extra} extra this stream.` : 'No extra pulls right now.';

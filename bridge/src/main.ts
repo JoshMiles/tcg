@@ -29,7 +29,8 @@ import { cleanScenePause, ScenePause } from './scenepause';
 import { eventsAfter, mergeEvents, type EventLine } from './events';
 import { acceptStatMap, statsPlan, STAT_IDS, STAT_LABELS, TextWriter, wantedTexts, type StatFacts } from './obsstats';
 import { DEFAULT_SITE, FileSettingsStore, defaults, type Settings } from './settings';
-import { cleanSite, pair, SiteClient, Unauthorized, type QueueRow } from './site';
+import { cleanSite, pair, pollLink, SiteClient, startLink, Unauthorized, type QueueRow } from './site';
+import { accountLabel, linkPage, refreshAccount, runSignIn, staffShown, type SignInView } from './signin';
 import { Startup, type StartupEvent, type StartupStep } from './startup';
 import { clearReleaseCache, loadReleases, releaseBlocks, RELEASES_API, RELEASES_URL, releasesBetween, type Note } from './releases';
 import { checkText, releaseUrl, updatedTo, updateText, type UpdateStage } from './update';
@@ -96,6 +97,8 @@ let wasLive = false;
 let buffs: { id: string; name: string }[] = []; // the buffs switched on for the Stream Deck
 let staff = false; // the site says an admin switched "Staff tools on this PC" on (55.12)
 let tradingPaused = false;
+let signInRun: AbortController | null = null; // Sign in with Twitch (58.0b): the running poll; the secret lives only in runSignIn's closure
+let signInView: SignInView | null = null; // what the Connect screen shows of it; null = idle
 let staffTools: StaffTools | null = null;
 let lastControl = ''; // what the last button, hotkey or switch got
 let lastChecklist: (ChecklistResult & { at: number }) | null = null; // the last pre-stream checklist (57.1)
@@ -145,7 +148,7 @@ const DECK_GRACE_MS = 30_000; // the Stream Deck app starts with Windows too: no
 function connectionsView() {
   const s = service?.state;
   return connectionRows({
-    paired: !!settings.token, pairedAs: settings.pairedAs, site: s?.site ?? null, siteError: s?.siteError ?? '',
+    paired: !!settings.token, pairedAs: settings.pairedAs, login: settings.login, role: settings.role, site: s?.site ?? null, siteError: s?.siteError ?? '',
     mixFound: !!s?.mix.found, obsEnabled: settings.obsEnabled, obsConnected: !!s?.obs.connected, obsStreaming: s?.obs.streaming ?? null, obsError: s?.obs.error ?? '',
     ...deckLink(),
   });
@@ -159,6 +162,10 @@ const appState = (): object => demoState ?? ({
   paired: !!settings.token,
   site: settings.site,
   pairedAs: settings.pairedAs,
+  account: accountLabel({ login: settings.login, role: settings.role, pairedAs: settings.pairedAs }), // "Signed in with Twitch as <login> (<role>)" or "Paired as <name>"
+  linked: !!settings.login,
+  staffCan: staffShown(settings), // null = every staff action (a PC paired with a code); else the actions the account's role may use
+  signIn: signInView,
   pcName: hostname(), // the sidebar footer; pairedAs was the PC name when pairing happened
   startWithWindows: settings.startWithWindows,
   obsSettings: { enabled: settings.obsEnabled, address: settings.obsAddress, hasPassword: !!settings.obsPassword, startReplay: settings.obsStartReplay }, // never the password itself
@@ -225,7 +232,7 @@ function push(): void {
   if (menu !== menuFor) { menuFor = menu; tray?.setContextMenu(trayMenu()); }
   if (service?.state.site === 'revoked' && settings.token) { // the site revoked this PC: forget the token so a restart does not retry it
     log('The site revoked this PC');
-    settings = { ...settings, token: '' };
+    settings = { ...settings, token: '', login: '', role: '' };
     void store.save(settings);
   }
 }
@@ -311,6 +318,12 @@ async function loadStatus(): Promise<void> {
     commandsMissing = r.commandsMissing ?? commandsMissing;
     staff = r.staff === true;
     tradingPaused = staff && (r.tradingPaused ?? tradingPaused);
+    const acct = refreshAccount(settings, r.account); // a role changed on the site shows up here (a linked PC only)
+    if (acct.changed) {
+      settings = { ...settings, login: acct.login, role: acct.role };
+      void store.save(settings);
+      log(`Account: ${acct.login} (${acct.role || 'no staff role'})`);
+    }
     push();
   } catch { /* the next try is in 30 seconds */ }
 }
@@ -562,6 +575,7 @@ function createWindow(show: boolean): void {
   });
   win.on('show', reportFeed);
   win.on('hide', reportFeed);
+  win.on('hide', () => signInRun?.abort()); // closing the window to the tray cancels a sign-in that is waiting
   win.on('close', e => { if (!quitting) { e.preventDefault(); win?.hide(); } });
   void win.loadFile(join(RENDERER, 'index.html'));
 }
@@ -716,7 +730,7 @@ function setupIpc(): void {
       const token = await pair(site, code, name);
       logger?.addSecret(token);
       await disconnect();
-      settings = { ...settings, site, token, pairedAs: name };
+      settings = { ...settings, site, token, pairedAs: name, login: '', role: '' };
       await store.save(settings);
       log(`Paired with ${site} as ${name}`);
       connect();
@@ -726,11 +740,55 @@ function setupIpc(): void {
       return { ok: false, error: e instanceof Error && e.message ? e.message : 'Could not reach the site' };
     }
   });
+  // Sign in with Twitch (58.0b). The window only asks; the progress comes back in the state (`signIn`). The secret and the token never leave this function's closure and the log.
+  ipcMain.handle('sign-in', async (_e, siteRaw: string) => {
+    if (signInRun) return { ok: true };
+    const site = cleanSite(siteRaw);
+    if (!site) return { ok: false, error: 'The site address must start with https://' };
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) return { ok: false, error: 'This PC cannot keep the sign-in safe (Windows encryption is not available).' };
+    const run = new AbortController();
+    signInRun = run;
+    const name = hostname();
+    log(`Sign in with Twitch started on ${site}`);
+    void runSignIn({
+      start: async () => {
+        const link = await startLink(site, name, run.signal);
+        logger?.addSecret(link.secret);
+        const page = linkPage(site, link.id); // built from the configured site and the id: never an address the site sent
+        if (!page) throw new Error('The site sent a sign-in request this app does not understand.');
+        await shell.openExternal(page);
+        return link;
+      },
+      poll: (id, secret) => pollLink(site, id, secret, run.signal),
+      show: v => { signInView = v; push(); },
+      sleep: (ms, signal) => new Promise<void>(done => { const t = setTimeout(done, ms); signal.addEventListener('abort', () => { clearTimeout(t); done(); }, { once: true }); }),
+      now: () => Date.now(),
+      signal: run.signal,
+    }).then(async r => {
+      log(`Sign in with Twitch: ${r.view.phase}`);
+      if (r.view.phase === 'cancelled') signInView = null;
+      if (r.view.phase !== 'allowed' || !r.token) return;
+      logger?.addSecret(r.token);
+      await disconnect();
+      settings = { ...settings, site, token: r.token, pairedAs: name, login: r.view.login, role: r.view.role };
+      await store.save(settings);
+      signInView = null;
+      log(`Signed in with Twitch as ${r.view.login} (${r.view.role || 'no staff role'})`);
+      connect();
+    }).catch(e => {
+      log(`Sign in with Twitch failed: ${e instanceof Error ? e.message : 'unknown error'}`);
+      signInView = { phase: 'error', message: 'Could not finish signing in. Try again.' };
+    }).finally(() => { if (signInRun === run) signInRun = null; push(); });
+    return { ok: true };
+  });
+  ipcMain.handle('sign-in-cancel', () => { signInRun?.abort(); });
+  // "Unpair" for a PC paired with a code, "Sign out" for a linked one: this PC forgets its token. The site keeps listing the PC until an admin presses Unlink on the Connection tab (there is no unpair route).
   ipcMain.handle('unpair', async () => {
+    const linked = !!settings.login;
     await disconnect();
-    settings = { ...settings, token: '', pairedAs: '' };
+    settings = { ...settings, token: '', pairedAs: '', login: '', role: '' };
     await store.save(settings);
-    log('Unpaired');
+    log(linked ? 'Signed out' : 'Unpaired');
     push();
   });
   // password: undefined keeps the saved one, '' forgets it

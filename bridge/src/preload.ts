@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('bridge', {
   onState: (cb: (state: unknown) => void): void => { ipcRenderer.on('state', (_e, state) => cb(state)); },
   pair: (site: string, code: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('pair', String(site), String(code)),
   unpair: (): Promise<void> => ipcRenderer.invoke('unpair'),
+  signIn: (site: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('sign-in', String(site)),
+  cancelSignIn: (): Promise<void> => ipcRenderer.invoke('sign-in-cancel'),
   setObs: (enabled: boolean, address: string, password?: string, startReplay?: boolean): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('obs-settings', !!enabled, String(address), typeof password === 'string' ? password : undefined, !!startReplay),
   setStartWithWindows: (on: boolean): Promise<void> => ipcRenderer.invoke('start-with-windows', !!on),
   setAlerts: (on: boolean): Promise<void> => ipcRenderer.invoke('alerts', !!on),

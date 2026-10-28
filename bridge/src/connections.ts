@@ -1,6 +1,7 @@
 // The Connections page (ROADMAP 59.6): the list on the left (one row per connection) and what the detail on the right says first.
 // Plain TypeScript, no Electron. The window shows these strings with textContent only.
-// A Twitch channel row (58.1) joins CONN_ORDER and rowFor() later; "Signed in with Twitch as <login> (<role>)" (58.0b) replaces the account row's line.
+// A Twitch channel row (58.1) joins CONN_ORDER and rowFor() later. The account row says "Signed in with Twitch as <login> (<role>)" for a linked PC (58.0b).
+import { accountLabel } from './signin';
 
 export type ConnId = 'account' | 'mix' | 'obs' | 'deck';
 export const CONN_ORDER: ConnId[] = ['account', 'mix', 'obs', 'deck'];
@@ -10,6 +11,9 @@ export type ConnTone = 'ok' | 'warn' | 'bad' | 'off';
 export interface ConnFacts {
   paired: boolean;
   pairedAs: string;
+  /** Signed in with Twitch (58.0b): the login and role of a linked PC; '' or absent = paired with a code. */
+  login?: string;
+  role?: string;
   /** null = the service is not running yet. */
   site: 'connecting' | 'connected' | 'offline' | 'revoked' | null;
   siteError: string;
@@ -58,9 +62,10 @@ export function rowFor(id: ConnId, f: ConnFacts): ConnRow {
   const row = (tone: ConnTone, line: string, sentence: string): ConnRow => ({ id, name, tone, line, sentence });
   if (id === 'account') {
     if (!f.paired || f.site === 'revoked') return row('bad', 'Not paired', 'This PC is not paired with the site');
-    const as = `Paired as ${f.pairedAs}`;
+    const label = accountLabel({ login: f.login ?? '', role: f.role ?? '', pairedAs: f.pairedAs });
+    const as = f.login ? label.replace('Signed in with Twitch as', 'Signed in as') : label; // the list is narrow: the detail says "with Twitch"
     if (f.site === 'offline') return row('bad', 'Cannot reach the site', 'The site cannot be reached');
-    if (f.site === 'connected') return row('ok', as, `Paired with the site as ${f.pairedAs}`);
+    if (f.site === 'connected') return row('ok', as, f.login ? label : `Paired with the site as ${f.pairedAs}`);
     return row('warn', `${as}, connecting`, 'Connecting to the site');
   }
   if (id === 'mix') {

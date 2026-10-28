@@ -7,9 +7,14 @@ import { cleanNoticeSwitches, defaultNotices, type NoticeSwitches } from './noti
 import { cleanScenePause, defaultScenePause, type ScenePauseSettings } from './scenepause';
 import { cleanStatMap, noStatMap, type StatMap } from './obsstats';
 import { cleanWinState, type WinState } from './winstate';
+import { cleanRole } from './signin';
+import type { StaffRoleName } from './staffpages';
 
 export interface Settings {
-  site: string; token: string; pairedAs: string; startWithWindows: boolean; obsEnabled: boolean; obsAddress: string; obsPassword: string; obsStartReplay: boolean;
+  site: string; token: string; pairedAs: string;
+  /** Signed in with Twitch (58.0b): the Twitch login and its site role. '' login = this PC is not linked (it was paired with a code, or is signed out). The token is the same kind either way. */
+  login: string; role: StaffRoleName | '';
+  startWithWindows: boolean; obsEnabled: boolean; obsAddress: string; obsPassword: string; obsStartReplay: boolean;
   alerts: boolean; startMixItUp: boolean; mixItUpPath: string; lastSeenVersion: string;
   /** Random per install: it is in the path of every Stream Deck button, so a web page cannot guess one. Made on first run (main.ts). */
   controlKey: string; hotkeys: HotkeyMap;
@@ -27,7 +32,7 @@ export interface Settings {
   window: WinState | null;
 }
 export const DEFAULT_SITE = 'https://cheesytcg.app';
-export const defaults = (): Settings => ({ site: DEFAULT_SITE, token: '', pairedAs: '', startWithWindows: true, obsEnabled: false, obsAddress: 'ws://127.0.0.1:4455', obsPassword: '', obsStartReplay: false, alerts: true, startMixItUp: false, mixItUpPath: '', lastSeenVersion: '', controlKey: '', hotkeys: noHotkeys(), feed: defaultFeed(), summary: false, startObs: false, obsPath: '', notices: defaultNotices(), scenePause: defaultScenePause(), obsStats: noStatMap(), streamDeck: false, deckOfferedFor: '', window: null });
+export const defaults = (): Settings => ({ site: DEFAULT_SITE, token: '', pairedAs: '', login: '', role: '', startWithWindows: true, obsEnabled: false, obsAddress: 'ws://127.0.0.1:4455', obsPassword: '', obsStartReplay: false, alerts: true, startMixItUp: false, mixItUpPath: '', lastSeenVersion: '', controlKey: '', hotkeys: noHotkeys(), feed: defaultFeed(), summary: false, startObs: false, obsPath: '', notices: defaultNotices(), scenePause: defaultScenePause(), obsStats: noStatMap(), streamDeck: false, deckOfferedFor: '', window: null });
 
 export interface Cipher { encrypt(plain: string): Promise<Buffer>; decrypt(data: Buffer): Promise<string> }
 export interface SettingsStore { load(): Promise<Settings>; save(s: Settings): Promise<void> }
@@ -43,6 +48,8 @@ export class FileSettingsStore implements SettingsStore {
       const raw = JSON.parse(readFileSync(this.file, 'utf8')) as Record<string, unknown>;
       if (typeof raw.site === 'string') s.site = raw.site;
       if (typeof raw.pairedAs === 'string') s.pairedAs = raw.pairedAs;
+      if (typeof raw.login === 'string') s.login = raw.login.slice(0, 40);
+      s.role = cleanRole(raw.role);
       if (typeof raw.startWithWindows === 'boolean') s.startWithWindows = raw.startWithWindows;
       if (typeof raw.obsEnabled === 'boolean') s.obsEnabled = raw.obsEnabled;
       if (typeof raw.obsAddress === 'string' && raw.obsAddress) s.obsAddress = raw.obsAddress;
@@ -74,7 +81,7 @@ export class FileSettingsStore implements SettingsStore {
     mkdirSync(join(this.file, '..'), { recursive: true });
     const seal = async (plain: string) => (plain ? (await this.cipher.encrypt(plain)).toString('base64') : '');
     const out = {
-      site: s.site, pairedAs: s.pairedAs, startWithWindows: s.startWithWindows, obsEnabled: s.obsEnabled, obsAddress: s.obsAddress, obsStartReplay: s.obsStartReplay,
+      site: s.site, pairedAs: s.pairedAs, login: s.login, role: s.role, startWithWindows: s.startWithWindows, obsEnabled: s.obsEnabled, obsAddress: s.obsAddress, obsStartReplay: s.obsStartReplay,
       alerts: s.alerts, startMixItUp: s.startMixItUp, mixItUpPath: s.mixItUpPath, lastSeenVersion: s.lastSeenVersion, controlKey: s.controlKey, hotkeys: s.hotkeys, feed: s.feed, summary: s.summary, startObs: s.startObs, obsPath: s.obsPath, notices: s.notices, scenePause: s.scenePause, obsStats: s.obsStats, streamDeck: s.streamDeck, deckOfferedFor: s.deckOfferedFor, window: s.window,
       obsPassword: await seal(s.obsPassword), token: await seal(s.token),
     };

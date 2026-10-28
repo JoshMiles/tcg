@@ -2,13 +2,14 @@
 import type { SiteFacts } from './checklist';
 import { cleanStatFacts, type StatFacts } from './obsstats';
 import { cleanEvents, type EventLine } from './events';
+import { cleanRole, type LinkPollAnswer, type LinkStart } from './signin';
 export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command' | 'pull-event' | 'backup' | 'ledger' | 'summary';
 /** `pull-event` (ROADMAP 55.8): `phase` 'start' shows `source` for `holdMs`; 'reveal' says `text` in chat, switches to `scene` for `secs` and/or saves a clip. `backup` (55.10): `phase` is 'start' or 'end'. */
 export interface BridgeJob { id: string; kind: string; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; delayMs?: number; phase?: string; source?: string; holdMs?: number; scene?: string; secs?: number; clip?: boolean; feed?: unknown; summary?: unknown; notice?: unknown; at?: number }
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeCurrency { id: string; name: string }
 export interface BridgeCommand { id: string; name: string }
-export interface SiteAction { ok: boolean; message: string; paused?: boolean; /** "scene <name>" when a chosen OBS scene paused pulls (57.2). */ reason?: string; buffs?: { id: string; name: string }[]; staff?: boolean; tradingPaused?: boolean; /** 57.3: present on `status` and the happy hour actions; null = none running. */ happyHour?: { what: string; endsAt: number } | null; /** 57.4: the answer to `stats`. */ stats?: StatFacts; /** 57.7: the answer to `events`, newest first. */ events?: EventLine[]; /** 57.8: on `status`, the Mix It Up commands the site expects and does not find (empty = all found); absent until the site has the app's commands. */ commandsMissing?: string[] }
+export interface SiteAction { ok: boolean; message: string; paused?: boolean; /** "scene <name>" when a chosen OBS scene paused pulls (57.2). */ reason?: string; buffs?: { id: string; name: string }[]; staff?: boolean; /** 58.0: on `status`, the Twitch account a linked PC is signed in as (absent on a PC paired with a code). */ account?: { login?: unknown; role?: unknown }; tradingPaused?: boolean; /** 57.3: present on `status` and the happy hour actions; null = none running. */ happyHour?: { what: string; endsAt: number } | null; /** 57.4: the answer to `stats`. */ stats?: StatFacts; /** 57.7: the answer to `events`, newest first. */ events?: EventLine[]; /** 57.8: on `status`, the Mix It Up commands the site expects and does not find (empty = all found); absent until the site has the app's commands. */ commandsMissing?: string[] }
 /** What /api/bridge/staff answers to an action (ROADMAP 55.12). */
 export interface StaffReply { ok: boolean; message: string; needsForce?: boolean; /** `preview-url` (57.10): the preview page's path on the site, and when its key stops working (ms). */ url?: string; expiresAt?: number }
 export interface QueueRow { id: string; kind: string; username: string; pack: string; waitedS: number }
@@ -55,6 +56,29 @@ export async function pair(site: string, code: string, name: string): Promise<st
   throw new SiteError(status, typeof json.error === 'string' ? json.error : `The site answered ${status}`);
 }
 
+/** Sign in with Twitch (58.0b), step 1: asks the site for a link request. No token. The secret in the answer is for the poll only. */
+export async function startLink(site: string, name: string, signal?: AbortSignal): Promise<LinkStart> {
+  const base = cleanSite(site);
+  if (!base) throw new SiteError(0, 'The site address must start with https://');
+  const { status, json } = await post(base, '/api/bridge/link', { name }, undefined, AbortSignal.any([AbortSignal.timeout(15_000), ...(signal ? [signal] : [])]));
+  if (status === 200 && typeof json.id === 'string' && typeof json.code === 'string' && typeof json.secret === 'string')
+    return { id: json.id, code: json.code.slice(0, 12), secret: json.secret, url: typeof json.url === 'string' ? json.url : '', expiresAt: Number(json.expiresAt) || 0 };
+  throw new SiteError(status, status === 429 ? 'Too many tries, wait a minute and try again.' : status === 200 || status >= 500 ? 'The site did not start a sign-in. Try again in a moment.' : `The site answered ${status}`);
+}
+
+/** Step 2, every 2 s: the request's state. Anything but a clear answer throws (the caller keeps polling). */
+export async function pollLink(site: string, id: string, secret: string, signal?: AbortSignal): Promise<LinkPollAnswer> {
+  const base = cleanSite(site);
+  if (!base) throw new SiteError(0, 'The site address must start with https://');
+  const { status, json } = await post(base, '/api/bridge/link/poll', { id, secret }, undefined, AbortSignal.any([AbortSignal.timeout(10_000), ...(signal ? [signal] : [])]));
+  if (status !== 200) throw new SiteError(status, `The site answered ${status}`);
+  if (json.status === 'pending' || json.status === 'expired') return { status: json.status };
+  if (json.status === 'denied') return { status: 'denied', message: typeof json.message === 'string' && json.message ? json.message.slice(0, 200) : 'The link was denied.' };
+  if (json.status === 'allowed' && typeof json.token === 'string' && json.token && typeof json.login === 'string' && json.login)
+    return { status: 'allowed', token: json.token, login: json.login.slice(0, 40), role: cleanRole(json.role) };
+  throw new SiteError(status, 'The site sent an answer this app does not know');
+}
+
 export class SiteClient {
   constructor(readonly base: string, private token: string, private version: string, private commit = '') {}
 
@@ -88,7 +112,7 @@ export class SiteClient {
   async action(body: Record<string, unknown>): Promise<SiteAction> {
     const r = await this.call('/api/bridge/action', body, AbortSignal.timeout(15_000));
     if (r.status !== 200) throw new SiteError(r.status, `The site answered ${r.status}`);
-    return { ok: r.json.ok === true, message: typeof r.json.message === 'string' ? r.json.message : '', ...(typeof r.json.paused === 'boolean' ? { paused: r.json.paused } : {}), ...(typeof r.json.reason === 'string' ? { reason: r.json.reason.slice(0, 200) } : {}), ...(typeof r.json.staff === 'boolean' ? { staff: r.json.staff } : {}), ...(typeof r.json.tradingPaused === 'boolean' ? { tradingPaused: r.json.tradingPaused } : {}), ...(happyHourOf(r.json.happyHour)), ...(r.json.stats && typeof r.json.stats === 'object' ? { stats: cleanStatFacts(r.json.stats) } : {}), ...(Array.isArray(r.json.events) ? { events: cleanEvents(r.json.events) } : {}), ...(Array.isArray(r.json.commandsMissing) ? { commandsMissing: cleanMissing(r.json.commandsMissing) } : {}),...(Array.isArray(r.json.buffs) ? { buffs: (r.json.buffs as SiteAction['buffs'])!.filter(b => typeof b?.id === 'string' && typeof b?.name === 'string') } : {}) };
+    return { ok: r.json.ok === true, message: typeof r.json.message === 'string' ? r.json.message : '', ...(typeof r.json.paused === 'boolean' ? { paused: r.json.paused } : {}), ...(typeof r.json.reason === 'string' ? { reason: r.json.reason.slice(0, 200) } : {}), ...(typeof r.json.staff === 'boolean' ? { staff: r.json.staff } : {}), ...(r.json.account && typeof r.json.account === 'object' ? { account: r.json.account as { login?: unknown; role?: unknown } } : {}), ...(typeof r.json.tradingPaused === 'boolean' ? { tradingPaused: r.json.tradingPaused } : {}), ...(happyHourOf(r.json.happyHour)), ...(r.json.stats && typeof r.json.stats === 'object' ? { stats: cleanStatFacts(r.json.stats) } : {}), ...(Array.isArray(r.json.events) ? { events: cleanEvents(r.json.events) } : {}), ...(Array.isArray(r.json.commandsMissing) ? { commandsMissing: cleanMissing(r.json.commandsMissing) } : {}),...(Array.isArray(r.json.buffs) ? { buffs: (r.json.buffs as SiteAction['buffs'])!.filter(b => typeof b?.id === 'string' && typeof b?.name === 'string') } : {}) };
   }
 
   /** One staff action (ROADMAP 55.12). A 403 means the admin has not switched staff tools on for this PC. */

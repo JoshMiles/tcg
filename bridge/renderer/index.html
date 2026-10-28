@@ -53,20 +53,39 @@
       <button id="win-close" type="button" class="tb-btn tb-close" aria-label="Close to tray" title="Close to tray (quit from the tray menu)"><svg class="i"><use href="#i-x"/></svg></button>
     </header>
 
-    <!-- The Connect screen (59.6): the whole window until this PC is paired. Self-contained: 58.0b swaps #pair-form for a "Sign in with Twitch" button and keeps the rest. -->
+    <!-- The Connect screen (59.6, Sign in with Twitch 58.0b): the whole window until this PC is signed in. The sign-in block shows idle, waiting (the code) or the result; the old pairing code form stays behind a link. -->
     <section id="connect" class="connect" aria-labelledby="connect-title" hidden>
       <div class="connect-box">
         <img src="icon.png" alt="" width="72" height="72">
         <h1 id="connect-title">Connect TCG Bridge</h1>
         <p class="connect-what">TCG Bridge links your stream to the TCG site: it takes viewers' paid pulls to Mix It Up and tells the site what OBS is doing.</p>
-        <form id="pair-form">
-          <label>Site address <input id="site" type="text" spellcheck="false" autocomplete="off"></label>
-          <label>Pairing code <input id="code" type="text" placeholder="ABCD-EFGH" maxlength="12" spellcheck="false" autocomplete="off"></label>
-          <div class="row"><button type="submit" id="pair-btn" class="btn">Pair</button></div>
-          <p id="pair-error" class="bad-text" role="alert"></p>
-        </form>
-        <p id="pair-note" class="muted">On the site, open Admin > Mix It Up > Paid pulls and press "Pair TCG Bridge". Type the code it shows here.</p>
-        <p class="small"><button id="get-code" type="button" class="link">Where do I get a code? Open the site</button></p>
+        <p id="revoked-note" class="bad-text" role="alert" hidden>This PC was signed out on the site. Sign in again to carry on.</p>
+        <label class="connect-site">Site address <input id="site" type="text" spellcheck="false" autocomplete="off"></label>
+        <div id="signin-idle" class="connect-block">
+          <button type="button" id="signin-btn" class="btn big">Sign in with Twitch</button>
+          <p id="signin-error" class="bad-text" role="alert"></p>
+          <p class="muted">Opens your browser on the TCG site. Sign in there with the Twitch account you use on the site's staff pages and press Allow.</p>
+          <p class="small"><button id="show-pair" type="button" class="link">Use a pairing code instead</button></p>
+        </div>
+        <div id="signin-wait" class="connect-block" hidden>
+          <p id="signin-wait-text">Check the site shows this code:</p>
+          <p id="signin-code" class="signin-code" aria-live="polite"></p>
+          <p id="signin-note" class="muted" role="status"></p>
+          <div class="row"><button type="button" id="signin-cancel" class="btn plain">Cancel</button></div>
+        </div>
+        <div id="signin-result" class="connect-block" hidden>
+          <p id="signin-message" class="bad-text" role="alert"></p>
+          <div class="row"><button type="button" id="signin-retry" class="btn">Try again</button></div>
+        </div>
+        <div id="pair-block" class="connect-block" hidden>
+          <form id="pair-form">
+            <label>Pairing code <input id="code" type="text" placeholder="ABCD-EFGH" maxlength="12" spellcheck="false" autocomplete="off"></label>
+            <div class="row"><button type="submit" id="pair-btn" class="btn">Pair</button></div>
+            <p id="pair-error" class="bad-text" role="alert"></p>
+          </form>
+          <p id="pair-note" class="muted">On the site, open Admin > Mix It Up > Paid pulls and press "Pair TCG Bridge". Type the code it shows here.</p>
+          <p class="small"><button id="get-code" type="button" class="link">Where do I get a code? Open the site</button> <button id="hide-pair" type="button" class="link">Sign in with Twitch instead</button></p>
+        </div>
       </div>
     </section>
 
@@ -268,22 +287,26 @@
               <button type="button" id="staff-clear" class="btn plain">Clear</button>
             </header>
             <dl id="staff-viewer" class="facts"></dl>
-            <h3>Gift packs</h3>
-            <div class="row">
-              <input id="staff-count" type="number" min="1" max="10" value="1" aria-label="Packs to gift">
-              <button type="button" id="staff-gift" class="btn">Gift packs</button>
-              <button type="button" id="staff-collection" class="btn plain">Show collection</button>
+            <div data-staff="gift show-collection">
+              <h3>Gift packs</h3>
+              <div class="row">
+                <input id="staff-count" type="number" min="1" max="10" value="1" aria-label="Packs to gift">
+                <button type="button" id="staff-gift" class="btn" data-staff="gift">Gift packs</button>
+                <button type="button" id="staff-collection" class="btn plain" data-staff="show-collection">Show collection</button>
+              </div>
             </div>
-            <h3>Grant or show a card</h3>
-            <div class="row">
-              <input id="staff-card" type="text" list="staff-cards" spellcheck="false" autocomplete="off" maxlength="80" placeholder="Card name or number" aria-label="Card name or number">
-              <datalist id="staff-cards"></datalist>
-              <select id="staff-variant" aria-label="Variant"></select>
-            </div>
-            <p id="staff-variant-empty" class="empty" hidden>The card variants have not loaded yet. Try again in a few seconds.</p>
-            <div class="row tools">
-              <button type="button" id="staff-grant" class="btn plain">Grant card</button>
-              <button type="button" id="staff-showcard" class="btn plain">Show card on stream</button>
+            <div data-staff="grant show-card cards">
+              <h3>Grant or show a card</h3>
+              <div class="row">
+                <input id="staff-card" type="text" list="staff-cards" spellcheck="false" autocomplete="off" maxlength="80" placeholder="Card name or number" aria-label="Card name or number">
+                <datalist id="staff-cards"></datalist>
+                <select id="staff-variant" aria-label="Variant"></select>
+              </div>
+              <p id="staff-variant-empty" class="empty" hidden>The card variants have not loaded yet. Try again in a few seconds.</p>
+              <div class="row tools">
+                <button type="button" id="staff-grant" class="btn plain" data-staff="grant">Grant card</button>
+                <button type="button" id="staff-showcard" class="btn plain" data-staff="show-card">Show card on stream</button>
+              </div>
             </div>
             <h3>Block from pulls</h3>
             <div class="row">
@@ -299,7 +322,7 @@
         </section>
 
         <section data-panel="stream" class="cols" hidden>
-          <section class="card" aria-labelledby="staff-extra-title">
+          <section class="card" aria-labelledby="staff-extra-title" data-staff="stream-extra">
             <h2 id="staff-extra-title" class="plain-title">Extra pulls</h2>
             <p id="staff-extra-now" class="muted small"></p>
             <div class="row">
@@ -309,7 +332,7 @@
             </div>
             <p id="staff-extra-result" class="result" role="status"></p>
           </section>
-          <section class="card" aria-labelledby="staff-scene-title">
+          <section class="card" aria-labelledby="staff-scene-title" data-staff="scene">
             <h2 id="staff-scene-title" class="plain-title">Switch scene</h2>
             <p id="staff-scene-empty" class="empty" hidden>OBS has not reported any scenes. Connect OBS on the Connections page.</p>
             <div id="staff-scene-row" class="row">
@@ -318,7 +341,7 @@
             </div>
             <p id="staff-scene-result" class="result" role="status"></p>
           </section>
-          <section class="card" aria-labelledby="staff-trading-title">
+          <section class="card" aria-labelledby="staff-trading-title" data-staff="trading">
             <h2 id="staff-trading-title" class="plain-title">Trading</h2>
             <p id="staff-trading-now" class="muted small"></p>
             <div class="row">
@@ -331,7 +354,7 @@
             <div class="row"><button type="button" id="preview-open" class="btn">Open the preview</button></div>
             <details class="more how"><summary>How?</summary><p class="small">Opens the overlay in a window at your OBS canvas size, with Test pull and Show a card. It only watches: it never takes a real pull from OBS. Test pull and Show a card also play on the live overlay.</p></details>
           </section>
-          <section class="card">
+          <section class="card" data-staff="search">
             <h2 class="plain-title">Search the admin</h2>
             <p class="muted small">Find a viewer, card or pack and open its admin page in your browser.</p>
             <div class="row">
@@ -341,7 +364,7 @@
             <p id="staff-search-empty" class="empty" hidden>Nothing found.</p>
             <p id="staff-search-result" class="result" role="status"></p>
           </section>
-          <section class="card" aria-labelledby="staff-backup-title">
+          <section class="card" aria-labelledby="staff-backup-title" data-staff="backup">
             <h2 id="staff-backup-title" class="plain-title">Back up</h2>
             <div class="row">
               <button type="button" id="staff-backup" class="btn plain">Back up now</button>
@@ -369,20 +392,20 @@
             </nav>
 
             <div class="conn-detail">
-              <!-- TCG account. 58.0b changes the header sentence to "Signed in with Twitch as <login> (<role>)"; the fix steps and Unpair stay. -->
+              <!-- TCG account: the header sentence says "Signed in with Twitch as <login> (<role>)" for a linked PC (58.0b), "Paired with the site as <name>" for one paired with a code. -->
               <section id="detail-account" class="card conn-pane" data-conn="account" aria-labelledby="account-title" hidden>
                 <header class="detail-head"><span id="account-dot" class="dot off"></span><h2 id="account-title" tabindex="-1"></h2></header>
                 <div class="fix" id="account-fix" hidden><h3>To fix this</h3><ol></ol></div>
                 <dl>
                   <dt>Address</dt><dd id="site-url"></dd>
-                  <dt>Paired as</dt><dd id="paired-as"></dd>
+                  <dt>Account</dt><dd id="paired-as"></dd>
                   <dt>Last poll</dt><dd id="last-poll"></dd>
                 </dl>
                 <h3>Settings</h3>
                 <p id="account-text" class="muted"></p>
                 <div class="row tools"><button id="unpair" type="button" class="btn plain"><svg class="i"><use href="#i-unlink"/></svg><span id="unpair-label">Unpair</span></button></div>
                 <p id="unpair-result" class="result" role="status"></p>
-                <details class="more how"><summary>How?</summary><p class="small">Unpairing makes this PC forget the site's key; the Connect screen comes back and a new code from the site pairs it again.</p></details>
+                <details class="more how"><summary>How?</summary><p id="unpair-help" class="small"></p></details>
               </section>
 
               <section id="detail-mix" class="card conn-pane" data-conn="mix" aria-labelledby="mix-title" hidden>
