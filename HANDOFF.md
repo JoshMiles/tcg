@@ -1,13 +1,15 @@
 # HANDOFF
 
 ## Goal
-Tracks 57 then 58 (Josh, 2026-10-28: keep going after 56): one fresh agent per item, Opus reviews, reads all comments, merges on green, next. 57.12 and 57.13 need an Opus design pass first; Track 58 needs Josh to connect a Twitch account (any account, 58.1) before 58.2 is tried for real.
+Tracks 57, 58, then 59 (bridge redesign) (Josh, 2026-10-28: keep going after 56): one fresh agent per item, Opus reviews, reads all comments, merges on green, next. 57.12 and 57.13 need an Opus design pass first; Track 58 needs Josh to connect a Twitch account (any account, 58.1) before 58.2 is tried for real.
 
 ## Done
 - Track 45 (#480 to #483), 34.8 (#484, panel 0.0.2 submitted, under Twitch review).
 - Track 46: #485 to #490, and #499 (46.6, archives Track 46).
 - Track 47 merged: 47.1 #493, 47.2 #492, 47.3 #495, 47.5 #496 (headers + report-only CSP), 47.6 #491, 47.7 #497, 47.8 PR 1 #494, 47.9 #498 (rate limiter). #499 (46.6) merged too. main passes verify 100/100 after both.
 - Track 47 ROADMAP cleanup committed locally on `roadmap-47-cleanup` (a5b91340): done items archived, 47.4 in Track 53, 47.8 rewritten to PR 2 to 4, new 47.10 (security L-2) and 47.11 (trial readouts).
+
+- Track 57: 57.1 #626, 57.2 #627 (bridge 0.14.0), 57.3 #628 (bridge 0.15.0), restart-to-update #629 (0.16.0), 57.4 #630 (0.17.0), 57.5 #631 (0.18.0), 57.6 #632, 57.7 #633 (0.19.0).
 
 ## Left
 - Track 55 done (#579 to #614), archived. Follow-up: event command downloads (55.5 x 55.4g) not yet planned as an item.
@@ -72,3 +74,8 @@ Tracks 57 then 58 (Josh, 2026-10-28: keep going after 56): one fresh agent per i
 - 2026-10-28: Josh: Track 58 through TCG Bridge (EventSub in the app), no custom rewards (awards on existing ones, mods refund by hand), Twitch wins over Mix It Up events; 58.6 chat commands replace the Mix It Up ones, replies as the channel account with an optional bot account.
 - 2026-10-28: Josh: 58.1 accepts any Twitch account as the channel, for testing; a test account shows a warning and never switches Mix It Up off. 56.1 merged (#619); first automatic release bridge-v0.12.0 published by the workflow.
 - 2026-10-28: Track 56 done (#619, #622, #623, #624) and archived. Josh: keep going through Tracks 57 and 58.
+- 2026-10-28: Josh: TCG Bridge updates download and install only in the start-up splash (like Discord). A check while running only announces the update, with a Restart to update button (window banner, About tab, tray) that relaunches into the splash; no background download, nothing installs on quit (Opus details). Built alongside 57.4 as its own PR.
+- 2026-10-28: Josh: TCG Bridge redesign (cluttered, poor UX, window too small; make it much bigger) added as Track 59, after Track 58. 59.1 is an Opus design pass with mockups for Josh before any build.
+- 2026-10-28: Josh: 57.12 (beta channel and rollback) dropped, not needed. 57.13 design questions asked now.
+- 2026-10-28: Josh: 57.13 Stream Deck plugin installed from TCG Bridge, all four action groups, Mix It Up Stream Deck commands keep working, stream PC only. Opus: plugin in streamdeck/, version = bridge version, local WebSocket on 127.0.0.1 with a token file in %APPDATA%, two PRs (57.13a, 57.13b).
+- 2026-10-28: Josh: TCG Bridge links by signing in with Twitch (browser, site sign-in, Allow) instead of a pairing code; the account's site role sets its permissions (admin/broadcaster all, mod staff tools, others refused); channel connection (58.1) stays separate; built as 58.0 at the start of Track 58.

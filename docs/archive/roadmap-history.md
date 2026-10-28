@@ -1558,3 +1558,16 @@ Josh: every PR that touches TCG Bridge bumps its minor; the app shows the commit
 - **56.2 TCG Bridge on the admin dashboard (Done, #623).** Latest release from the GitHub API (cached 10 minutes), the running app's version and commit, an out-of-date line, the same line on the Connection tab. Fixed on the way: `bridge:state` stored Mix It Up's and the app's version in one field; now `appVersion` and `mixitupVersion`.
 - **56.3 README rewrite (Done, #624).** `README.md` rewritten for someone new; `bridge/README.md` brought to 0.12.0.
 - Also in this run: built-in `!pack` on the Commands tab (#622), after Josh found the status hint pointed at a tab without it.
+
+## Track 57: TCG Bridge features (2026-10-28, in progress)
+
+Josh picked all thirteen; 57.12 (beta channel and rollback) was dropped as not needed. Done so far (each bridge change bumped the minor and released itself):
+
+- **57.1 Pre-stream checklist (Done, #626).** Checklist button on the Status tab and tray; one line per check; the site's Overview tab shows the last result.
+- **57.2 Pause pulls on chosen scenes (Done, #627, 0.14.0).** Pause reason "scene <name>"; only a scene pause is lifted by a scene change, a hand pause never is.
+- **57.3 Happy hour in the app (Done, #628, 0.15.0).** `happy-hour-start` / `happy-hour-end` bridge actions; tray presets; countdown from the site's `endsAt`.
+- **Restart to update (Done, #629, 0.16.0).** Josh: updates download and install only in the start-up window (like Discord); while running an update is only announced, with Restart to update in the banner, About tab and tray. Nothing installs on quit.
+- **57.4 Live stats in OBS text sources (Done, #630, 0.17.0).** Read-only `stats` action from the activity log and queue, polled every 5 s only while a stat is mapped; written at most once a second per source, only on change.
+- **57.5 Community pack goal (Done, #631, 0.18.0).** Count starts when the goal is set (setting again restarts it); INCR plus SET NX gives the reward once; OBS stat and a `goal` overlay layer (drawn while the theater is on screen).
+- **57.6 Raid shout-out (Done, #632).** Off by default, minimum raid size (default 5), once per raider per stream; best card with "Raid from <name>" and one chat line; never affects the raid reward.
+- **57.7 Event feed in the app (Done, #633, 0.19.0).** Its own 30-entry list written with the Mix It Up log line; `events` action with `after`.
