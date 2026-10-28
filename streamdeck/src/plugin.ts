@@ -1,5 +1,6 @@
 // Entry point of the TCG Bridge Stream Deck plugin (ROADMAP 57.13a): the only file that touches the Stream Deck SDK. It hands the SDK's events to Keys and the
 // app's pushed state to the keys; it keeps no logic of its own.
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import streamDeck from '@elgato/streamdeck';
 import WebSocket from 'ws';
@@ -8,7 +9,8 @@ import { ACTION_KIND, type Settings } from './keys';
 import { BridgeLink, type Socket } from './link';
 import { MAX_MESSAGE } from './protocol';
 
-const VERSION = '0.26.0';
+// The manifest's version (the bridge's, "x.y.z.0") for the app's log; Stream Deck runs the plugin from its folder, so the manifest is in the working directory.
+const VERSION = ((JSON.parse(readFileSync(join(process.cwd(), 'manifest.json'), 'utf8')) as { Version?: string }).Version ?? '').replace(/\.0$/, '');
 
 function socket(url: string): Socket {
   const ws = new WebSocket(url, { maxPayload: MAX_MESSAGE * 8 });

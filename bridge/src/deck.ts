@@ -89,6 +89,8 @@ export class DeckServer {
   }
   /** At least one plugin has said hello with the token. */
   get connected(): boolean { return this.authed.size > 0; }
+  /** A plugin has connected at least once since this server started (tells "never connected" from "went away"). */
+  seen = false;
 
   async start(): Promise<void> {
     const ports = this.o.ports ?? DECK_PORTS;
@@ -159,6 +161,7 @@ export class DeckServer {
         ok = true;
         clearTimeout(timer);
         this.authed.add(ws);
+        this.seen = true;
         send({ t: 'welcome', version: this.o.version, state: this.o.state() });
         this.o.log(`Stream Deck plugin ${msg.version} connected`);
         this.o.onChange();

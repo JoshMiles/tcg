@@ -25,6 +25,7 @@ import { checklistChecks } from './check-checklist';
 import { scenePauseChecks } from './check-scenepause';
 import { happyHourChecks } from './check-happyhour';
 import { deckChecks } from './check-deck';
+import { deckPluginChecks } from './check-deckplugin';
 import { statsChecks } from './check-stats';
 import { eventsChecks } from './check-events';
 import { errorsChecks } from './check-errors';
@@ -1090,6 +1091,7 @@ async function main() {
   await scenePauseChecks();
   await happyHourChecks();
   await deckChecks();
+  await deckPluginChecks();
   await statsChecks();
   eventsChecks();
   errorsChecks();

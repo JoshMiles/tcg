@@ -22,6 +22,16 @@ export interface ConnFacts {
   deckOn: boolean;
   deckConnected: boolean;
   deckError: string;
+  /** A plugin has connected since the app started. */
+  deckSeen: boolean;
+}
+
+/** Why the plugin is not linked, in words ('' = it is linked, or nothing is installed to link). */
+export function deckReason(f: Pick<ConnFacts, 'deckInstalled' | 'deckOn' | 'deckConnected' | 'deckError' | 'deckSeen'>): string {
+  if (!f.deckInstalled || (f.deckOn && f.deckConnected && !f.deckError)) return '';
+  if (f.deckError) return `TCG Bridge is not listening for the plugin. ${f.deckError}`;
+  if (!f.deckOn) return 'The link to the plugin is switched off, so the plugin cannot reach TCG Bridge.';
+  return f.deckSeen ? 'The plugin was connected and has gone. The Stream Deck app may have been closed.' : 'TCG Bridge is listening, but the plugin has not connected since it started. The Stream Deck app may be closed, or the plugin did not start.';
 }
 
 export interface ConnRow {
@@ -62,9 +72,9 @@ export function rowFor(id: ConnId, f: ConnFacts): ConnRow {
     return row('bad', 'Not connected', 'OBS is not connected');
   }
   if (f.deckError) return row('bad', 'Needs attention', 'The Stream Deck link has a problem');
-  if (!f.deckOn) return row('off', 'Off', 'The Stream Deck plugin is off');
+  if (!f.deckOn) return row(f.deckInstalled ? 'warn' : 'off', 'Off', f.deckInstalled ? 'The Stream Deck plugin is installed but not linked: the link is switched off' : 'The Stream Deck plugin is off');
   if (f.deckConnected) return row('ok', 'Plugin connected', 'The Stream Deck plugin is connected');
-  return row('warn', f.deckInstalled ? 'Waiting for the plugin' : 'Plugin not installed', 'The Stream Deck plugin is not connected');
+  return row('warn', f.deckInstalled ? 'Waiting for the plugin' : 'Plugin not installed', f.deckInstalled ? 'The Stream Deck plugin is installed but not linked: it has not connected' : 'The Stream Deck plugin is not installed');
 }
 
 /** What the window gets: every row with its fix plan. */
@@ -90,8 +100,11 @@ export function fixPlan(id: ConnId, f: ConnFacts): FixPlan {
     } : { steps: [], again: false };
   }
   if (f.deckOn && !f.deckConnected && !f.deckError) {
-    return { steps: [f.deckInstalled ? 'Open the Stream Deck app; the plugin connects by itself.' : 'Press Install Stream Deck plugin below, then open the Stream Deck app.'], again: false };
+    if (!f.deckInstalled) return { steps: ['Press Install Stream Deck plugin below, then open the Stream Deck app.'], again: false };
+    const open = 'Open the Stream Deck app; the plugin connects by itself.';
+    return { steps: f.deckSeen ? [open] : [open, 'Still not connected? Quit the Stream Deck app from its tray icon and open it again, or press Reinstall Stream Deck plugin below.'], again: false };
   }
+  if (!f.deckOn && f.deckInstalled) return { steps: ['Turn on "Link to the Stream Deck plugin" below.'], again: false };
   return { steps: [], again: false };
 }
 

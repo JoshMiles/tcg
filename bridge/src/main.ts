@@ -34,7 +34,7 @@ import { Startup, type StartupEvent, type StartupStep } from './startup';
 import { clearReleaseCache, loadReleases, releaseBlocks, RELEASES_API, RELEASES_URL, releasesBetween, type Note } from './releases';
 import { checkText, releaseUrl, updatedTo, updateText, type UpdateStage } from './update';
 import { attentionItems } from './status';
-import { connectionRows } from './connections';
+import { connectionRows, deckReason } from './connections';
 import { FEED_FILTERS, FEED_KEEP, filterFeed, keepPull, mergeFeed, pullEntry, readySummary, streamNumbers, type FeedFilter, type PullEntry } from './home';
 
 // Development only: `npm start -- --demo-startup [--shots=<folder>]` walks the start-up window through its states and then shows the
@@ -69,6 +69,7 @@ let ledger: Ledger | null = null; // every deduct and add this PC made (bucks.ts
 let client: SiteClient | null = null;
 let control: ControlServer | null = null; // the Stream Deck buttons (control.ts)
 let deck: DeckServer | null = null; // the link to the Stream Deck plugin (deck.ts), only while the Settings switch is on
+let deckUpAt = 0; // when the link to the plugin last came up (or the app started), for the status pill's grace
 let deckFactsAt = 0; // the Stream Deck app and the installed plugin are looked up at most every 5 seconds
 let deckFacts = { found: false, installed: '' };
 let hotkeys: Hotkeys | null = null;
@@ -134,14 +135,19 @@ function deckInfo() {
   };
 }
 const deckState = (): DeckState => ({ ready: !!client, paused, reason: pauseReason, happy, buffs, stats: deckStats(statFacts) });
+/** The Stream Deck link's part of the Connections facts. */
+function deckLink() {
+  const d = deckInfo();
+  return { deckInstalled: !!d.installed, deckOn: d.on, deckConnected: d.connected, deckError: d.error, deckSeen: !!deck?.seen };
+}
+const DECK_GRACE_MS = 30_000; // the Stream Deck app starts with Windows too: no "not linked" in the status pill until it has had this long after the link came up
 /** The Connections page's list and fix steps (59.6; src/connections.ts). */
 function connectionsView() {
   const s = service?.state;
-  const d = deckInfo();
   return connectionRows({
     paired: !!settings.token, pairedAs: settings.pairedAs, site: s?.site ?? null, siteError: s?.siteError ?? '',
     mixFound: !!s?.mix.found, obsEnabled: settings.obsEnabled, obsConnected: !!s?.obs.connected, obsStreaming: s?.obs.streaming ?? null, obsError: s?.obs.error ?? '',
-    deckInstalled: !!d.installed, deckOn: d.on, deckConnected: d.connected, deckError: d.error,
+    ...deckLink(),
   });
 }
 const pluginFile = (): string => (app.isPackaged ? join(process.resourcesPath, PLUGIN_FILE) : join(__dirname, '..', '..', 'streamdeck', 'dist', PLUGIN_FILE));
@@ -176,6 +182,7 @@ const appState = (): object => demoState ?? ({
   attention: attentionItems({
     paired: !!settings.token, updateVersion: update.stage === 'available' ? update.version : '', startNote,
     site: service?.state.site ?? null, mixFound: !!service?.state.mix.found, obsEnabled: settings.obsEnabled, obsConnected: !!service?.state.obs.connected,
+    deckReason: Date.now() - deckUpAt < DECK_GRACE_MS ? '' : deckReason(deckLink()),
   }),
   whatsNew: whatsNewFrom ? { open: whatsNewOpen } : null,
   service: service?.state ?? null,
@@ -265,6 +272,8 @@ async function applyDeck(): Promise<void> {
     });
     deck = d;
     await d.start();
+    deckUpAt = Date.now();
+    setTimeout(push, DECK_GRACE_MS + 500); // the pill may need to say "not linked" once the grace is over
     log(d.error || `Stream Deck link is listening on 127.0.0.1:${d.listeningPort}`);
   } else if (!settings.streamDeck && deck) {
     const d = deck;
