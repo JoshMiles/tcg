@@ -22,7 +22,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 47 | Access hardening (47.11) | Blocked (Josh, from 2026-11-02) | S |
 | 50 | Swap finder trial (50.3) | Blocked (trial readout from 2026-11-24) | S |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
-| 59 | TCG Bridge redesign: bigger window, less clutter, layout by job (59.1 design pass, then build items) | Ready (59.1 design first) | L |
+| 59 | TCG Bridge redesign: bigger window, less clutter, layout by job (59.1 design pass, then build items) | Building (59.2 to 59.8; design A chosen) | L |
 | 58 | Twitch through TCG Bridge: sign in to the app with Twitch, connect the channel, EventSub in the app, awards for existing channel points rewards, bits / subs / raids, chat commands replacing the Mix It Up ones (58.0 to 58.6) | After Track 59 | L |
 | 60 | Staff wiki refresh: every page brought up to date, new pages for TCG Bridge, Twitch and the Stream Deck plugin (60.1) | Last, after Track 59 | M |
 
@@ -107,8 +107,29 @@ Josh (2026-10-28): replace the Mix It Up chat commands; reply as the channel acc
 
 Josh: the app is cluttered and its UX is poor; the window is small (860 x 640, min 700 x 520) and can be much bigger. Josh (2026-10-28): do it before Track 58. The design leaves room for the Twitch parts still to come (58.0 sign in with Twitch instead of pairing, the Twitch connection state, channel point awards pause, the event feed growing Twitch events), so Track 58 adds them into the new layout rather than around it.
 
-### 59.1 Redesign pass (Needs design: Opus, then Josh)
-Walk every tab, card, banner, tray item and tool window as they stand now (screenshots from `demo.ts`). Propose: a bigger default window (remembered size and position, sensible minimum), a layout that groups by job (going live, during the stream, setup, about) instead of by feature, what moves off the main screens into Settings, one status summary instead of many banners, and consistent cards, buttons and empty states. Mockups for Josh to pick from before any build; then split into build items (59.2 onward), one PR each, every one bumping the bridge minor.
+### 59.1 Redesign pass (Done 2026-10-28)
+Audit and three directions mocked up. Josh chose direction A: a Live Home dashboard and a sidebar grouped by job (Live: Home; Stream tools: Controls, Feed and history; Staff: Viewers and cards, This stream, its own group shown only on a staff PC; Setup: Connections, Overlay and OBS, Buttons and hotkeys, Notifications, App; About: version, updates and What's new in one page). Default window 1280 x 800. Mix It Up job lines go in the one Home feed under a Jobs filter. Each item below is one PR, bumps the bridge minor, has a `## TCG Bridge` section and extends `demo.ts` so the new pages show in screenshots. The app is never half-arranged: the navigation move lands in one PR with the old cards inside it, and pages are reworked after.
+
+### 59.2 Bigger, remembered window (Ready)
+Default 1280 x 800, minimum 960 x 620. Save size, position and maximised state; on start, if the saved spot is not on any display, reset to the centred default. Cards sit in a two-column grid when the window is wide. No navigation change.
+
+### 59.3 One status summary and a shared card kit (After 59.2)
+A status pill in the title bar ("All good" or "N things need you") opens a list with a fix button per row (update ready: Restart; Mix It Up not connected: Fix; couldn't check for updates). It replaces the three banners; "Updated to x" becomes a one-time toast with "See what changed". One card header style, a rule for primary vs plain buttons, one empty state, one result line per card, long help text behind "How?" links.
+
+### 59.4 Grouped navigation (After 59.3)
+The sidebar groups above. Existing cards move, not rewritten: Status live parts to Home, Control to Controls, setup cards out of Status and Settings into the Setup pages, What's new merged into About, Activity into Feed and history. The Staff group only on a staff PC. Tray order matches the sidebar. Below 1100 wide the sidebar folds to icons.
+
+### 59.5 Home dashboard (After 59.4)
+Fits 1280 x 800 without scrolling: connection chips; Pulls (Pause pulls), Happy hour presets, the pull queue (out of its details box, with Skip next); "this stream" numbers; a Ready-to-go-live card that shrinks to one line when the checklist passes; and one live feed merging pulls, event rewards and Mix It Up jobs, with All / Pulls / Events / Jobs filters. Leaves a slot for 58.5's Pause awards and a Twitch filter.
+
+### 59.6 Connections page (After 59.5)
+List on the left (TCG account, Mix It Up, OBS, Stream Deck plugin) and the detail on the right: state, fix steps, test buttons, settings. OBS settings gathered here from their four places; scene pause, live stats and the preview overlay move to Overlay and OBS. Pairing becomes the first-run Connect screen, built so 58.0 can swap in Sign in with Twitch. A slot for the Twitch channel row (58.1).
+
+### 59.7 Staff pages (After 59.6)
+Viewer first: look up a viewer, then a viewer card with gift, collection, block, grant and show card. This stream: extra pulls, scene, pause trading. Search and backup.
+
+### 59.8 Tool windows and polish (After 59.7)
+Pull feed, summary and preview windows share the new header and tokens; the feed window gets the same filters. Keyboard focus order and screen reader names checked across every page.
 
 ## Track 60: staff wiki refresh (2026-10-28)
 
