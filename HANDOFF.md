@@ -9,7 +9,7 @@ Tracks 57, 58, then 59 (bridge redesign) (Josh, 2026-10-28: keep going after 56)
 - Track 47 merged: 47.1 #493, 47.2 #492, 47.3 #495, 47.5 #496 (headers + report-only CSP), 47.6 #491, 47.7 #497, 47.8 PR 1 #494, 47.9 #498 (rate limiter). #499 (46.6) merged too. main passes verify 100/100 after both.
 - Track 47 ROADMAP cleanup committed locally on `roadmap-47-cleanup` (a5b91340): done items archived, 47.4 in Track 53, 47.8 rewritten to PR 2 to 4, new 47.10 (security L-2) and 47.11 (trial readouts).
 
-- Track 57: 57.1 #626, 57.2 #627 (bridge 0.14.0), 57.3 #628 (bridge 0.15.0), restart-to-update #629 (0.16.0), 57.4 #630 (0.17.0), 57.5 #631 (0.18.0), 57.6 #632, 57.7 #633 (0.19.0).
+- Track 57: 57.1 #626, 57.2 #627 (bridge 0.14.0), 57.3 #628 (bridge 0.15.0), restart-to-update #629 (0.16.0), 57.4 #630 (0.17.0), 57.5 #631 (0.18.0), 57.6 #632, 57.7 #633 (0.19.0), 57.8 #635 (0.20.0), 57.9 #636 (0.21.0), 57.10 #638 (0.23.0), 57.11 #637 (0.22.0), ROADMAP sync #634.
 
 ## Left
 - Track 55 done (#579 to #614), archived. Follow-up: event command downloads (55.5 x 55.4g) not yet planned as an item.
@@ -79,3 +79,4 @@ Tracks 57, 58, then 59 (bridge redesign) (Josh, 2026-10-28: keep going after 56)
 - 2026-10-28: Josh: 57.12 (beta channel and rollback) dropped, not needed. 57.13 design questions asked now.
 - 2026-10-28: Josh: 57.13 Stream Deck plugin installed from TCG Bridge, all four action groups, Mix It Up Stream Deck commands keep working, stream PC only. Opus: plugin in streamdeck/, version = bridge version, local WebSocket on 127.0.0.1 with a token file in %APPDATA%, two PRs (57.13a, 57.13b).
 - 2026-10-28: Josh: TCG Bridge links by signing in with Twitch (browser, site sign-in, Allow) instead of a pairing code; the account's site role sets its permissions (admin/broadcaster all, mod staff tools, others refused); channel connection (58.1) stays separate; built as 58.0 at the start of Track 58.
+- 2026-10-28: Josh: a complete staff wiki update (content/wiki) added as Track 60, last on the roadmap after Track 59.

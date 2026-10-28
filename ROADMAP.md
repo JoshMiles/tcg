@@ -25,6 +25,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 57 | TCG Bridge features still to build: command check, errors on the dashboard, overlay preview, what's new, Stream Deck plugin (57.8 to 57.11, 57.13; 57.1 to 57.7 done, 57.12 dropped) | Ready | L |
 | 58 | Twitch through TCG Bridge: sign in to the app with Twitch, connect the channel, EventSub in the app, awards for existing channel points rewards, bits / subs / raids, chat commands replacing the Mix It Up ones (58.0 to 58.6) | Ready | L |
 | 59 | TCG Bridge redesign: bigger window, less clutter, layout by job (59.1 design pass, then build items) | After Track 58 | L |
+| 60 | Staff wiki refresh: every page brought up to date, new pages for TCG Bridge, Twitch and the Stream Deck plugin (60.1) | Last, after Track 59 | M |
 
 Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52 and 54 to 56 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -138,6 +139,16 @@ Josh: the app is cluttered and its UX is poor; the window is small (860 x 640, m
 
 ### 59.1 Redesign pass (Needs design: Opus, then Josh)
 Walk every tab, card, banner, tray item and tool window as they stand after Track 58 (screenshots from `demo.ts`). Propose: a bigger default window (remembered size and position, sensible minimum), a layout that groups by job (going live, during the stream, setup, about) instead of by feature, what moves off the main screens into Settings, one status summary instead of many banners, and consistent cards, buttons and empty states. Mockups for Josh to pick from before any build; then split into build items (59.2 onward), one PR each, every one bumping the bridge minor.
+
+## Track 60: staff wiki refresh (2026-10-28)
+
+Josh: a complete update to the staff wiki (`content/wiki/*.md`, shown at /admin/wiki, and at /mod/guide for pages with `audience: mods`), last on the roadmap so it describes everything above as built. The wiki was last updated 2026-10-27, before Tracks 55 to 59.
+
+### 60.1 Wiki audit and rewrite (Ready, M; last)
+1. **Audit.** Read every page against the site and TCG Bridge as they stand (the area docs in `docs/`, `bridge/README.md`, the admin pages), and list what is wrong, missing or out of date. Plain-language, for staff, not developers.
+2. **Update the existing twelve pages** (Overview, Cards, Environments, Glossary, Live tools, Moderation, the three mod how-tos, Support answers, Trading, Viewers): Mix It Up paid pulls and prices (55.4), happy hour, pack goal, raid shout-out and event rewards, pause reasons, the overlay preview, and anything the redesign (Track 59) moved.
+3. **New pages:** TCG Bridge for the streamer (install, Twitch sign-in 58.0, the update flow, the checklist, OBS stats, errors), TCG Bridge for mods (what a staff PC can do; `audience: mods`), Twitch connection (58.1 to 58.6: channel points awards, refunds by hand, chat commands and the bot account), and the Stream Deck plugin (57.13). Each linked from Overview, and new words in the Glossary.
+4. **Checks:** `scripts/check-wiki.mts` passes (front matter, links); the wording rules (`scripts/check-words.mts`); one PR, or two if it grows large (existing pages, then new pages).
 
 ## Twitch extension
 
