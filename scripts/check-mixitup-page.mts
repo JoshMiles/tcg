@@ -20,7 +20,7 @@ const card = (id: string, over?: Partial<import('../lib/mixitup-page').StatusInp
 
 // ── Incoming card ──
 let k = card('incoming');
-ok(k.tone === 'muted' && k.todo && k.fix?.href.includes('tab=commands'), 'nothing received yet: waiting, with a what-to-do and a link');
+ok(k.tone === 'muted' && k.todo && k.fix?.href.includes('card=commands'), 'nothing received yet: waiting, with a what-to-do and a link');
 k = card('incoming', { health: { seen: { '/api/webhooks/pull': { okAt: now - 60_000 }, '/api/webhooks/command': { okAt: now - 5_000 } }, out: {} } });
 ok(k.tone === 'ok' && !k.todo && k.state.includes('chat commands'), 'a recent request is green and names the last route');
 ok(k.rows.find(r => r.label === '!pack')?.text === '60s ago' && k.rows.find(r => r.label === 'show-off')?.text === 'no request yet', 'one row per route');

@@ -4,6 +4,7 @@ import { CONNECTED_MS, type ObsSnapshot } from './bridge-core';
 import { ROUTE_NAMES, routeName, OUT_KINDS, outLine, type HealthChip, type MixItUpHealth, type OutKind } from './mixitup-health';
 import { REFUSAL_LABELS, type MixItUpSettings } from './mixitup-core';
 import type { MixItUpLogEntry } from './mixitup';
+import { cardHref } from './viewers-cards';
 
 type Tone = HealthChip['tone'];
 type Ago = (at: number, now: number) => string;
@@ -52,9 +53,9 @@ function incomingCard({ health, now, ago }: StatusInput): StatusCard {
   });
   const base = { id: 'incoming' as const, title: 'Mix It Up to the site', rows: rows.map(r => r.row) };
   const wrong = rows.find(r => r.bad);
-  if (wrong) return { ...base, tone: 'warn', state: `Reached ${routeName(wrong.route)} with the wrong secret`, todo: 'The secret in the Mix It Up command does not match the one the site expects. Copy it again from the Commands tab.', fix: { href: TAB('commands'), label: 'Open Commands' } };
+  if (wrong) return { ...base, tone: 'warn', state: `Reached ${routeName(wrong.route)} with the wrong secret`, todo: 'The secret in the Mix It Up command does not match the one the site expects. Copy it again from the Mix It Up commands box on What viewers get.', fix: { href: cardHref('commands'), label: 'Open Commands' } };
   const last = rows.filter(r => r.okAt).sort((a, b) => b.okAt! - a.okAt!)[0];
-  if (!last) return { ...base, tone: 'muted', state: 'Mix It Up has not reached the site yet', todo: 'Make the !pack command in Mix It Up (the Commands tab has the setup to copy), then type !pack in chat.', fix: { href: TAB('commands'), label: 'Open Commands' } };
+  if (!last) return { ...base, tone: 'muted', state: 'Mix It Up has not reached the site yet', todo: 'Make the !pack command in Mix It Up (the Mix It Up commands box on What viewers get has the setup to copy), then type !pack in chat.', fix: { href: cardHref('commands'), label: 'Open Commands' } };
   return { ...base, tone: 'ok', state: `Last request ${ago(last.okAt!, now)} (${routeName(last.route)})` };
 }
 

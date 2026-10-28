@@ -4,7 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard';
 import { clearPackGoal, setPackGoal } from '@/lib/pack-goal';
 import type { ActionResult } from '../action-types';
 
-// The Paid pulls tab's Community pack goal box (ROADMAP 57.5). Staff only; the input is validated in lib/pack-goal-core.ts.
+// The Paid pulls card's Community pack goal box (ROADMAP 57.5). Staff only; the input is validated in lib/pack-goal-core.ts.
 
 export async function setPackGoalAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   const staff = await requireAdmin();

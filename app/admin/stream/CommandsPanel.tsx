@@ -1,14 +1,12 @@
 'use client';
 import { useMemo, useRef, useState, useTransition } from 'react';
-import { Icon } from '@/app/components/Icon';
 import { Chip } from '../components/ui';
 import {
   ACTION_IDS, COMMAND_ACTIONS, ERROR_DEFAULTS, ERROR_LABELS, MAX_COMMANDS, REPLY_MAX, renderReply, sampleVars,
   type ChatCommand, type CommandActionId, type ErrorKind,
 } from '@/lib/commands-core';
 import { saveCommandsAction, tryCommandAction } from './commands-actions';
-import { commandSetups, type packSetup } from '@/lib/mixitup-setup';
-import { CopyCard, DownloadPreset } from './setup/SetupClient';
+import { CardFoot, useLeaveWarning } from './CardForm';
 import { CHAT_VIA_BRIDGE } from '@/lib/twitch-chat-core';
 
 const input = 'input w-full';
@@ -20,12 +18,14 @@ const secondary = 'rounded-lg border border-gray-700 px-3 py-2 text-sm font-semi
 type Stats = Record<string, { count: number; last: number }>;
 
 /** Mix It Up → Commands: the command builder (ROADMAP 19.2). The whole list is edited here and saved in one piece. */
-export function CommandsPanel({ initial, stats, webhookUrl, secret, pack, viaBridge = false }: { initial: ChatCommand[]; stats: Stats; webhookUrl: string; secret: string; pack: ReturnType<typeof packSetup>; viaBridge?: boolean }) {
+export function CommandsPanel({ initial, stats, viaBridge = false }: { initial: ChatCommand[]; stats: Stats; viaBridge?: boolean }) {
   const [commands, setCommands] = useState<ChatCommand[]>(initial);
+  const [savedList, setSavedList] = useState<ChatCommand[]>(initial); // what Discard goes back to
   const [selected, setSelected] = useState(initial[0]?.id ?? '');
   const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
   const [saving, startSave] = useTransition();
+  useLeaveWarning(dirty);
   const cmd = commands.find(c => c.id === selected) ?? null;
   const replyRef = useRef<HTMLTextAreaElement>(null);
 
@@ -45,9 +45,10 @@ export function CommandsPanel({ initial, stats, webhookUrl, secret, pack, viaBri
   };
   const save = () => startSave(async () => {
     const r = await saveCommandsAction(JSON.stringify(commands));
-    if (r.ok) { setCommands(r.commands); if (!r.commands.some(c => c.id === selected)) setSelected(r.commands[0]?.id ?? ''); setDirty(false); setStatus({ ok: true, text: 'Commands saved.' }); }
+    if (r.ok) { setCommands(r.commands); setSavedList(r.commands); if (!r.commands.some(c => c.id === selected)) setSelected(r.commands[0]?.id ?? ''); setDirty(false); setStatus({ ok: true, text: 'Commands saved.' }); }
     else setStatus({ ok: false, text: r.message });
   });
+  const discard = () => { setCommands(savedList); setSelected(savedList[0]?.id ?? ''); setDirty(false); setStatus(null); };
   const insertVar = (name: string) => {
     if (!cmd) return;
     const el = replyRef.current;
@@ -68,13 +69,6 @@ export function CommandsPanel({ initial, stats, webhookUrl, secret, pack, viaBri
   return (
     <div className="space-y-6">
       {viaBridge && <p role="status" className="rounded-lg border border-emerald-500/30 bg-emerald-950/30 px-4 py-2.5 text-sm text-emerald-300">{CHAT_VIA_BRIDGE}</p>}
-      <section className="card rounded-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-800">
-          <h2 className="font-semibold text-white flex items-center gap-2"><Icon name="chat" className="text-yellow-400" />!pack (built in)</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Opens a pack for the viewer; <code>!pack &lt;name&gt;</code> opens that pack. It is built in, so it is not in the list below and cannot be edited or deleted. {viaBridge ? CHAT_VIA_BRIDGE : 'Set it up in Mix It Up once with this card.'}</p>
-        </div>
-        <div className="px-6 py-5"><CopyCard title="!pack" url={pack.url} body={pack.body} download={pack.preset} /></div>
-      </section>
       <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <aside className="card rounded-2xl overflow-hidden self-start">
           <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between gap-2">
@@ -177,13 +171,11 @@ export function CommandsPanel({ initial, stats, webhookUrl, secret, pack, viaBri
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={save} disabled={saving || !dirty} className={primary}>{saving ? 'Saving...' : 'Save commands'}</button>
-        {dirty && !status && <span className="text-xs text-amber-300">Unsaved changes</span>}
-        {status && <span role={status.ok ? 'status' : 'alert'} className={`text-sm ${status.ok ? 'text-green-300' : 'text-red-300'}`}>{status.text}</span>}
-      </div>
-
-      <SetupPanel commands={commands} webhookUrl={webhookUrl} secret={secret} />
+      <CardFoot dirty={dirty} onDiscard={discard}
+        save={<>
+          {status && <span role={status.ok ? 'status' : 'alert'} className={`text-sm ${status.ok ? 'text-green-300' : 'text-red-300'}`}>{status.text}</span>}
+          <button type="button" onClick={save} disabled={saving || !dirty} className={primary}>{saving ? 'Saving...' : 'Save'}</button>
+        </>} />
     </div>
   );
 }
@@ -213,42 +205,5 @@ function TryIt({ cmd }: { cmd: ChatCommand }) {
       </div>
       {out && <pre aria-label="Reply" className="max-h-72 overflow-auto rounded-lg border border-gray-800 bg-black/40 p-3 text-xs text-gray-200 whitespace-pre-wrap wrap-break-word">{out}</pre>}
     </div>
-  );
-}
-
-function SetupPanel({ commands, webhookUrl, secret }: { commands: ChatCommand[]; webhookUrl: string; secret: string }) {
-  const blocks = commandSetups(commands, webhookUrl, secret);
-  const copy = (t: string) => { try { void navigator.clipboard.writeText(t); } catch { /* clipboard blocked */ } };
-  return (
-    <section className="card rounded-2xl overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-800">
-        <h2 className="font-semibold text-white flex items-center gap-2"><Icon name="link" className="text-yellow-400" />Set up in Mix It Up</h2>
-        <p className="text-xs text-gray-500 mt-0.5">One Web Request action per chat command. Keep the secret private.</p>
-      </div>
-      <div className="px-6 py-5 space-y-4 text-sm text-gray-300">
-        <ol className="list-decimal pl-5 space-y-1 text-xs text-gray-400">
-          <li>Make a Chat Command in Mix It Up and add a <strong>Web Request</strong> action: method POST, content type JSON.</li>
-          <li>Paste the address and the body below. <code>$username</code> and <code>$allargs</code> are Mix It Up&rsquo;s own.</li>
-          <li>In the Web Request action set the response to <strong>JSON to special identifiers</strong> and map <code>message</code> to <code>reply</code>, then add a <strong>Chat Message</strong> that says <code>$reply</code>. Every variable is also its own field to map.</li>
-          <li>Or download the finished command from its card below and import it in Mix It Up (the saved command, not unsaved edits).</li>
-        </ol>
-        {blocks.length === 0 && <p className="text-xs text-gray-500">No commands are switched on.</p>}
-        {blocks.map(b => (
-          <div key={b.command} className="rounded-xl border border-gray-800 bg-gray-950/50 p-4 space-y-3">
-            <h3 className="font-semibold text-white text-sm">Copy setup · {b.command}</h3>
-            <p className="text-xs text-gray-500">The Chat Message says the <code>{b.replyField}</code> field.</p>
-            <div>
-              <p className={label}>Address</p>
-              <div className="flex gap-2"><code className="flex-1 min-w-0 break-all rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 text-xs">{b.url}</code><button type="button" onClick={() => copy(b.url)} className={secondary}>Copy</button></div>
-            </div>
-            <div>
-              <p className={label}>Body</p>
-              <div className="flex gap-2"><pre className="flex-1 min-w-0 overflow-auto rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 text-xs">{b.body}</pre><button type="button" onClick={() => copy(b.body)} className={`${secondary} self-start`}>Copy</button></div>
-            </div>
-            <DownloadPreset spec={b.preset} />
-          </div>
-        ))}
-      </div>
-    </section>
   );
 }
