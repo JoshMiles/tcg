@@ -95,6 +95,15 @@ export function wantedTexts(map: StatMap, facts: StatFacts | null, happy: HappyF
 export const siteStats = (map: StatMap): StatId[] => STAT_IDS.filter(id => id !== 'happyHour' && map[id]);
 
 /**
+ * Whether to ask the site for stats (ROADMAP 57.4, 57.13b) and for which: while OBS is connected and a stat is mapped to a text source, and while a Stream Deck
+ * Stat key shows one (`deck`). `obs` says the OBS part is on (the app then also writes the texts). Nothing else polls.
+ */
+export function statsPlan(map: StatMap, obsConnected: boolean, deck: readonly StatId[]): { poll: boolean; obs: boolean; ask: StatId[] } {
+  const obs = obsConnected && STAT_IDS.some(id => map[id]);
+  return { poll: obs || deck.length > 0, obs, ask: STAT_IDS.filter(id => id !== 'happyHour' && ((obs && map[id]) || deck.includes(id))) };
+}
+
+/**
  * Writes texts to OBS: a source is written only when its text differs from the one last accepted, and at most once per `minMs`. A write
  * that fails is tried again on a later `push` (at least `minMs` later), never in a loop. `push` is called about once a second.
  */

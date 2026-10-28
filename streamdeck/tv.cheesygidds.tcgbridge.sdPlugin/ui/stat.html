@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stat</title>
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+<label for="stat">Stat</label>
+<select id="stat">
+  <option value="">Pick one</option>
+  <option value="queue">Queue length</option>
+  <option value="packs">Packs this stream</option>
+  <option value="goal">Pack goal progress</option>
+</select>
+<div class="note">The key only shows a number. On a Queue key, press twice within 3 seconds to skip the next pull; the other stats do nothing when pressed. The app asks the site for a stat only while a key showing it is on a deck.</div>
+<script src="pi.js"></script>
+<script>
+const sel = document.getElementById('stat');
+onSettings = s => { sel.value = ['queue', 'packs', 'goal'].includes(s.stat) ? s.stat : ''; };
+sel.addEventListener('change', () => save({ stat: sel.value }));
+</script>
+</body>
+</html>

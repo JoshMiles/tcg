@@ -18,6 +18,12 @@ export const CLOSE_REFUSED = 4401;
 /** What the bridge writes to streamdeck.json for the plugin to read. */
 export interface DeckLinkFile { port: number; token: string }
 
+/** The stats a Stat key can show (57.4 / 57.5 data). The app asks the site for them only while a key shows one. */
+export const DECK_STATS = ['queue', 'packs', 'goal'] as const;
+export type DeckStatKind = (typeof DECK_STATS)[number];
+/** What the site last said for those; a missing one = not said yet, `goal` null = no pack goal for this stream. */
+export interface DeckStats { queue?: number; packs?: number; goal?: string | null }
+
 /** What a key may show, pushed by the app. `ready` = paired with the site; `paused` null = the site has not said yet; `reason` is "scene <name>" for a scene pause. */
 export interface DeckState {
   ready: boolean;
@@ -27,6 +33,8 @@ export interface DeckState {
   happy: { what: string; endsAt: number } | null;
   /** The buffs and quick actions switched on for the Stream Deck (ROADMAP 55.2). */
   buffs: { id: string; name: string }[];
+  /** For the Stat keys; an app older than the plugin sends none. */
+  stats: DeckStats;
 }
 
 /** What a key asks the app to do. Each one is run by the same code as the Control tab and the tray. */
@@ -35,9 +43,13 @@ export type DeckRequest =
   | { what: 'last-buff' }
   | { what: 'pause' }
   | { what: 'happy-start'; minutes: number; kind: 'free' | 'discount'; percent: number }
-  | { what: 'happy-end' };
+  | { what: 'happy-end' }
+  | { what: 'test-pull' }
+  | { what: 'show-card'; username: string }
+  | { what: 'skip' };
 
-export type ClientMessage = { t: 'hello'; token: string; protocol: number; version: string } | { t: 'do'; n: number; req: DeckRequest };
+/** `stats` says which stats the keys on the decks show right now (a full list each time, [] = none); the app asks the site for them only then. */
+export type ClientMessage = { t: 'hello'; token: string; protocol: number; version: string } | { t: 'do'; n: number; req: DeckRequest } | { t: 'stats'; want: DeckStatKind[] };
 export type ServerMessage = { t: 'welcome'; version: string; state: DeckState } | { t: 'state'; state: DeckState } | { t: 'done'; n: number; ok: boolean; text: string };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -52,6 +64,9 @@ export function parseRequest(v: unknown): DeckRequest | null {
     case 'last-buff': return { what: 'last-buff' };
     case 'pause': return { what: 'pause' };
     case 'happy-end': return { what: 'happy-end' };
+    case 'test-pull': return { what: 'test-pull' };
+    case 'skip': return { what: 'skip' };
+    case 'show-card': return text(v.username, 40) && v.username ? { what: 'show-card', username: v.username } : null;
     case 'happy-start': return num(v.minutes) && num(v.percent) && (v.kind === 'free' || v.kind === 'discount') ? { what: 'happy-start', minutes: v.minutes, kind: v.kind, percent: v.percent } : null;
     default: return null;
   }
@@ -63,7 +78,13 @@ function parseState(v: unknown): DeckState | null {
   if (h !== null && !(isObject(h) && text(h.what, 80) && num(h.endsAt))) return null;
   const buffs: DeckState['buffs'] = [];
   for (const b of v.buffs.slice(0, 200)) if (isObject(b) && text(b.id, 100) && text(b.name, 100)) buffs.push({ id: b.id, name: b.name });
-  return { ready: v.ready, paused: v.paused, reason: v.reason, happy: h === null ? null : { what: (h as { what: string }).what, endsAt: (h as { endsAt: number }).endsAt }, buffs };
+  const stats: DeckStats = {};
+  if (isObject(v.stats)) {
+    if (num(v.stats.queue)) stats.queue = v.stats.queue;
+    if (num(v.stats.packs)) stats.packs = v.stats.packs;
+    if (v.stats.goal === null || text(v.stats.goal, 200)) stats.goal = v.stats.goal;
+  }
+  return { ready: v.ready, paused: v.paused, reason: v.reason, happy: h === null ? null : { what: (h as { what: string }).what, endsAt: (h as { endsAt: number }).endsAt }, buffs, stats };
 }
 
 const json = (raw: string): unknown => { try { return JSON.parse(raw); } catch { return null; } };
@@ -74,6 +95,7 @@ export function parseClient(raw: string): ClientMessage | null {
   const v = json(raw);
   if (!isObject(v)) return null;
   if (v.t === 'hello') return text(v.token, 200) && num(v.protocol) && text(v.version, 40) ? { t: 'hello', token: v.token, protocol: v.protocol, version: v.version } : null;
+  if (v.t === 'stats') return Array.isArray(v.want) ? { t: 'stats', want: DECK_STATS.filter(k => (v.want as unknown[]).includes(k)) } : null;
   if (v.t === 'do') {
     const req = parseRequest(v.req);
     return num(v.n) && req ? { t: 'do', n: v.n, req } : null;
