@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import type { BrowserWindow } from 'electron';
 import { Startup, type StartupEvent, type StartupStep } from './startup';
 import { attentionItems } from './status';
+import { connectionRows } from './connections';
 import { clock, type EventLine } from './events';
 import type { ChecklistLine } from './checklist';
 import { FEED_KEEP, mergeFeed, readySummary, streamNumbers, type PullEntry } from './home';
@@ -95,6 +96,9 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
     control, scenePause, obsStats, notices, pcName: 'STREAM-PC', staff: false, whatsNew: null, home, queue, events: [], commandsMissing: mixFound ? [] : null,
     checklist: readySummary({ ready: mixFound, at: now - 120_000, lines: mixFound ? checklistLines : checklistLines.map(l => (l.label === 'Mix It Up' ? { ...l, tone: 'bad' as const, text: 'Not answering. Open Mix It Up and switch its Developer API on.' } : l)) }),
     attention: attentionItems({ paired: true, updateVersion: extra.updateVersion ?? '', startNote: extra.startNote ?? '', site: 'connected', mixFound, obsEnabled: true, obsConnected: true }),
+    connections: connectionRows({ paired: true, pairedAs: 'STREAM-PC', site: 'connected', siteError: '', mixFound, obsEnabled: true, obsConnected: true, obsStreaming: true, obsError: '', deckInstalled: true, deckOn: true, deckConnected: true, deckError: '' }),
+    liveSince: now - 47 * 60_000,
+    deck: { on: true, error: '', connected: true, found: true, installed: ctx.version, offer: false },
     startNote: '', paired: true, site: 'https://cheesytcg.app', pairedAs: 'STREAM-PC', startWithWindows: true, alerts: true,
     obsSettings: { enabled: true, address: 'ws://127.0.0.1:4455', hasPassword: true },
     mixItUp: { startWithBridge: false, path: 'C:\\Users\\streamer\\AppData\\Local\\MixItUp\\MixItUp.exe' },
@@ -106,6 +110,7 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
 
   const notes = { startNote: "Couldn't check for updates", update: 'Version 0.5.1 is available. Restart TCG Bridge to install it.', updateVersion: '0.5.1' };
   const openPill = `document.getElementById('status-pill').click()`;
+  const pick = (conn: string): string => `document.querySelector('.conn-row[data-conn="${conn}"]').click()`;
   const shots: [string, object, string, string?][] = [
     ['main-1-home-connected', state(true), 'home'], // the busy dashboard at 1280 x 800: chips, pulls, happy hour, queue, numbers, feed
     ['main-1b-home-staff', state(true, { staff: true }), 'home'],
@@ -113,7 +118,8 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
     ['main-3-status-pill-open', state(false, notes), 'home', openPill], // the pill's list open: update ready, couldn't check, Mix It Up
     ['main-3b-updated-toast', state(true, { updatedTo: ctx.version }), 'home'], // "Updated to x" as a toast
     ['main-4-controls', state(true), 'controls'],
-    ['main-5-connections', state(false), 'connections'],
+    ['main-5-connections', state(true), 'connections', pick('obs')], // OBS picked: its facts and settings
+    ['main-5b-connections-mixitup-fix', state(false), 'connections', pick('mix')], // Mix It Up's Developer API is off: the fix steps at the top
     ['main-6-overlay-and-obs', state(true), 'overlay'],
     ['main-7-buttons-and-hotkeys', state(true), 'buttons'],
     ['main-8-notifications', state(true), 'notifications'],
@@ -124,7 +130,7 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
     ['main-13-staff-this-stream', state(true, { staff: true }), 'stream'],
     ['main-14-feed-and-history', state(false), 'feed'], // everyone: the history only
     ['main-14b-feed-and-history-staff', state(true, { staff: true }), 'feed'], // a staff PC: the activity part as well
-    ['main-15-pairing', { ...state(false), paired: false, site: 'https://cheesytcg.app', pairedAs: '', service: null, attention: attentionItems({ paired: false, updateVersion: '', startNote: '', site: null, mixFound: false, obsEnabled: false, obsConnected: false }) }, 'home'],
+    ['main-15-connect-screen', { ...state(false), paired: false, site: 'https://cheesytcg.app', pairedAs: '', service: null, attention: attentionItems({ paired: false, updateVersion: '', startNote: '', site: null, mixFound: false, obsEnabled: false, obsConnected: false }) }, 'home'], // the first-run Connect screen
   ];
   if (w.isMaximized()) w.unmaximize();
   w.setSize(1280, 800); // the size the Home dashboard is made to fit

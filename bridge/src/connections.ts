@@ -1,0 +1,102 @@
+// The Connections page (ROADMAP 59.6): the list on the left (one row per connection) and what the detail on the right says first.
+// Plain TypeScript, no Electron. The window shows these strings with textContent only.
+// A Twitch channel row (58.1) joins CONN_ORDER and rowFor() later; "Signed in with Twitch as <login> (<role>)" (58.0b) replaces the account row's line.
+
+export type ConnId = 'account' | 'mix' | 'obs' | 'deck';
+export const CONN_ORDER: ConnId[] = ['account', 'mix', 'obs', 'deck'];
+/** green, amber, red or grey (not used); the window maps it to the dot's class. */
+export type ConnTone = 'ok' | 'warn' | 'bad' | 'off';
+
+export interface ConnFacts {
+  paired: boolean;
+  pairedAs: string;
+  /** null = the service is not running yet. */
+  site: 'connecting' | 'connected' | 'offline' | 'revoked' | null;
+  siteError: string;
+  mixFound: boolean;
+  obsEnabled: boolean;
+  obsConnected: boolean;
+  obsStreaming: boolean | null;
+  obsError: string;
+  deckInstalled: boolean;
+  deckOn: boolean;
+  deckConnected: boolean;
+  deckError: string;
+}
+
+export interface ConnRow {
+  id: ConnId;
+  name: string;
+  tone: ConnTone;
+  /** One line in the list. */
+  line: string;
+  /** The detail's header, a sentence. */
+  sentence: string;
+}
+
+export interface FixPlan {
+  /** Numbered steps shown at the top of the detail; empty = nothing to fix. */
+  steps: string[];
+  /** Whether the steps end with a "Check again" button (Mix It Up and OBS have a check to run). */
+  again: boolean;
+}
+
+export const CONN_NAMES: Record<ConnId, string> = { account: 'TCG account', mix: 'Mix It Up', obs: 'OBS', deck: 'Stream Deck plugin' };
+
+export function rowFor(id: ConnId, f: ConnFacts): ConnRow {
+  const name = CONN_NAMES[id];
+  const row = (tone: ConnTone, line: string, sentence: string): ConnRow => ({ id, name, tone, line, sentence });
+  if (id === 'account') {
+    if (!f.paired || f.site === 'revoked') return row('bad', 'Not paired', 'This PC is not paired with the site');
+    const as = `Paired as ${f.pairedAs}`;
+    if (f.site === 'offline') return row('bad', 'Cannot reach the site', 'The site cannot be reached');
+    if (f.site === 'connected') return row('ok', as, `Paired with the site as ${f.pairedAs}`);
+    return row('warn', `${as}, connecting`, 'Connecting to the site');
+  }
+  if (id === 'mix') {
+    return f.mixFound ? row('ok', 'Connected', 'Mix It Up is connected') : row('bad', 'Not answering', 'Mix It Up is not answering');
+  }
+  if (id === 'obs') {
+    if (!f.obsEnabled) return row('off', 'Off', 'OBS is off');
+    if (f.obsConnected) return row('ok', f.obsStreaming ? 'Connected, the stream is live' : 'Connected', 'OBS is connected');
+    return row('bad', 'Not connected', 'OBS is not connected');
+  }
+  if (f.deckError) return row('bad', 'Needs attention', 'The Stream Deck link has a problem');
+  if (!f.deckOn) return row('off', 'Off', 'The Stream Deck plugin is off');
+  if (f.deckConnected) return row('ok', 'Plugin connected', 'The Stream Deck plugin is connected');
+  return row('warn', f.deckInstalled ? 'Waiting for the plugin' : 'Plugin not installed', 'The Stream Deck plugin is not connected');
+}
+
+/** What the window gets: every row with its fix plan. */
+export const connectionRows = (f: ConnFacts): (ConnRow & { fix: FixPlan })[] => CONN_ORDER.map(id => ({ ...rowFor(id, f), fix: fixPlan(id, f) }));
+
+/** The fix steps of a connection that needs fixing, else none. */
+export function fixPlan(id: ConnId, f: ConnFacts): FixPlan {
+  if (id === 'account') {
+    return f.paired && f.site === 'offline'
+      ? { steps: ['Check that this PC is online.', 'TCG Bridge keeps trying by itself; this page updates when the site answers.'], again: false }
+      : { steps: [], again: false };
+  }
+  if (id === 'mix') {
+    return f.mixFound ? { steps: [], again: false } : {
+      steps: ['Open Mix It Up (Start Mix It Up below opens it).', 'Go to Services > Developer API.', 'Press Connect. TCG Bridge notices within a few seconds.'],
+      again: true,
+    };
+  }
+  if (id === 'obs') {
+    return f.obsEnabled && !f.obsConnected ? {
+      steps: ['Open OBS (28 or newer).', 'Go to Tools > WebSocket Server Settings and tick Enable WebSocket server.', 'Copy the Server Password into Password below, check the address and press Save.'],
+      again: true,
+    } : { steps: [], again: false };
+  }
+  if (f.deckOn && !f.deckConnected && !f.deckError) {
+    return { steps: [f.deckInstalled ? 'Open the Stream Deck app; the plugin connects by itself.' : 'Press Install Stream Deck plugin below, then open the Stream Deck app.'], again: false };
+  }
+  return { steps: [], again: false };
+}
+
+/** The ids a status pill item or a Home chip can go to. 'connect' is the first-run Connect screen. */
+export const GO_CONNECT = 'connect';
+export const goFor = (id: ConnId): string => `conn-${id}`;
+/** "conn-obs" to 'obs'; null for anything that is not a connection. */
+export const connOf = (go: string): ConnId | null => (CONN_ORDER.find(id => goFor(id) === go) ?? null);

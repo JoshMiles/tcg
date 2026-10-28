@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('bridge', {
   restartToUpdate: (): Promise<void> => ipcRenderer.invoke('restart-to-update'),
   openRelease: (): Promise<void> => ipcRenderer.invoke('open-release'),
   openReleases: (): Promise<void> => ipcRenderer.invoke('open-releases'),
+  openPairPage: (site: string): Promise<void> => ipcRenderer.invoke('open-pair-page', String(site)),
   whatsNew: (): Promise<{ ok: boolean; notes: { version: string; blocks: { kind: string; text: string }[] }[] }> => ipcRenderer.invoke('whats-new'),
   openCommit: (): Promise<void> => ipcRenderer.invoke('open-commit'),
   dismissUpdated: (): Promise<void> => ipcRenderer.invoke('dismiss-updated'),
