@@ -142,12 +142,13 @@ async function loadWhatsNew() {
   if (whatsNewDone) return;
   $('whatsnew-status').textContent = 'Loading the release notes';
   $('whatsnew-fail').hidden = true;
+  $('whatsnew-empty').hidden = true;
   const r = await window.bridge.whatsNew();
   $('whatsnew-status').textContent = '';
   $('whatsnew-fail').hidden = r.ok;
   if (!r.ok) return;
-  whatsNewDone = true;
-  if (!r.notes.length) $('whatsnew-status').textContent = 'No release notes were found for this update.';
+  $('whatsnew-empty').hidden = r.notes.length > 0; // not remembered as done, so opening the tab again looks again
+  whatsNewDone = r.notes.length > 0;
   $('whatsnew-notes').replaceChildren(...r.notes.map(n => {
     const box = document.createElement('div');
     const title = document.createElement('h3');
@@ -407,6 +408,7 @@ $('obs-autostart').addEventListener('change', e => window.bridge.setStartObs(e.t
 $('updated-link').addEventListener('click', () => { if (state && state.whatsNew) showTab('whatsnew'); else window.bridge.openRelease(); });
 $('open-release').addEventListener('click', () => window.bridge.openReleases());
 $('whatsnew-all').addEventListener('click', () => window.bridge.openReleases());
+$('whatsnew-all-empty').addEventListener('click', () => window.bridge.openReleases());
 $('update-banner-restart').addEventListener('click', () => window.bridge.restartToUpdate());
 $('restart-update').addEventListener('click', () => window.bridge.restartToUpdate());
 $('updated-dismiss').addEventListener('click', () => window.bridge.dismissUpdated());
@@ -448,6 +450,15 @@ action('open-logs', 'help-result', () => window.bridge.openLogs());
 action('open-backups', 'backup-result', () => window.bridge.openBackups());
 action('copy-diagnostics', 'help-result', () => window.bridge.copyDiagnostics());
 action('check-update', 'update-result', () => window.bridge.checkUpdate());
+action('clear-release-cache', 'update-result', async () => { const r = await window.bridge.clearReleaseCache(); whatsNewDone = false; return r; });
+$('whatsnew-refresh').addEventListener('click', async () => {
+  $('whatsnew-refresh').disabled = true;
+  await window.bridge.clearReleaseCache();
+  whatsNewDone = false;
+  $('whatsnew-notes').replaceChildren();
+  await loadWhatsNew();
+  $('whatsnew-refresh').disabled = false;
+});
 action('deck-install', 'deck-install-result', () => window.bridge.installStreamDeck());
 
 $('control-pause').addEventListener('change', async e => {

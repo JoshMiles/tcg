@@ -117,20 +117,29 @@ jobs:
       - run: npm run typecheck
       - run: npm run check
       - run: npm run dist # stamps the commit into the app first (scripts/stamp.mjs), then builds release/*.exe and release/latest.yml
-      - name: Release notes (the merged PR's title and changelog, and the commit)
+      - name: Release notes (the merged PR's "## TCG Bridge" bullets, then its title and links)
         run: |
+          # The app's What's new shows only the "## TCG Bridge" section (bridge/src/releases.ts); the rest is under "## Details".
+          # A PR merged before that section existed falls back to its Changelog bullets, else the title alone.
           subject=$(git log -1 --format=%s)
           pr=$(printf '%s' "$subject" | sed -nE 's/.*\(#([0-9]+)\)$/\1/p')
           title=""
           bullets=""
           if [ -n "$pr" ]; then
             title=$(gh pr view "$pr" --json title --jq .title 2>/dev/null | tr -d '\r' || true)
-            bullets=$(gh pr view "$pr" --json body --jq .body 2>/dev/null | tr -d '\r' | awk '/^## Changelog/{f=1;next} /^## /{f=0} f && /^[-*] +[^ ]/' || true)
+            body=$(gh pr view "$pr" --json body --jq .body 2>/dev/null | tr -d '\r' || true)
+            bullets=$(printf '%s\n' "$body" | awk '/^## TCG Bridge/{f=1;next} /^## /{f=0} f && /^[-*] +[^ ]/' || true)
+            if [ -z "$bullets" ]; then bullets=$(printf '%s\n' "$body" | awk '/^## Changelog/{f=1;next} /^## /{f=0} f && /^[-*] +[^ ]/' || true); fi
           fi
+          title="${title:-$subject}"
           {
-            echo "${title:-$subject}"
+            echo "## TCG Bridge"
+            if [ -n "$bullets" ]; then echo "$bullets"; else echo "- $title"; fi
             echo
-            if [ -n "$bullets" ]; then echo "$bullets"; echo; fi
+            echo "## Details"
+            echo "$title"
+            echo
+            if [ -n "$pr" ]; then echo "Pull request: https://github.com/$GITHUB_REPOSITORY/pull/$pr"; fi
             echo "Commit: https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
             if [ -n "$pr" ]; then echo "Pull request: https://github.com/$GITHUB_REPOSITORY/pull/$pr"; fi
             echo

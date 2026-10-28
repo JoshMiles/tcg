@@ -1,6 +1,6 @@
 // The docs check (scripts/check-docs.mjs): stale docs, the "No change needed" opt-out, rotted globs, unmapped docs, docs-only PRs, the
 // globber and the wiki "covers:" line. Pure. Run: npx tsx scripts/check-check-docs.mts
-import { docsOptOuts, docsProblems, globToRegExp, parseCovers } from './check-docs.mjs';
+import { bridgeNotesProblems, docsOptOuts, docsProblems, globToRegExp, parseCovers } from './check-docs.mjs';
 
 const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED: ' + msg); };
 
@@ -61,5 +61,18 @@ ok(run(['ROADMAP.md', 'HANDOFF.md']).length === 0, 'ROADMAP/HANDOFF-only PRs pas
 ok(parseCovers('---\ntitle: T\ncovers: lib/*.ts, app/x/**\n---\nbody covers: no').join('|') === 'lib/*.ts|app/x/**', 'covers: is read from the front matter');
 ok(parseCovers('---\ntitle: T\n---\ncovers: lib/a.ts').length === 0, 'covers: in the body is ignored');
 ok(parseCovers('---\r\ntitle: T\r\ncovers: lib/a.ts\r\n---\r\n').join() === 'lib/a.ts', 'CRLF pages parse');
+
+// the TCG Bridge notes rule
+const notes = (changed: string[], body: string) => bridgeNotesProblems({ changed, body });
+const withBullets = '## Summary\nx\n\n## TCG Bridge\n- Shows what changed for you.\n\n## Docs\nx';
+ok(notes(['lib/a.ts', 'bridge/README.md'], '## Summary\nx').length === 0, 'a PR that does not touch the app needs no section');
+ok(notes(['bridge/src/main.ts'], withBullets).length === 0, 'a bridge PR with a bulleted section passes');
+ok(notes(['streamdeck/src/keys.ts'], withBullets.replace('- Shows', '* Shows')).length === 0, 'a streamdeck PR passes, with a * bullet');
+ok(mentions(notes(['bridge/src/main.ts'], '## Summary\nx\n\n## Docs\nx'), '## TCG Bridge'), 'a bridge PR without the section fails and says what to add');
+ok(notes(['streamdeck/manifest.json'], '## Summary\nx').length === 1, 'a streamdeck PR without the section fails');
+ok(notes(['bridge/src/main.ts'], '## TCG Bridge\n\n## Docs\n- not in the section').length === 1, 'an empty section fails; bullets after the next heading do not count');
+ok(notes(['bridge/src/main.ts'], '## TCG Bridge\r\n- ok\r\n## Docs').length === 0, 'CRLF bodies parse');
+ok(notes(['bridge/src/main.ts'], '## TCG Bridge\n<!-- - a commented bullet -->\n## Docs').length === 1, 'a bullet inside a comment does not count');
+ok(notes(['bridge/src/main.ts'], '## TCG Bridge\nplain text only\n## Docs').length === 1, 'text without a bullet does not count');
 
 console.log('check-docs checks passed');

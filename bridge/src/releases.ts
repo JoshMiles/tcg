@@ -1,6 +1,6 @@
 // The What's new tab (ROADMAP 57.11): release notes from the public GitHub releases, cached on disk. Plain TypeScript, no Electron.
 // The notes are untrusted text from the network: parseNotes keeps only headings, bullets and plain paragraphs, and the window builds them with textContent.
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 export const RELEASES_API = 'https://api.github.com/repos/JoshMiles/tcg/releases?per_page=50';
@@ -56,16 +56,33 @@ export function parseNotes(body: string): Block[] {
   return blocks;
 }
 
+/** What the tab shows for one release: the bullets of its "## TCG Bridge" section. Without that section (or with no bullets in it) only the first non-empty non-heading line, the title; never the commit, PR or installer lines. */
+export function releaseBlocks(body: string): Block[] {
+  const lines = body.replace(/\r/g, '').split('\n');
+  const at = lines.findIndex(l => /^\s{0,3}##\s+TCG Bridge\s*$/i.test(l));
+  if (at >= 0) {
+    const end = lines.findIndex((l, i) => i > at && /^\s{0,3}#{1,6}\s/.test(l));
+    const bullets = parseNotes(lines.slice(at + 1, end < 0 ? undefined : end).join('\n')).filter(b => b.kind === 'bullet');
+    if (bullets.length) return bullets;
+  }
+  const first = lines.find(l => l.trim() !== '' && !/^\s{0,3}#/.test(l)); // headings are skipped so an empty section still shows the title
+  const text = first === undefined ? undefined : parseNotes(first)[0]?.text;
+  return text ? [{ kind: 'text', text }] : [];
+}
+
 type Cache = { at: number; releases: Release[] };
 
 const validCache = (c: unknown): c is Cache => !!c && typeof c === 'object' && typeof (c as Cache).at === 'number' && Array.isArray((c as Cache).releases);
 
-/** The bridge releases: the cache file when under 6 hours old, else a fresh fetch (saved to the cache). A failed fetch falls back to an older cache, or throws. */
-export async function loadReleases(dir: string, now: number, fetchList: () => Promise<unknown>): Promise<Release[]> {
+/** Deletes the cache file (a missing file is fine), so the next load fetches again. */
+export const clearReleaseCache = (dir: string): Promise<void> => rm(join(dir, 'releases-cache.json'), { force: true });
+
+/** The bridge releases: the cache file when under 6 hours old and it has a release for `current` (the running version, which may have been published after the cache was written), else a fresh fetch (saved to the cache). A failed fetch falls back to the cache, or throws. */
+export async function loadReleases(dir: string, now: number, current: string, fetchList: () => Promise<unknown>): Promise<Release[]> {
   const file = join(dir, 'releases-cache.json');
   let cache: Cache | null = null;
   try { const c: unknown = JSON.parse(await readFile(file, 'utf8')); if (validCache(c)) cache = { at: c.at, releases: bridgeReleases(c.releases.map(r => ({ tag_name: `bridge-v${r.version}`, body: r.body }))) }; } catch { /* no cache yet */ }
-  if (cache && now - cache.at >= 0 && now - cache.at < CACHE_MS) return cache.releases;
+  if (cache && now - cache.at >= 0 && now - cache.at < CACHE_MS && cache.releases.some(r => r.version === current)) return cache.releases;
   try {
     const releases = bridgeReleases(await fetchList());
     await mkdir(dir, { recursive: true });
