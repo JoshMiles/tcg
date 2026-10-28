@@ -13,4 +13,9 @@ Tags: new
 ## Summary
 
 
+## Docs
+<!-- Name the docs this PR updates (docs/*.md, content/wiki/*.md, README.md, CLAUDE.md, bridge/README.md): "Docs updated: docs/overlay.md".
+For a doc that docs/doc-map.json ties to your code but that is still accurate, add one line each: "No change needed: <doc>: <reason>" (a few words; "all" instead of a doc skips every doc). -->
+
+
 ## Test plan

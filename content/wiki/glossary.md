@@ -2,6 +2,7 @@
 title: Glossary
 summary: The words the panel uses, and the thing they point at.
 order: 80
+covers: lib/glossary.ts
 ---
 
 Short names for the things staff run into in the panel. The topic pages say how to use them.

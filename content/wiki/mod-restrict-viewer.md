@@ -2,6 +2,7 @@
 title: How to restrict a viewer
 summary: Which switch to use, what to write in the reason, and who you cannot restrict.
 order: 60
+covers: app/mod/users/**, lib/restriction.ts
 audience: mods
 ---
 

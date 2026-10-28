@@ -2,6 +2,7 @@
 title: Moderation
 summary: Who is staff, what a mod may touch, and where reports go.
 order: 50
+covers: app/admin/staff/**, lib/staff.ts, app/admin/settings/AccessConfig.tsx, app/mod/**
 ---
 
 ## Roles

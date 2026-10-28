@@ -140,7 +140,7 @@ export function buildEntries(prs, since = '') {
 }
 
 const AUDIENCE_WORDS = ['both', 'all', 'everyone', 'admin', 'admins', 'staff', 'mod', 'mods', 'moderators', 'players', 'player', 'public', 'viewers'];
-const REQUIRED_HEADINGS = ['Changelog', 'Summary', 'Test plan'];
+const REQUIRED_HEADINGS = ['Changelog', 'Summary', 'Docs', 'Test plan'];
 
 /**
  * Everything wrong with a PR body against .github/pull_request_template.md (empty list = fine). Stricter than parseChangelogBody, which
@@ -162,7 +162,7 @@ export function prBodyProblems(body, title) {
   }
   const names = sections.map(s => s.name);
   if (names.join('|') !== REQUIRED_HEADINGS.join('|')) {
-    problems.push(`Headings must be exactly "## Changelog", "## Summary", "## Test plan" once each, in that order; found: ${names.map(n => `"## ${n}"`).join(', ') || 'none'}.`);
+    problems.push(`Headings must be exactly "## Changelog", "## Summary", "## Docs", "## Test plan" once each, in that order; found: ${names.map(n => `"## ${n}"`).join(', ') || 'none'}.`);
   }
   const content = (name) => (sections.find(s => s.name === name)?.lines ?? []).map(l => l.trimEnd()).filter(l => l.trim() !== '');
 
@@ -173,7 +173,7 @@ export function prBodyProblems(body, title) {
       if (log.length > 1) problems.push('Changelog starts with "none" but has more lines; keep only the "none" line.');
     } else problems.push(...changelogProblems(log));
   }
-  for (const name of ['Summary', 'Test plan']) {
+  for (const name of ['Summary', 'Docs', 'Test plan']) {
     if (sections.some(s => s.name === name) && content(name).length === 0) problems.push(`"## ${name}" is empty.`);
   }
   return problems;
