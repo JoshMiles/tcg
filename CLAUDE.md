@@ -15,7 +15,7 @@ A trading card game played live on stream: an OBS overlay where viewers pull car
 ## Commands
 
 - `npm run verify`: typecheck, every `scripts/check-*.mts` and `node --check public/widget.js`. **Run it before every PR.**
-- `node scripts/run-checks.mjs trades serials`: only the matching check files (each gets a fresh mock KV; a check that can't run prints `skipped: <reason>` and exits 0).
+- `node scripts/run-checks.mjs trades serials`: only the matching check files (each gets a fresh mock KV; a check that can't run prints `skipped: <reason>` and exits 0). Checks run side by side, 4 at a time on CI and 2 locally (`CHECK_JOBS=n` overrides), printed in file order; a failing check is retried once and, if the retry passes, shown as "passed on a retry" with the first failure.
 - `npx tsc --noEmit`: typecheck (run `rm -rf .next` first if you switched branches; stale `.next/types` give false errors).
 - `npm run build`: production build.
 - `npx tsx script.mts`: run server-side TypeScript. Use **extensionless imports** (`../lib/kv`) and set `KV_REST_API_URL` etc. *before* the dynamic `import()`.
