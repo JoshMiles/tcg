@@ -5,7 +5,7 @@ import { ArmedButton } from '@/app/components/ArmedButton';
 import { Icon } from '@/app/components/Icon';
 import { createPairCodeAction, liftPullBlockAction, revokeBridgeAction, setBridgeStaffAction } from './bridge-actions';
 
-export interface BridgeRow { id: string; name: string; paired: string; seen: string; staff: boolean; by: string }
+export interface BridgeRow { id: string; name: string; paired: string; seen: string; staff: boolean; /** "login (Role)" for a PC signed in with Twitch (58.0), '' for one paired with a code. */ account: string; by: string }
 export interface BlockRow { username: string; by: string; scope: string }
 
 const DOWNLOAD_URL = 'https://github.com/JoshMiles/tcg/releases?q=bridge-v&expanded=true';
@@ -44,24 +44,33 @@ export function BridgeCard({ bridges, version, blocks = [] }: { bridges: BridgeR
               <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <div>
                   <span className="font-semibold text-white">{b.name}</span>
-                  <span className="block text-xs text-gray-500">Paired {b.paired}{b.by && <> by {b.by}</>}. Last seen {b.seen}.</span>
-                  <label className="mt-1 flex items-center gap-2 text-xs text-gray-300">
-                    <input
-                      type="checkbox"
-                      className="toggle toggle-xs"
-                      checked={b.staff}
-                      disabled={pending}
-                      onChange={e => start(async () => { await setBridgeStaffAction(b.id, e.target.checked); router.refresh(); })}
-                    />
-                    Staff tools on this PC
-                  </label>
+                  {b.account ? (
+                    <>
+                      <span className="block text-xs text-gray-500">Signed in as {b.account}. Linked {b.paired}. Last seen {b.seen}.</span>
+                      <span className="mt-1 block text-xs text-gray-300">Staff tools on this PC: from role</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="block text-xs text-gray-500">Paired {b.paired}{b.by && <> by {b.by}</>}. Last seen {b.seen}.</span>
+                      <label className="mt-1 flex items-center gap-2 text-xs text-gray-300">
+                        <input
+                          type="checkbox"
+                          className="toggle toggle-xs"
+                          checked={b.staff}
+                          disabled={pending}
+                          onChange={e => start(async () => { await setBridgeStaffAction(b.id, e.target.checked); router.refresh(); })}
+                        />
+                        Staff tools on this PC
+                      </label>
+                    </>
+                  )}
                 </div>
                 <ArmedButton
                   onConfirm={() => start(async () => { await revokeBridgeAction(b.id); router.refresh(); })}
                   className="rounded-lg border border-gray-700 px-2.5 py-1 text-xs font-semibold text-gray-300 hover:border-red-500/50 hover:text-red-300"
                   armedClassName="rounded-lg border border-red-500/60 bg-red-950/50 px-2.5 py-1 text-xs font-semibold text-red-200"
                 >
-                  Revoke
+                  Unlink
                 </ArmedButton>
               </li>
             ))}

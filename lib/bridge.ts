@@ -12,9 +12,10 @@ import type { MixItUpSettings } from './mixitup-core';
 import type { PullObs } from './pull-rules-core';
 import type { LedgerRow } from './bridge-chat-core';
 import { noteUptime } from './bridge-uptime';
+import type { StaffRole } from './staff-core';
 import {
-  BRIDGE_DID_NOT_ANSWER, CONNECTED_MS, IDLE_POLL_MS, LONG_POLL_MS, PAIR_TTL_S, POLL_MS, RESULT_TTL_S, TOUCH_EVERY_MS, WAIT_MS,
-  cleanHello, cleanName, cleanObs, cleanResult, hashToken, isFreshJob, newPairCode, normalizeCode, replyFromResult, type PullFeed,
+  BRIDGE_DID_NOT_ANSWER, CONNECTED_MS, IDLE_POLL_MS, LONG_POLL_MS, PAIR_TTL_S, POLL_MS, RESULT_TTL_S, ROLE_CHECK_MS, TOUCH_EVERY_MS, WAIT_MS,
+  isStaffPc, cleanHello, cleanName, cleanObs, cleanResult, hashToken, isFreshJob, newPairCode, normalizeCode, replyFromResult, type PullFeed,
   type BridgeCommand, type BridgeCurrency, type BridgeJob, type BridgeReply, type JobKind, type ObsSnapshot, type StaffNotice,
 } from './bridge-core';
 
@@ -30,8 +31,12 @@ const pairKey = (code: string) => `bridge:pair:${code}`;
 export const tuning = { waitMs: WAIT_MS, pollMs: POLL_MS, longPollMs: LONG_POLL_MS, idlePollMs: IDLE_POLL_MS };
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
-/** `by` is the admin who paired this PC; `staff` is the per-PC switch for the staff tools (ROADMAP 55.12), off until an admin turns it on. */
-export interface BridgeToken { id: string; name: string; createdAt: number; lastSeen: number; by?: string; staff?: boolean }
+/**
+ * `by` is the admin who paired this PC; `staff` is the per-PC switch for the staff tools (ROADMAP 55.12), off until an admin turns it on.
+ * A PC linked with Twitch (58.0) has `userId` (Twitch's numeric id), `login` and `role` (the site role, re-read at most once a minute, `roleCheckedAt`);
+ * its staff tools follow the role and `staff` is ignored. `by` is then the login.
+ */
+export interface BridgeToken { id: string; name: string; createdAt: number; lastSeen: number; by?: string; staff?: boolean; userId?: string; login?: string; role?: StaffRole; roleCheckedAt?: number }
 
 // ── The calling side: put a job on the list and wait for its result ──
 
@@ -128,7 +133,7 @@ const noticeKey = (pcId: string) => `bridge:notices:${pcId}`;
 export async function sendNotice(notice: StaffNotice): Promise<boolean> {
   try {
     if (await inSandbox()) return false;
-    const pcs = (await listBridges()).filter(p => p.staff);
+    const pcs = (await listBridges()).filter(isStaffPc);
     const job = { id: crypto.randomUUID(), kind: 'notice', at: Date.now(), notice } satisfies BridgeJob;
     for (const pc of pcs) { await kv.rpush(noticeKey(pc.id), job); await kv.expire(noticeKey(pc.id), 60); }
     return pcs.length > 0;
@@ -216,16 +221,22 @@ export async function createPairCode(by: string): Promise<{ code: string; expire
   return { code, expiresAt: Date.now() + PAIR_TTL_S * 1000 };
 }
 
+/** Makes a bridge token for a PC. Only its hash is stored; the plain token goes to the bridge once. */
+export async function mintToken(name: string, extra: Partial<BridgeToken> = {}): Promise<string> {
+  const token = randomBytes(32).toString('base64url');
+  await kv.hset(TOKENS, { [hashToken(token)]: { id: randomBytes(6).toString('hex'), name, createdAt: Date.now(), lastSeen: 0, ...extra } satisfies BridgeToken });
+  return token;
+}
+
+// shortcut: pairing codes stay until the app can sign in with Twitch (58.0, app half); remove createPairCode / pairBridge / the pair route then.
 /** Swaps a code (used once: the delete is the claim) for a token. Only its hash is stored; the token is shown to the bridge once. */
 export async function pairBridge(rawCode: unknown, rawName: unknown): Promise<{ token: string; name: string } | null> {
   const code = normalizeCode(rawCode);
   if (!code) return null;
   const made = await kv.get<{ by?: string }>(pairKey(code));
   if ((await kv.del(pairKey(code))) !== 1) return null;
-  const token = randomBytes(32).toString('base64url');
   const name = cleanName(rawName);
-  await kv.hset(TOKENS, { [hashToken(token)]: { id: randomBytes(6).toString('hex'), name, createdAt: Date.now(), lastSeen: 0, ...(made?.by ? { by: made.by } : {}) } satisfies BridgeToken });
-  return { token, name };
+  return { token: await mintToken(name, made?.by ? { by: made.by } : {}), name };
 }
 
 /** The paired bridges for the staff page (no token and no hash). */
@@ -285,15 +296,37 @@ export async function bridgeGuard(req: Request): Promise<{ ok: true; hash: strin
   const token = /^Bearer (\S{1,200})$/.exec(req.headers.get('authorization') ?? '')?.[1];
   const hash = token ? hashToken(token) : '';
   const pc = hash ? await kv.hget<BridgeToken>(TOKENS, hash) : null;
-  if (!pc) return { ok: false, response: NextResponse.json({ error: 'Unknown token' }, { status: 401 }) };
+  if (!pc || !(await recheckRole(hash, pc))) return { ok: false, response: NextResponse.json({ error: 'Unknown token' }, { status: 401 }) };
   return { ok: true, hash, pc };
+}
+
+/**
+ * A PC linked with Twitch (58.0) keeps its token only while its account still has a site role: re-read at most once a minute per token (the
+ * check time is on the record, so a normal call adds no read). A lost role deletes the token, which is exactly what an admin unlinking does;
+ * a changed role is saved on the record. A KV failure keeps the PC. Dynamic imports: staff and audit reach back to this file through discord.
+ */
+async function recheckRole(hash: string, pc: BridgeToken, now = Date.now()): Promise<boolean> {
+  if (!pc.userId || now - (pc.roleCheckedAt ?? 0) < ROLE_CHECK_MS) return true;
+  let role: StaffRole | null;
+  try { role = await (await import('./staff')).liveRole(pc.login ?? '', pc.userId); } catch { return true; }
+  if (!role) {
+    await kv.hdel(TOKENS, hash);
+    await (await import('./audit')).recordAudit('everyone', 'TCG Bridge unlinked, the account lost its staff role', `${pc.name}, ${pc.login}`).catch(() => {});
+    return false;
+  }
+  pc.role = role;
+  pc.roleCheckedAt = now;
+  // An unlink while the role was being read must stay an unlink. shortcut: a revoke between this check and the write still slips through, as in touchBridge.
+  if (!(await kv.hget(TOKENS, hash))) return false;
+  await kv.hset(TOKENS, { [hash]: pc });
+  return true;
 }
 
 /** The staff routes' guard (ROADMAP 55.12): bridgeGuard, then this PC must have the staff switch on. A sandbox never has staff powers. */
 export async function bridgeStaffGuard(req: Request): Promise<{ ok: true; hash: string; pc: BridgeToken } | { ok: false; response: NextResponse }> {
   const g = await bridgeGuard(req);
   if (!g.ok) return g;
-  if (!g.pc.staff || (await inSandbox())) return { ok: false, response: NextResponse.json({ error: 'Staff tools are off for this PC.' }, { status: 403 }) };
+  if (!isStaffPc(g.pc) || (await inSandbox())) return { ok: false, response: NextResponse.json({ error: 'Staff tools are off for this PC.' }, { status: 403 }) };
   return g;
 }
 
@@ -303,6 +336,15 @@ export async function pairGuard(req: Request): Promise<NextResponse | null> {
   if (limited) return limited;
   const ok = await rateLimit('bridge-pair', clientIp(req.headers), 10, 600).catch(() => true);
   return ok ? null : NextResponse.json({ error: 'Too many tries. Wait a few minutes.' }, { status: 429, headers: { 'Retry-After': '600' } });
+}
+
+/** The link routes' guard (58.0): the general limit, then `max` calls per address per `windowS` (a request is rare; the app polls every 2 s, so its limit is a lot higher). */
+export async function linkGuard(req: Request, name: 'bridge-link' | 'bridge-link-poll'): Promise<NextResponse | null> {
+  const limited = await limitWebhook(req);
+  if (limited) return limited;
+  const [max, windowS] = name === 'bridge-link' ? [10, 600] : [60, 60];
+  const ok = await rateLimit(name, clientIp(req.headers), max, windowS).catch(() => true);
+  return ok ? null : NextResponse.json({ error: 'Too many tries. Wait a few minutes.' }, { status: 429, headers: { 'Retry-After': String(windowS) } });
 }
 
 /** Takes the fresh jobs off the list (LPOP is atomic: two pollers never get the same job) and drops the stale ones. */

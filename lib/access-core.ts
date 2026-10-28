@@ -72,7 +72,8 @@ export function bestTier(isStaff: boolean, tester: TesterTier | null | undefined
 // ── Which paths the gate leaves alone ──
 // Exempt in every mode: the Twitch panel and its API, the OBS overlay and every webhook / cron / overlay / collection API, the login and
 // access routes, the staff panels (they have their own gate), the legal pages (not the FAQ: it is for testers too), the closed page itself and static files.
-const EXEMPT_PAGES = ['/closed', '/login', '/privacy', '/terms', '/admin', '/mod', '/offline'];
+// /bridge/link (58.0, TCG Bridge's Allow page) is for staff and says plainly when an account is not; it must not bounce to /closed.
+const EXEMPT_PAGES = ['/closed', '/login', '/privacy', '/terms', '/admin', '/mod', '/offline', '/bridge/link'];
 const EXEMPT_PREFIXES = ['/auth/', '/_next/', '/assets/', '/brand/', '/icons/', '/twitch-panel/'];
 const EXEMPT_API = ['/api/twitch', '/api/version', '/api/webhooks', '/api/cron', '/api/overlay', '/api/collection', '/api/auth', '/api/admin', '/api/seasons', '/api/sandbox', '/api/upload', '/api/account/deletion', '/api/account/export'];
 /** The public site's own APIs, which need a tester or staff sign-in when the site is closed. Every other API is left alone. */

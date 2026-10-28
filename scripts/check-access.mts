@@ -53,7 +53,7 @@ ok((await tok.verifyAccessToken(staffCookie, t0)) === null, 'a staff cookie is n
 // ── the allow list ──
 const EXEMPT = [
   '/closed', '/login', '/auth/twitch', '/auth/access', '/auth/staff', '/auth/logout', '/auth/error', '/admin', '/admin/settings', '/mod', '/mod/users',
-  '/privacy', '/terms', '/api/twitch/user', '/api/twitch/leaderboard', '/api/version', '/api/webhooks/pull', '/api/webhooks/queue', '/api/cron/backup', '/api/overlay/config',
+  '/privacy', '/terms', '/bridge/link', '/api/bridge/link', '/api/bridge/link/poll', '/api/twitch/user', '/api/twitch/leaderboard', '/api/version', '/api/webhooks/pull', '/api/webhooks/queue', '/api/cron/backup', '/api/overlay/config',
   '/api/overlay/heartbeat', '/api/collection', '/api/seasons/active', '/api/auth/login', '/api/admin/activity', '/api/upload', '/api/account/deletion', '/api/account/export',
   '/overlay.html', '/widget.js', '/widget.css', '/sw.js', '/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/assets/sounds/1.mp3', '/brand/icon.png',
   '/icons/x.png', '/twitch-panel/panel.js', '/_next/static/x.js', '/apple-touch-icon.png', '/icon.png'
