@@ -25,7 +25,7 @@ export function MixItUpConfig({ settings: s, happyHour, packs }: { settings: Mix
             <li>Enough: the pack opens. When the card is revealed we tell Mix It Up to take {s.cost.toLocaleString()} {s.currency} and send your message.</li>
             <li>If Mix It Up does not confirm the payment, the edition is taken back and the System Discord channel is told.</li>
           </ol>
-          {s.connection === 'addresses' && <p>Mix It Up must answer in the reply to each request (a Webhook Response action). A reply counts as paid when it is a 2xx and does not say <code>ok</code>, <code>success</code> or <code>applied</code> is <code>false</code>.</p>}
+          {s.connection === 'addresses' && <p>Whatever sits at each address must answer in the reply to each request (Mix It Up has no action that answers a request, so use TCG Bridge or a small service of your own). A reply counts as paid when it is a 2xx and does not say <code>ok</code>, <code>success</code> or <code>applied</code> is <code>false</code>.</p>}
         </div>
       </Panel>
 

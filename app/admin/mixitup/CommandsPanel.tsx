@@ -8,6 +8,7 @@ import {
 } from '@/lib/commands-core';
 import { saveCommandsAction, tryCommandAction } from './commands-actions';
 import { commandSetups } from '@/lib/mixitup-setup';
+import { DownloadPreset } from './setup/SetupClient';
 
 const input = 'input w-full';
 const label = 'block text-xs font-semibold text-gray-300 mb-1';
@@ -219,7 +220,8 @@ function SetupPanel({ commands, webhookUrl, secret }: { commands: ChatCommand[];
         <ol className="list-decimal pl-5 space-y-1 text-xs text-gray-400">
           <li>Make a Chat Command in Mix It Up and add a <strong>Web Request</strong> action: method POST, content type JSON.</li>
           <li>Paste the address and the body below. <code>$username</code> and <code>$allargs</code> are Mix It Up&rsquo;s own.</li>
-          <li>Read the answer with a <strong>Webhook Response</strong> action (JSON to special identifiers), then add a <strong>Chat Message</strong> that says the <code>message</code> field. Every variable is also its own field.</li>
+          <li>In the Web Request action set the response to <strong>JSON to special identifiers</strong> and map <code>message</code> to <code>reply</code>, then add a <strong>Chat Message</strong> that says <code>$reply</code>. Every variable is also its own field to map.</li>
+          <li>Or download the finished command from its card below and import it in Mix It Up (the saved command, not unsaved edits).</li>
         </ol>
         {blocks.length === 0 && <p className="text-xs text-gray-500">No commands are switched on.</p>}
         {blocks.map(b => (
@@ -234,6 +236,7 @@ function SetupPanel({ commands, webhookUrl, secret }: { commands: ChatCommand[];
               <p className={label}>Body</p>
               <div className="flex gap-2"><pre className="flex-1 min-w-0 overflow-auto rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 text-xs">{b.body}</pre><button type="button" onClick={() => copy(b.body)} className={`${secondary} self-start`}>Copy</button></div>
             </div>
+            <DownloadPreset spec={b.preset} />
           </div>
         ))}
       </div>

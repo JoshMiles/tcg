@@ -6,7 +6,7 @@ import { PageHeader, Panel, selectClass } from '../../components/ui';
 import { getMixItUpSettings } from '@/lib/mixitup';
 import { readMixItUpHealth } from '@/lib/mixitup-health';
 import { statusCards } from '@/lib/mixitup-page';
-import { incomingSetup } from '@/lib/mixitup-setup';
+import { incomingSetup, REQUEST_ID } from '@/lib/mixitup-setup';
 import { STEPS, pickStep, stepsDone, type StepId } from '@/lib/mixitup-wizard';
 import { listBridges, readBridge, readObs } from '@/lib/bridge';
 import { getWebhookSettings } from '@/lib/webhooks';
@@ -45,7 +45,8 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
   const go = (i: number) => `/admin/mixitup/setup?step=${STEPS[i].id}`;
   const [incoming, outgoing, obsCard] = cards;
   const bridgeMode = settings.connection === 'bridge';
-  const pack = incomingSetup(`${SITE_URL}/api/webhooks/pull`, secret, { username: '$username', pack: '$allargs' });
+  const packFields = { username: '$username', pack: '$allargs', requestId: REQUEST_ID };
+  const pack = incomingSetup(`${SITE_URL}/api/webhooks/pull`, secret, packFields);
 
   return (
     <div className="space-y-6">
@@ -79,11 +80,11 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
           <Panel title="Make the !pack command" icon="chat" hint="Mix It Up tells the site when someone types !pack. The secret is already made for you and sits in the body below.">
             <ol className="list-decimal pl-5 space-y-1 text-xs text-gray-400">
               <li>In Mix It Up make a Chat Command <strong>!pack</strong> and add a <strong>Web Request</strong> action: method POST, content type JSON.</li>
-              <li>Paste the address and the body below. <code>$allargs</code> is what the viewer typed after !pack (<code>!pack Base</code> opens the Base pack); empty means the usual random pack.</li>
-              <li>Add a <strong>Webhook Response</strong> action (JSON to special identifiers) and a <strong>Chat Message</strong> that says the <code>message</code> field (it also has <code>left</code> and <code>balance</code> when known).</li>
-              <li>Optional: add <code>"requestId"</code> to the body with a value that is different on every run of the command (not a fixed word, or every !pack after the first would be ignored). A retried request then never opens a second pack.</li>
+              <li>Paste the address and the body below. <code>$allargs</code> is what the viewer typed after !pack (<code>!pack Base</code> opens the Base pack); empty means the usual random pack. <code>requestId</code> is a new number on every run, so a retried request never opens a second pack.</li>
+              <li>In the Web Request action set the response to <strong>JSON to special identifiers</strong> and map <code>message</code> to <code>reply</code>, then add a <strong>Chat Message</strong> that says <code>$reply</code> (<code>left</code> and <code>balance</code> can be mapped the same way when known).</li>
             </ol>
-            <CopyCard title="!pack" url={pack.url} body={pack.body} />
+            <p className={help}>Or skip the steps: download the finished command and import it in Mix It Up.</p>
+            <CopyCard title="!pack" url={pack.url} body={pack.body} download={{ kind: 'chat', name: 'pack', path: 'pull', fields: packFields, reply: ['message', 'left', 'balance'] }} />
           </Panel>
           <Card card={incoming} />
           <p role="status" className="text-sm text-gray-200">
@@ -151,8 +152,10 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
 
       {step === 'events' && (
         <Panel title="Stream start and end" icon="radio" hint="Optional. Tells the site the stream is live straight away instead of a minute or two later. Add a Web Request action to each of Mix It Up's Stream Start and Stream End events (POST, JSON).">
-          <CopyCard title="Stream start" {...incomingSetup(`${SITE_URL}/api/webhooks/stream`, secret, { event: 'live' })} />
-          <CopyCard title="Stream end" {...incomingSetup(`${SITE_URL}/api/webhooks/stream`, secret, { event: 'offline' })} />
+          {([['Stream start', 'live'], ['Stream end', 'offline']] as const).map(([title, event]) => (
+            <CopyCard key={event} title={title} {...incomingSetup(`${SITE_URL}/api/webhooks/stream`, secret, { event })}
+              download={{ kind: 'event', name: title, path: 'stream', fields: { event }, event }} />
+          ))}
           <p className={help}>{done.events ? 'The site has heard from the stream events.' : 'Nothing has come in from these yet.'} Stream Deck buttons are on the <Link href="/admin/mixitup?tab=streamdeck" className="link">Stream Deck tab</Link>.</p>
         </Panel>
       )}
