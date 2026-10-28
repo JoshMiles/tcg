@@ -2,6 +2,7 @@
 title: Overview
 summary: What the site is, where to click, and how this wiki stays honest.
 order: 0
+covers: app/admin/wiki/**, lib/wiki.ts, lib/admin-nav.ts
 ---
 
 The Cheesy TCG is a trading card game played live on the Cheesygidds Twitch channel. Viewers pull cards from an OBS overlay, keep them on the public site, and trade with each other. This wiki is for admins running that site. It describes what the code does today.

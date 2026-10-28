@@ -111,7 +111,7 @@ There is no browser test suite; changes are also checked by running the app. TCG
 |:---------|:-------------|
 | [`ci.yml`](.github/workflows/ci.yml) | On every pull request and push to `main`: typecheck, the checks, the overlay syntax checks and a build with no secrets |
 | [`bridge.yml`](.github/workflows/bridge.yml) | For changes under `bridge/`: typecheck, the checks and the version rule. On `main` it also builds and publishes the installer |
-| [`pr-body.yml`](.github/workflows/pr-body.yml) | Checks the PR description against the template (`scripts/check-pr-body.mjs`) |
+| [`pr-body.yml`](.github/workflows/pr-body.yml) | Checks the PR description against the template (`scripts/check-pr-body.mjs`) and that the docs, staff wiki and README were updated for the code the PR changes (`scripts/check-docs.mjs`, mapped in `docs/doc-map.json`) |
 | [`claude-code-review.yml`](.github/workflows/claude-code-review.yml), [`claude.yml`](.github/workflows/claude.yml) | Claude reviews pull requests and answers `@claude` mentions |
 
 ## Deploys and versions

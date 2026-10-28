@@ -2,6 +2,7 @@
 title: Support answers
 summary: The questions viewers actually hit, and the first place to look.
 order: 60
+covers: app/admin/settings/AccessConfig.tsx, app/admin/staff/**, app/admin/trades/**
 ---
 
 Work down the list. Granting a card is the last step, not the first, because a grant mints a new print and does not repair escrow or a failed payment.

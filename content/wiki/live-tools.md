@@ -2,6 +2,7 @@
 title: Live tools
 summary: The overlay, chat webhooks, Mix It Up, and the Twitch panel.
 order: 40
+covers: app/admin/mixitup/**, app/admin/settings/OverlayPanels.tsx, app/admin/settings/WebhookConfig.tsx, lib/mixitup.ts
 ---
 
 ## The overlay

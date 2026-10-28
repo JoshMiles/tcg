@@ -2,6 +2,7 @@
 title: What to escalate to an admin
 summary: The things a mod cannot or should not decide alone.
 order: 62
+covers: app/mod/**, lib/staff-core.ts
 audience: mods
 ---
 
