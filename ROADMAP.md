@@ -22,7 +22,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 47 | Access hardening (47.11) | Blocked (Josh, from 2026-11-02) | S |
 | 50 | Swap finder trial (50.3) | Blocked (trial readout from 2026-11-24) | S |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
-| 63 | Admin Mix It Up page redesign: too messy; reorganise by job (63.1 design pass, then build items) | 63.1 done (mockup signed off); 63.2 building | M to L |
+| 63 | Admin Mix It Up page redesign: too messy; reorganise by job (63.1 design pass, then build items) | 63.1 to 63.5 done | M to L |
 | 58 | Twitch through TCG Bridge: sign in to the app with Twitch, connect the channel, EventSub in the app, awards for existing channel points rewards, bits / subs / raids, chat commands replacing the Mix It Up ones (58.0 to 58.6) | Done except 58.0 item 3 (removing pairing codes), which waits for Josh's first real sign-in | L |
 | 62 | Native OBS plugin for TCG Bridge (62.1 design pass, then build items) | After Track 58 | L |
 | 60 | Staff wiki refresh: every page brought up to date, new pages for TCG Bridge, Twitch, the Stream Deck plugin and the OBS plugin (60.1) | Last, after Tracks 61 and 62 | M |
@@ -132,17 +132,17 @@ Every panel today and where it goes. No change to what any setting does, except 
 - **History:** the full log with filters (`MixItUpLog`); Brie Bucks ledger check result (`readLedgerCheck`); Uptime (`readUptime`); backups; the Twitch card's recent events stay on the card.
 - **Links to move or redirect:** `?tab=` ids overview, connection, paid, bigpulls, chat, commands, streamdeck, events, log map to the new sections; `/admin/mixitup/setup`; the twitch and twitch-bot routes' `returnTo` and the OAuth callback; `lib/admin-nav.ts`, `lib/mixitup-page.ts` fix links, `lib/bridge-notice.ts`, `lib/twitch-channel.ts`, `lib/twitch-chat.ts`, `app/admin/BridgeRelease.tsx`, `app/admin/settings/DataHealthPanel.tsx` and `page.tsx`, `app/admin/buffs/BuffEditorClient.tsx`, `revalidatePath` calls (`app/bridge/link/actions.ts`, `lib/bridge-staff.ts`), TCG Bridge's menu and pair-page links (`bridge/src/main.ts`; old links keep working through the redirect, so the app can follow later), `scripts/check-route-guards.mts`, `scripts/sweep-mod-access.mjs`, the check fixtures, and the docs (`docs/admin/mixitup.md`, `content/wiki/live-tools.md` `covers:`, `docs/doc-map.json`).
 
-### 63.2 Shell, status strip and Live (After 63.1)
+### 63.2 Shell, status strip and Live (Done, #676)
 The Stream page with its five sections, the status strip, the rename and redirects, and the Live section. The old tabs stay reachable from the sections not yet built.
 
-### 63.3 What viewers get (After 63.2)
+### 63.3 What viewers get (Done, #677)
 The reward cards and the save-per-card pattern, with the one "Mix It Up commands" helper (webhook address and secret once) shared by every reward.
 
-### 63.4 Connections and first-run setup (After 63.2)
+### 63.4 Connections and first-run setup (Done, #678)
 TCG Bridge PCs with their accounts, Mix It Up, OBS, the Twitch channel (from Track 58), the command check and error reports; direct addresses under Advanced; the Setup wizard as the first-run state.
 
-### 63.5 Test and History (After 63.2)
-Every test in one place; History with the full log and filters, the ledger check, uptime and backups. Removes the old tabs.
+### 63.5 Test and History (Done, #679)
+Every test in one place (checklist, test pulls, one quick-tests panel, test viewers); History with the full log and filters, the ledger check, uptime and a line saying backups are kept by TCG Bridge on the stream PC (the site records no backup runs). Removes the sub-tabs.
 
 ## Track 62: native OBS plugin (2026-10-28)
 

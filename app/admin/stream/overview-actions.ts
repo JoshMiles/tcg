@@ -16,6 +16,12 @@ export async function testBalanceAction(): Promise<ActionResult> {
   return runBalanceTest(CHANNEL_LOGIN);
 }
 
+/** A balance check for the viewer typed in the Test section (blank is the streamer). Nothing is charged. */
+export async function testViewerBalanceAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+  return runBalanceTest(String(formData.get('who') ?? '').trim().toLowerCase().replace(/^@/, '') || CHANNEL_LOGIN);
+}
+
 /** A test chat message, sent with an amount of 0. */
 export async function sendTestMessageAction(): Promise<ActionResult> {
   await requireAdmin();
