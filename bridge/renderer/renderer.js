@@ -135,7 +135,47 @@ function renderControl() {
   }));
 }
 
+// What's new: the tab exists for the run after an update; main says when the window was first shown, and the tab then opens once.
+let whatsNewDone = false; // the notes were loaded
+let whatsNewOpened = false;
+async function loadWhatsNew() {
+  if (whatsNewDone) return;
+  $('whatsnew-status').textContent = 'Loading the release notes';
+  $('whatsnew-fail').hidden = true;
+  const r = await window.bridge.whatsNew();
+  $('whatsnew-status').textContent = '';
+  $('whatsnew-fail').hidden = r.ok;
+  if (!r.ok) return;
+  whatsNewDone = true;
+  if (!r.notes.length) $('whatsnew-status').textContent = 'No release notes were found for this update.';
+  $('whatsnew-notes').replaceChildren(...r.notes.map(n => {
+    const box = document.createElement('div');
+    const title = document.createElement('h3');
+    title.className = 'plain-title';
+    title.textContent = `Version ${n.version}`;
+    box.append(title);
+    let list = null;
+    for (const b of n.blocks) {
+      if (b.kind === 'bullet') {
+        if (!list) { list = document.createElement('ul'); box.append(list); }
+        const li = document.createElement('li');
+        li.textContent = b.text;
+        list.append(li);
+        continue;
+      }
+      list = null;
+      const el = document.createElement(b.kind === 'heading' ? 'h4' : 'p');
+      el.textContent = b.text;
+      if (b.kind === 'text') el.className = 'muted';
+      box.append(el);
+    }
+    return box;
+  }));
+}
+
 function renderBanners() {
+  $('rail-whatsnew').hidden = !state.whatsNew;
+  if (state.whatsNew && state.whatsNew.open && !whatsNewOpened) { whatsNewOpened = true; showTab('whatsnew'); }
   $('updated').hidden = !state.updatedTo;
   $('updated-version').textContent = state.updatedTo;
   const note = state.startNote && state.startNote !== dismissedNote ? state.startNote : '';
@@ -312,6 +352,7 @@ function showTab(name) {
     if (b.dataset.tab === name) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   }
   for (const p of document.querySelectorAll('[data-panel]')) p.hidden = p.dataset.panel !== name;
+  if (name === 'whatsnew') void loadWhatsNew();
 }
 for (const b of document.querySelectorAll('.rail-btn')) b.addEventListener('click', () => showTab(b.dataset.tab));
 $('win-min').addEventListener('click', () => window.bridge.minimize());
@@ -346,8 +387,9 @@ $('feed-stars').addEventListener('change', e => window.bridge.setFeed({ minStars
 $('feed-volume').addEventListener('change', e => window.bridge.setFeed({ volume: Number(e.target.value) / 100 }));
 $('summary-on').addEventListener('change', e => window.bridge.setSummary(e.target.checked));
 $('obs-autostart').addEventListener('change', e => window.bridge.setStartObs(e.target.checked));
-$('updated-link').addEventListener('click', () => window.bridge.openRelease());
-$('open-release').addEventListener('click', () => window.bridge.openRelease());
+$('updated-link').addEventListener('click', () => { if (state && state.whatsNew) showTab('whatsnew'); else window.bridge.openRelease(); });
+$('open-release').addEventListener('click', () => window.bridge.openReleases());
+$('whatsnew-all').addEventListener('click', () => window.bridge.openReleases());
 $('update-banner-restart').addEventListener('click', () => window.bridge.restartToUpdate());
 $('restart-update').addEventListener('click', () => window.bridge.restartToUpdate());
 $('updated-dismiss').addEventListener('click', () => window.bridge.dismissUpdated());
