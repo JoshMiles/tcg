@@ -35,7 +35,7 @@ export interface TestStart { ok: boolean; message: string; needsForce?: boolean;
 export async function startTestPull(o: { username: unknown; paid: boolean; force?: boolean }): Promise<TestStart> {
   const username = cleanLogin(o.username);
   const settings = await getMixItUpSettings();
-  if (!username || !settings.testViewers.includes(username)) return { ok: false, message: `${username ?? 'That name'} is not a test viewer. Add them on the Connection tab first, so a real viewer is never touched.` };
+  if (!username || !settings.testViewers.includes(username)) return { ok: false, message: `${username ?? 'That name'} is not a test viewer. Add them under Test viewers in the Test section first, so a real viewer is never touched.` };
   if (o.paid) {
     if (await inSandbox()) return { ok: false, message: 'A paid test needs production: a sandbox never calls TCG Bridge. Choose a free pull here.' };
     if (!settings.enabled) return { ok: false, message: 'Paid pulls are switched off, so nothing would be charged. Switch them on in Paid pulls, or choose a free pull.' };

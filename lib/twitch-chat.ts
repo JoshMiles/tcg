@@ -119,7 +119,7 @@ export async function sendChatReply(text: string, parentId: string, viewer: stri
       const b = await botAccessToken(fetchFn);
       if (b.ok && (await helixSend(b.accessToken, b.userId, channel.userId, message, parentId, fetchFn))) return 'sent';
       if (await kv.set('twitch:chat-bot-fallback', 1, { nx: true, ex: FALLBACK_NOTICE_S })) {
-        try { await (await import('./bridge')).sendNotice({ kind: 'attention', title: 'Chat replies fell back to the channel account', text: b.ok ? 'Twitch would not send the reply as the bot account.' : 'The bot account could not be used. Connect it again.', href: '/admin/stream?tab=connection' }); } catch { /* a nicety */ }
+        try { await (await import('./bridge')).sendNotice({ kind: 'attention', title: 'Chat replies fell back to the channel account', text: b.ok ? 'Twitch would not send the reply as the bot account.' : 'The bot account could not be used. Connect it again.', href: '/admin/stream?section=connections&conn=twitch' }); } catch { /* a nicety */ }
       }
     }
     const c = await channelToken(fetchFn);

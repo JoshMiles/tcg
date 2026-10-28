@@ -63,8 +63,8 @@ export type RewardList = { ok: true; rewards: Reward[] } | { ok: false; message:
 export async function fetchRewards(fetchFn: typeof fetch = fetch): Promise<RewardList> {
   const t = await channelAccessToken(fetchFn);
   if (!t.ok) {
-    return { ok: false, message: t.error === 'not-connected' ? 'No Twitch channel is connected. Connect one on the Connection tab to list its rewards.'
-      : t.error === 'rejected' ? 'Twitch rejected the connection. Connect the channel again on the Connection tab.'
+    return { ok: false, message: t.error === 'not-connected' ? 'No Twitch channel is connected. Connect one under Twitch channel in Connections to list its rewards.'
+      : t.error === 'rejected' ? 'Twitch rejected the connection. Connect the channel again under Twitch channel in Connections.'
       : 'Could not get a Twitch token just now. Try again in a minute.' };
   }
   try {

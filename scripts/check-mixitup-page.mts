@@ -33,7 +33,7 @@ ok(k.tone === 'ok', 'a wrong secret that was followed by a good request is forgo
 k = card('outgoing');
 ok(k.tone === 'ok' && k.state === 'Working' && !k.todo, 'bridge connected, currency chosen: working');
 k = card('outgoing', { paired: 0 });
-ok(k.tone === 'bad' && k.state.includes('not paired') && k.fix?.href.includes('tab=connection'), 'not paired: red, links to Connection');
+ok(k.tone === 'bad' && k.state.includes('not paired') && k.fix?.href.includes('conn=bridge'), 'not paired: red, links to TCG Bridge in Connections');
 k = card('outgoing', { bridge: { ...bridge, at: now - 5 * 60_000 } });
 ok(k.tone === 'bad' && k.state.includes('not connected') && k.todo, 'bridge silent for minutes: not connected');
 k = card('outgoing', { bridge: { ...bridge, currencies: [] } });

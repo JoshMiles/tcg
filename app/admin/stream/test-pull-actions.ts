@@ -39,7 +39,7 @@ export async function undoTestPullAction(id: string): Promise<ActionResult> {
   return { ok: r.ok, message: r.message };
 }
 
-const back = (kind: 'note' | 'error', text: string): never => redirect(`/admin/stream?tab=connection&${kind}=${encodeURIComponent(text)}`);
+const back = (kind: 'note' | 'error', text: string): never => redirect(`/admin/stream?section=test&${kind}=${encodeURIComponent(text)}`);
 
 /** Adds a test viewer (at most 5), for example a throwaway Twitch account. */
 export async function addTestViewerAction(formData: FormData): Promise<void> {

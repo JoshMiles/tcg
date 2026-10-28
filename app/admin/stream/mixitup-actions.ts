@@ -11,14 +11,16 @@ import { EVENT_NAMES } from '@/lib/event-rewards-core';
 import { saveRewardAwards } from '@/lib/twitch-awards';
 import { cardHref, type CardId } from '@/lib/viewers-cards';
 import { saveChat, saveEventRewards, savePaidFields, type Fields } from '@/lib/viewers-save';
+import { setupHref } from '@/lib/mixitup-wizard';
+import { connHref } from '@/lib/stream-connections';
 
 const go = (href: string, kind: 'saved' | 'error' | 'note', text: string): never => redirect(`${href}${href.includes('?') ? '&' : '?'}${kind}=${encodeURIComponent(text)}`);
-/** Back to the Connection tab (the old `?tab=` address, which the page maps to its section). */
-const back = (tab: string, kind: 'saved' | 'error' | 'note', text: string): never => go(`/admin/stream?tab=${tab}`, kind, text);
+/** Back to the Test section, where Try it lives (63.4). */
+const backToTest = (kind: 'error' | 'note', text: string): never => go('/admin/stream?section=test', kind, text);
 /** Back to the card that was saved (63.3): What viewers get with that card open. */
 const onCard = (id: CardId, kind: 'saved' | 'error' | 'note', text: string): never => go(cardHref(id), kind, text);
-/** Where the Connections section's small panels (Overlay watchdog, Brie Bucks safety) come back to. */
-const CONNECTION = '/admin/stream?section=connections&tab=connection';
+/** Back to a connection in Connections (63.4). */
+const onConn = (id: Parameters<typeof connHref>[0], kind: 'saved' | 'error' | 'note', text: string): never => go(connHref(id), kind, text);
 const getter = (formData: FormData) => (k: string) => { const v = formData.get(k); return typeof v === 'string' ? v : undefined; };
 
 /**
@@ -29,10 +31,11 @@ async function saveSettings(formData: FormData, form: 'paid' | 'connection'): Pr
   await requireAdmin();
   const fields: Fields = Object.fromEntries([...formData.entries()].filter((e): e is [string, string] => typeof e[1] === 'string'));
   const setup = formData.get('returnTo') === 'setup';
+  const step = setupHref(form === 'paid' ? 'rules' : 'outgoing');
   const r = await savePaidFields(fields, form);
-  if (!r.ok) return setup ? redirect(`/admin/stream/setup?step=${form === 'paid' ? 'rules' : 'outgoing'}&error=${encodeURIComponent(r.message)}`) : form === 'paid' ? onCard('paid', 'error', r.message) : back('connection', 'error', r.message);
+  if (!r.ok) return setup ? go(step, 'error', r.message) : form === 'paid' ? onCard('paid', 'error', r.message) : onConn('mixitup', 'error', r.message);
   revalidatePath('/admin/stream');
-  return setup ? redirect(`/admin/stream/setup?step=${form === 'paid' ? 'rules' : 'outgoing'}&note=Saved.`) : form === 'paid' ? onCard('paid', 'saved', 'mixitup') : back('connection', 'saved', 'mixitup');
+  return setup ? go(step, 'note', 'Saved.') : form === 'paid' ? onCard('paid', 'saved', 'mixitup') : onConn('mixitup', 'saved', 'mixitup');
 }
 
 /** Saves the Paid pulls card: the switch, price, limits and messages. */
@@ -40,7 +43,7 @@ export async function saveMixItUpAction(formData: FormData): Promise<void> {
   return saveSettings(formData, 'paid');
 }
 
-/** Saves the Connection form: how the site talks to Mix It Up, the currency and the direct addresses. The addresses must be public https ones (the server calls them). */
+/** Saves the Mix It Up connection forms: how the site talks to Mix It Up, the currency and the direct addresses. The addresses must be public https ones (the server calls them). */
 export async function saveConnectionAction(formData: FormData): Promise<void> {
   return saveSettings(formData, 'connection');
 }
@@ -58,14 +61,14 @@ export async function savePullRulesAction(formData: FormData): Promise<void> {
   return onCard('bigpulls', 'note', 'Big pull rules saved.');
 }
 
-/** Switches the overlay watchdog (ROADMAP 55.8) on or off. It has its own small panel in Connections (63.3; 63.4 builds the rest of that section). */
+/** Switches the overlay watchdog (ROADMAP 55.8) on or off. It is a switch on the OBS connection in Connections. */
 export async function saveWatchdogAction(formData: FormData): Promise<void> {
   await requireAdmin();
   const on = formData.get('overlayWatchdog') === 'on';
   await saveMixItUpSettings({ ...(await getMixItUpSettings()), overlayWatchdog: on });
   await recordAudit('everyone', `Overlay watchdog ${on ? 'on' : 'off'}`);
   revalidatePath('/admin/stream');
-  return go(CONNECTION, 'note', on ? 'The overlay watchdog is on.' : 'The overlay watchdog is off.');
+  return onConn('obs', 'note', on ? 'The overlay watchdog is on.' : 'The overlay watchdog is off.');
 }
 
 /** Saves the Stream start and end card (ROADMAP 55.10): the post when the stream starts and the one when it ends. The Brie Bucks backup and check are not on it. */
@@ -83,7 +86,7 @@ export async function saveChatSafetyAction(formData: FormData): Promise<void> {
   const { chat } = await saveChat(getter(formData), 'safety');
   await recordAudit('everyone', 'Brie Bucks safety saved', `backup ${chat.backup ? 'on' : 'off'}, check ${chat.check ? 'on' : 'off'}`);
   revalidatePath('/admin/stream');
-  return go(CONNECTION, 'note', 'Brie Bucks safety saved.');
+  return onConn('mixitup', 'note', 'Brie Bucks safety saved.');
 }
 
 /** Saves the Event rewards card (ROADMAP 55.4g): what gifted subs, bits, raids and redeems earn. The raid shout-out is its own card and stays as saved. */
@@ -136,16 +139,16 @@ export async function testPullRuleAction(id: string): Promise<void> {
   return queued ? onCard('bigpulls', 'note', 'Sent to TCG Bridge with a sample pull. Nothing waits for Mix It Up: if it did not run, look at the job list in the TCG Bridge window.') : onCard('bigpulls', 'error', 'The command could not be queued.');
 }
 
-/** Asks Mix It Up for one viewer's balance using the saved settings. Nothing is charged. (The Connection tab's Try it.) */
+/** Asks Mix It Up for one viewer's balance using the saved settings. Nothing is charged. (Try it, in the Test section.) */
 export async function checkBalanceAction(formData: FormData): Promise<void> {
   await requireAdmin();
   const r = await runBalanceTest(String(formData.get('who') ?? '').trim().toLowerCase().replace(/^@/, ''));
-  return back('connection', r.ok ? 'note' : 'error', r.message);
+  return backToTest(r.ok ? 'note' : 'error', r.message);
 }
 
-/** Sends the message with a made-up viewer and an amount of 0, so the command can be tried without a pull. (The Connection tab's Try it.) */
+/** Sends the message with a made-up viewer and an amount of 0, so the command can be tried without a pull. (Try it, in the Test section.) */
 export async function sendTestAction(): Promise<void> {
   await requireAdmin();
   const r = await runSendTest();
-  return back('connection', r.ok ? 'note' : 'error', r.message);
+  return backToTest(r.ok ? 'note' : 'error', r.message);
 }

@@ -5,7 +5,7 @@ import { CONNECTED_MS } from '@/lib/bridge-core';
 import { bridgeVersionLine, latestBridgeRelease, type BridgeRelease } from '@/lib/bridge-release';
 import { timeAgo } from '@/lib/site-data';
 
-const CONNECTION = '/admin/stream?tab=connection';
+const CONNECTION = '/admin/stream?section=connections&conn=bridge';
 const link = 'text-yellow-400 hover:underline';
 const sha = (c: string) => c.slice(0, 7);
 
@@ -43,7 +43,7 @@ export async function BridgeReleaseCard() {
         <div>
           <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Running app</p>
           {bridges.length === 0 ? (
-            <p className="text-sm text-gray-500">No TCG Bridge paired. <Link href={CONNECTION} className={link}>Pair one on the Connection tab</Link>.</p>
+            <p className="text-sm text-gray-500">No TCG Bridge paired. <Link href={CONNECTION} className={link}>Pair one in Connections</Link>.</p>
           ) : (
             <>
               <p className="text-sm text-gray-200">
@@ -61,7 +61,7 @@ export async function BridgeReleaseCard() {
   );
 }
 
-/** The one line for the Mix It Up Connection tab: running against latest. */
+/** The one line for the Mix It Up Connections section: running against latest. */
 export async function BridgeVersionLine({ running }: { running: string }) {
   const { release } = await latestBridgeRelease();
   const line = bridgeVersionLine(running, release?.version ?? null);

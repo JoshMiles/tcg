@@ -6,6 +6,7 @@ import type { StatusCard } from './mixitup-page';
 import type { ChecklistResult } from './bridge-checklist-core';
 import type { MixItUpEvent, MixItUpLogEntry } from './mixitup';
 import { cardFor, pickCard, type CardId } from './viewers-cards';
+import { connHref, pickConn, type ConnId } from './stream-connections';
 
 // ── Sections ──
 
@@ -18,9 +19,8 @@ export const SECTIONS = [
 ] as const;
 export type Section = (typeof SECTIONS)[number]['id'];
 
-/** The old tabs that still hold the panels of the sections not built yet (63.4 and 63.5 replace them). Sections with no entry have no sub-tabs; What viewers get uses cards (lib/viewers-cards.ts). */
+/** The old tabs that still hold the panels of the sections not built yet (63.5 replaces them). Sections with no entry have no sub-tabs; What viewers get uses cards (lib/viewers-cards.ts). */
 export const SUB_TABS: Partial<Record<Section, { id: string; label: string; icon: IconName }[]>> = {
-  connections: [{ id: 'connection', label: 'Connection', icon: 'link' }],
   history: [{ id: 'log', label: 'Log', icon: 'list' }],
 };
 
@@ -35,17 +35,18 @@ const sectionOf = (raw: string | undefined): Section | undefined => SECTIONS.fin
  * `?section=`, `?tab=` and `?card=` to the section, sub-tab and card to show. A bare old `?tab=` id (the old links, the save redirects) picks its section, and for
  * What viewers get its card (`chat` is Stream start and end); an unknown value is Live. `card` is null for the card grid.
  */
-export function resolveStream(sectionRaw: string | undefined, tabRaw: string | undefined, cardRaw?: string): { section: Section; tab: string | null; card: CardId | null } {
+export function resolveStream(sectionRaw: string | undefined, tabRaw: string | undefined, cardRaw?: string, connRaw?: string): { section: Section; tab: string | null; card: CardId | null; conn: ConnId | null } {
   const section = sectionOf(sectionRaw) ?? (pickCard(cardRaw) ? 'viewers' : tabRaw && Object.hasOwn(OLD_TAB_SECTION, tabRaw) ? OLD_TAB_SECTION[tabRaw] : 'live');
   const subs = SUB_TABS[section];
-  return { section, tab: subs ? (subs.find(t => t.id === tabRaw)?.id ?? subs[0].id) : null, card: section === 'viewers' ? cardFor(cardRaw, tabRaw) : null };
+  return { section, tab: subs ? (subs.find(t => t.id === tabRaw)?.id ?? subs[0].id) : null, card: section === 'viewers' ? cardFor(cardRaw, tabRaw) : null, conn: section === 'connections' ? pickConn(connRaw) : null };
 }
 
 /** Where the redirect from the old `/admin/mixitup` page sends a request: the new address with `section`, the card or old tab where the section uses one, and `note`/`error`/`saved`/`filter` kept. */
 export function legacyStreamHref(q: Record<string, string | undefined>): string {
-  const { section, tab, card } = resolveStream(undefined, q.tab, q.card);
+  const { section, tab, card, conn } = resolveStream(undefined, q.tab, q.card, q.conn);
   const out = new URLSearchParams({ section });
   if (card) out.set('card', card);
+  if (conn) out.set('conn', conn);
   if (tab) out.set('tab', tab);
   for (const k of ['note', 'error', 'saved', 'filter'] as const) if (q[k]) out.set(k, q[k]!);
   return `/admin/stream?${out}`;
@@ -56,7 +57,7 @@ export function legacyStreamHref(q: Record<string, string | undefined>): string 
 export interface StripItem { id: string; line: string; fix: { href: string; label: string } }
 export interface StatusStrip { ok: boolean; title: string; items: StripItem[] }
 
-const CONNECTIONS = { href: '/admin/stream?section=connections', label: 'Open Connections' };
+const CONNECTIONS = { href: connHref('bridge'), label: 'Open Connections' };
 /** A checklist older than this says nothing about now. */
 export const CHECKLIST_FRESH_MS = 12 * 3600_000;
 
@@ -66,7 +67,7 @@ export const CHECKLIST_FRESH_MS = 12 * 3600_000;
  */
 export function statusStrip(cards: StatusCard[], checklist: ChecklistResult | null, now: number): StatusStrip {
   const items: StripItem[] = [];
-  for (const c of cards) if (c.tone !== 'ok' && (c.tone !== 'muted' || c.todo)) items.push({ id: c.id, line: `${c.title}: ${c.state}`, fix: c.fix ?? CONNECTIONS });
+  for (const c of cards) if (c.tone !== 'ok' && (c.tone !== 'muted' || c.todo)) items.push({ id: c.id, line: `${c.title}: ${c.state}`, fix: c.fix ?? (c.id === 'obs' ? { href: connHref('obs'), label: 'Open OBS' } : CONNECTIONS) });
   if (checklist && now - checklist.at <= CHECKLIST_FRESH_MS) for (const l of checklist.lines) if (l.tone === 'bad') items.push({ id: `check:${l.label}`, line: `Checklist, ${l.label}: ${l.text}`, fix: CONNECTIONS });
   return { ok: items.length === 0, title: items.length === 0 ? 'All good' : `${items.length} thing${items.length === 1 ? '' : 's'} need${items.length === 1 ? 's' : ''} you`, items };
 }
