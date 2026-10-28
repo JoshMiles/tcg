@@ -67,7 +67,7 @@ export const CHECKLIST_FRESH_MS = 12 * 3600_000;
  */
 export function statusStrip(cards: StatusCard[], checklist: ChecklistResult | null, now: number): StatusStrip {
   const items: StripItem[] = [];
-  for (const c of cards) if (c.tone !== 'ok' && (c.tone !== 'muted' || c.todo)) items.push({ id: c.id, line: `${c.title}: ${c.state}`, fix: c.fix ?? CONNECTIONS });
+  for (const c of cards) if (c.tone !== 'ok' && (c.tone !== 'muted' || c.todo)) items.push({ id: c.id, line: `${c.title}: ${c.state}`, fix: c.fix ?? (c.id === 'obs' ? { href: connHref('obs'), label: 'Open OBS' } : CONNECTIONS) });
   if (checklist && now - checklist.at <= CHECKLIST_FRESH_MS) for (const l of checklist.lines) if (l.tone === 'bad') items.push({ id: `check:${l.label}`, line: `Checklist, ${l.label}: ${l.text}`, fix: CONNECTIONS });
   return { ok: items.length === 0, title: items.length === 0 ? 'All good' : `${items.length} thing${items.length === 1 ? '' : 's'} need${items.length === 1 ? 's' : ''} you`, items };
 }

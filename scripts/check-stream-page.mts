@@ -82,6 +82,8 @@ ok(!strip.ok && strip.title === '1 thing needs you' && strip.items[0].fix.href =
 strip = s.statusStrip([card('incoming', 'bad'), card('outgoing', 'muted', { todo: 'Set it up' }), card('obs', 'ok')], null, now);
 ok(strip.title === '2 things need you' && strip.items.length === 2, 'two items are "2 things need you"');
 ok(strip.items.every(i => i.fix.href.length > 0 && i.fix.label.length > 0), 'every item has a fix link (a default when the card has none)');
+strip = s.statusStrip([card('incoming', 'ok'), card('outgoing', 'ok'), card('obs', 'bad')], null, now);
+ok(strip.items[0].fix.href.endsWith('conn=obs'), 'an OBS problem with no fix of its own opens OBS in Connections');
 const bad = { label: 'OBS', tone: 'bad' as const, text: 'not connected' };
 const recent = { at: now - 3600_000, ready: false, lines: [bad, { label: 'Mix It Up', tone: 'ok' as const, text: 'fine' }] };
 strip = s.statusStrip([card('incoming', 'ok'), card('outgoing', 'ok'), card('obs', 'ok')], recent, now);
