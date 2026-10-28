@@ -9,6 +9,7 @@ import { aboutParts, commitUrl, readBuildInfo, stampText } from './buildinfo';
 import { Ledger } from './bucks';
 import { buttonUrl, ControlServer, HOTKEY_ACTION, HOTKEYS, Hotkeys, newControlKey, type ControlAction, type ControlResult, type HotkeyMap, type HotkeyName } from './control';
 import { diagnosticsText } from './diagnostics';
+import { HAPPY_PRESETS, happyText, type HappyFacts } from './happyhour';
 import { cleanFeed, cleanFeedSettings, cleanSummary, shouldPlay, summaryMarkdown, type FeedSettings, type Summary } from './feed';
 import { defaultMixItUpPath, defaultObsPath, isMixItUpExe, isObsExe, obsRunning, startMixItUp, startObs } from './launch';
 import { Logger } from './log';
@@ -57,6 +58,7 @@ let hotkeys: Hotkeys | null = null;
 let hotkeyErrors: Partial<Record<HotkeyName, string>> = {};
 let paused: boolean | null = null; // pulls paused on the site; null until the site has said
 let pauseReason = ''; // why pulls are paused: "scene <name>" when a chosen OBS scene did it (57.2), else ''
+let happy: HappyFacts | null = null; // the site's running happy hour (57.3), as the site last said; never decided here
 let scenePause: ScenePause | null = null; // pauses pulls while a chosen OBS scene is on air (57.2)
 let buffs: { id: string; name: string }[] = []; // the buffs switched on for the Stream Deck
 let staff = false; // the site says an admin switched "Staff tools on this PC" on (55.12)
@@ -101,7 +103,7 @@ const appState = (): object => demoState ?? ({
   checklist: lastChecklist,
   notices: settings.notices,
   scenePause: { ...settings.scenePause, obsScenes: sceneList() },
-  control: { error: control?.error ?? '', paused, reason: pauseReason, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
+  control: { error: control?.error ?? '', paused, reason: pauseReason, happy, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
   appVersion: app.getVersion(),
   about: aboutParts(app.getVersion(), build),
   update: updateText(update),
@@ -121,14 +123,23 @@ function tickAlerts(): void {
   }
 }
 
+const trayTip = (level: TrayLevel = service?.state.tray ?? 'offline'): string => `TCG Bridge: ${TRAY_TEXT[level]}${happy && happyText(happy, Date.now()) ? '\n' + happyText(happy, Date.now()) : ''}`;
+
+/** Once a second while a happy hour runs: the tooltip counts down; when it runs out here, ask the site (which has the last word). */
+function tickHappy(): void {
+  if (!happy) return;
+  if (happy.endsAt <= Date.now()) { happy = null; push(); void loadStatus(); return; }
+  tray?.setToolTip(trayTip());
+}
+
 function push(): void {
   const level = service?.state.tray ?? 'offline';
   tray?.setImage(trayIcon(level));
-  tray?.setToolTip(`TCG Bridge: ${TRAY_TEXT[level]}`);
+  tray?.setToolTip(trayTip(level));
   if (win && !win.isDestroyed()) win.webContents.send('state', appState());
   tickAlerts();
   scenePause?.update(settings.scenePause, !!service?.state.obs.connected, service?.state.obs.scene ?? '');
-  const menu =`${paused}${!!client}${staff}${tradingPaused}${staff ? sceneList().join('|') : ''}`;
+  const menu =`${paused}${!!client}${!!happy}${staff}${tradingPaused}${staff ? sceneList().join('|') : ''}`;
   if (menu !== menuFor) { menuFor = menu; tray?.setContextMenu(trayMenu()); }
   if (service?.state.site === 'revoked' && settings.token) { // the site revoked this PC: forget the token so a restart does not retry it
     log('The site revoked this PC');
@@ -143,6 +154,7 @@ async function runControl(a: ControlAction): Promise<ControlResult> {
   try {
     const r = await client.action(a);
     if (typeof r.paused === 'boolean') { paused = r.paused; pauseReason = r.reason ?? ''; }
+    if (r.happyHour !== undefined) happy = r.happyHour;
     lastControl = r.message;
     log(`Control ${a.action}: ${r.ok ? 'ok' : 'failed'}, ${r.message}`);
     queueAt = 0;
@@ -161,6 +173,7 @@ async function loadStatus(): Promise<void> {
     paused = r.paused ?? paused;
     if (typeof r.paused === 'boolean') pauseReason = r.reason ?? '';
     buffs = r.buffs ?? buffs;
+    if (r.happyHour !== undefined) happy = r.happyHour;
     staff = r.staff === true;
     tradingPaused = staff && (r.tradingPaused ?? tradingPaused);
     push();
@@ -200,6 +213,7 @@ async function disconnect(): Promise<void> {
   service = null;
   client = null;
   paused = null;
+  happy = null;
   pauseReason = '';
   scenePause?.stop();
   scenePause = null;
@@ -376,6 +390,11 @@ const trayMenu = () => Menu.buildFromTemplate([
   { label: 'Open TCG Bridge', click: showWindow },
   { label: 'Checklist', enabled: !!client, click: () => { void checklist().then(r => { if (Notification.isSupported()) new Notification({ title: 'Pre-stream checklist', body: r.text }).show(); }); } },
   { label: 'Pause pulls', type: 'checkbox', checked: !!paused, enabled: !!client, click: () => { void runControl({ action: 'pause' }); } },
+  { label: 'Happy hour', enabled: !!client, submenu: [
+    ...HAPPY_PRESETS.map(p => ({ label: p.label, click: () => { void runControl(p.body); } })),
+    { type: 'separator' as const },
+    { label: 'End now', enabled: !!happy, click: () => { void runControl({ action: 'happy-hour-end' }); } },
+  ] },
   ...staffMenu(),
   { label: 'Quit', click: () => app.quit() },
 ]);
@@ -500,6 +519,8 @@ function setupIpc(): void {
 
   // ── Control from the PC (55.9): the pause switch, the hotkeys, the queue and the Stream Deck buttons ──
   ipcMain.handle('pause', (_e, on: boolean) => runControl({ action: 'pause', on: !!on }));
+  ipcMain.handle('happy-start', (_e, minutes: number, kind: string, percent: number) => runControl({ action: 'happy-hour-start', minutes: Number(minutes), kind: kind === 'free' ? 'free' : 'discount', percent: Number(percent) })); // the site checks the numbers
+  ipcMain.handle('happy-end', () => runControl({ action: 'happy-hour-end' }));
   ipcMain.handle('copy-button', (_e, i: number) => {
     const b = buttons()[Math.trunc(Number(i))];
     if (!b) return { ok: false, text: 'That button is gone' };
@@ -699,7 +720,8 @@ async function launchApp(): Promise<void> {
   createWindow(!settings.token); // paired: start minimised in the tray
   createTray();
   if (settings.token) connect();
-  setInterval(() => void loadStatus(), 30_000); // the site's pause switch can be flipped elsewhere
+  setInterval(() => void loadStatus(), 30_000); // the site's pause switch and happy hour can be changed elsewhere
+  setInterval(tickHappy, 1000);
   setInterval(tickAlerts, 5000); // the 15 seconds of "down" are counted here
   void startMixWithBridge();
   void startObsWithBridge();

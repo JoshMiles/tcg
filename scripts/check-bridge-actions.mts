@@ -159,4 +159,28 @@ ok((await queuePull('off', { chat: true })).ok === true && (await peekQueue()).l
 await mixitup.saveMixItUpSettings(normalizeMixItUp({}));
 await clearQueueRefunding();
 
+// ── Happy hour from the app (ROADMAP 57.3): the page's functions, audited as TCG Bridge ──
+const { getHappyHour } = await import('../lib/happyhour');
+const { getUserAudit } = await import('../lib/audit');
+type HH = { happyHour?: { what: string; endsAt: number } | null };
+ok((await act({ action: 'status' }) as HH).happyHour === null, 'status says no happy hour when none runs');
+for (const bad of [{}, { minutes: 0, kind: 'free' }, { minutes: 241, kind: 'free' }, { minutes: 1.5, kind: 'free' }, { minutes: 30, kind: 'discount' }, { minutes: 30, kind: 'discount', percent: 100 }, { minutes: 30, kind: 'half' }]) {
+  const x = await act({ action: 'happy-hour-start', ...bad });
+  ok(x.ok === false && x.message !== '' && !(await getHappyHour()), `a bad start is refused in words and starts nothing: ${JSON.stringify(bad)}`);
+}
+let hh = (await act({ action: 'happy-hour-start', minutes: 30, kind: 'discount', percent: 50 })) as { ok: boolean; message: string } & HH;
+ok(hh.ok && hh.happyHour?.what === '50% off packs' && Math.abs(hh.happyHour.endsAt - (Date.now() + 30 * 60_000)) < 10_000, `a start answers what and when it ends: ${JSON.stringify(hh)}`);
+ok((await getHappyHour())?.by === 'TCG Bridge', 'the happy hour is stored as started by TCG Bridge');
+ok(((await act({ action: 'status' })) as HH).happyHour?.endsAt === hh.happyHour!.endsAt, 'status carries the running happy hour');
+hh = (await act({ action: 'happy-hour-start', minutes: '15', kind: 'free' })) as typeof hh;
+ok(hh.ok && hh.happyHour?.what === 'free packs' && (await getHappyHour())?.kind === 'free', 'starting while one runs replaces it');
+hh = (await act({ action: 'happy-hour-start', minutes: 0, kind: 'free' })) as typeof hh;
+ok(hh.ok === false && hh.happyHour?.what === 'free packs', 'a refused start leaves the running one and says so');
+let end = (await act({ action: 'happy-hour-end' })) as { ok: boolean; message: string } & HH;
+ok(end.ok && end.happyHour === null && !(await getHappyHour()), 'end stops it');
+end = (await act({ action: 'happy-hour-end' })) as typeof end;
+ok(end.ok && end.happyHour === null && /no happy hour/i.test(end.message), 'ending with none running says so');
+const everyone = (await getUserAudit('everyone', 100)).map(e => `${e.action}|${e.detail ?? ''}`);
+ok(everyone.some(l => l.startsWith('Happy hour started: 50% off packs|') && l.endsWith('by TCG Bridge')) && everyone.some(l => l.startsWith('Happy hour started: free packs|')) && everyone.filter(l => l.startsWith('Happy hour ended|By TCG Bridge')).length === 1, `the audit log has the starts and one end, by TCG Bridge: ${everyone.join(' ; ')}`);
+
 console.log('check-bridge-actions: ok');

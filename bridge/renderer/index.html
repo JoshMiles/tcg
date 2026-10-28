@@ -196,6 +196,19 @@
               <p id="control-pause-result" class="result" role="status"></p>
             </section>
             <section class="card">
+              <h2 class="plain-title">Happy hour</h2>
+              <p id="happy-now" class="muted" role="status">No happy hour is running.</p>
+              <form id="happy-form" class="row" style="align-items:end">
+                <label>Minutes <input id="happy-minutes" type="number" min="1" max="240" value="30"></label>
+                <label>Packs <select id="happy-kind"><option value="free">Free</option><option value="discount">Discount</option></select></label>
+                <label id="happy-percent-label" hidden>Percent off <input id="happy-percent" type="number" min="1" max="99" value="25"></label>
+                <button type="submit" class="btn">Start</button>
+                <button type="button" id="happy-end" class="btn plain">End now</button>
+              </form>
+              <p class="muted small">Starting while one runs replaces it. The site keeps the time; this window only shows it.</p>
+              <p id="happy-result" class="result" role="status"></p>
+            </section>
+            <section class="card">
               <h2 class="plain-title">Stream Deck buttons</h2>
               <p class="muted small">In the Stream Deck app add a "Website" action, paste the address, and tick "GET request in background". The address has a secret key in it: do not share it. Only this PC can use it.</p>
               <p id="control-error" class="bad-text" role="alert"></p>

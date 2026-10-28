@@ -23,6 +23,7 @@ import { cleanObsAddress, isOverlayUrl, ObsWatcher } from '../src/obs';
 import { checkObs, sendTestChat, testMixItUp, TEST_CHAT_MESSAGE } from '../src/selftest';
 import { checklistChecks } from './check-checklist';
 import { scenePauseChecks } from './check-scenepause';
+import { happyHourChecks } from './check-happyhour';
 import { BridgeService } from '../src/service';
 import { cleanStaffAction, StaffTools } from '../src/staff';
 import { defaults, FileSettingsStore } from '../src/settings';
@@ -1041,6 +1042,7 @@ async function main() {
 
   await checklistChecks();
   await scenePauseChecks();
+  await happyHourChecks();
 
   miSrv.server.close();
   siSrv.server.close();
