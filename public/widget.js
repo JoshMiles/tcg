@@ -29,14 +29,18 @@ if (SANDBOX_ID) {
 
 // Overlay key: the OBS URL carries ?key=..., and the server only lets the overlay take queued pulls, report shown collections,
 // read the collection and check in when that key (or a staff session) comes with the request (lib/overlay-key.ts). Sent on every request to this site.
-const OVERLAY_KEY = new URLSearchParams(window.location.search).get('key');
-if (OVERLAY_KEY) {
+// The staff preview window (TCG Bridge, ROADMAP 57.10) loads ?pk=<preview key> instead: WATCH mode. It sends only the read-only preview key
+// (never the overlay key), only watches a copy of the queue, plays every pull dry and sends no heartbeat (lib/overlay-preview.ts).
+const PREVIEW_KEY = new URLSearchParams(window.location.search).get('pk');
+const WATCH = !!PREVIEW_KEY;
+const OVERLAY_KEY = WATCH ? null : new URLSearchParams(window.location.search).get('key');
+if (OVERLAY_KEY || WATCH) {
   const keyedFetch = window.fetch.bind(window);
   window.fetch = (input, init) => {
     const url = typeof input === 'string' ? input : (input && input.url) || '';
     if (typeof input !== 'string' || !(url.startsWith('/') || url.startsWith(window.location.origin))) return keyedFetch(input, init);
     const headers = new Headers((init && init.headers) || undefined);
-    headers.set('x-overlay-key', OVERLAY_KEY);
+    if (WATCH) headers.set('x-preview-key', PREVIEW_KEY); else headers.set('x-overlay-key', OVERLAY_KEY);
     return keyedFetch(input, Object.assign({}, init, { headers }));
   };
 }
@@ -2402,17 +2406,20 @@ function nextPollDelay(quietMs) {
   return quietMs >= 60000 ? 5000 : 2000;
 }
 let lastEventAt = Date.now();
+let watchSince = null; // watch mode: the server time of the last copy played (null until the first answer)
 
 async function pollWebhookQueue() {
   try {
-    const res = await fetch('/api/webhooks/queue');
-    if (res.status === 401) { warnKey(); return; }
+    // Watch mode asks for a copy of what was queued since `watchSince` (server time); the first answer only sets the clock.
+    const res = await fetch(WATCH ? '/api/webhooks/queue' + (watchSince === null ? '' : '?since=' + watchSince) : '/api/webhooks/queue');
+    if (res.status === 401) { if (WATCH) showAlert('The preview key has expired: close this window and open the preview again'); else warnKey(); return; }
     if (!res.ok) return;
-    const event = await res.json();
+    let event = await res.json();
+    if (WATCH && event) { if (watchSince === null || event.event) watchSince = event.event ? event.event.queuedAt : event.now; event = event.event; }
     if (!event) return;
     lastEventAt = Date.now();
-    if (event.type === 'pull')      queueDraw(event.username, event.draw ? { packId: event.draw.packId, cardNumber: event.draw.cardNumber, variant: event.draw.variant, ticket: event.id } : undefined);
-    else if (event.type === 'collection') queueCollection(event.username);
+    if (event.type === 'pull')      queueDraw(event.username, event.draw ? { packId: event.draw.packId, cardNumber: event.draw.cardNumber, variant: event.draw.variant, ...(WATCH ? { dry: true } : { ticket: event.id }) } : undefined);
+    else if (event.type === 'collection') { if (WATCH) await loadCollection(); queueCollection(event.username, WATCH ? { dry: true } : undefined); }
     else if (event.type === 'card' && event.cardNumber != null) queueShowCard(event.username, event);
   } catch {
     // ignore, overlay keeps working if server is unreachable
@@ -2501,7 +2508,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     showStatic('pack');
     return;
   }
-  startHeartbeat(); // first, so "overlay open" shows even if the season fails to load
+  if (!WATCH) startHeartbeat(); // first, so "overlay open" shows even if the season fails to load (the staff preview never checks in: it is not an overlay)
   await Promise.all([loadLayout(), initSeason()]);
   await loadCollection();
   // widget-dev.js (the test panel) is only loaded under ?dev; elsewhere the panel stays hidden.

@@ -19,6 +19,8 @@ export class FakeObs {
   inputs: FakeInput[] = [];
   pressed: { inputName: string; propertyName: string }[] = [];
   replayBuffer = false;
+  /** What GetVideoSettings answers (the base canvas). */
+  canvas = { width: 1280, height: 720 };
   /** How many times SaveReplayBuffer worked. */
   saved = 0;
   requests: string[] = [];
@@ -85,6 +87,7 @@ export class FakeObs {
         return i ? { inputKind: i.inputKind, inputSettings: { url: i.url } } : null;
       }
       case 'GetSceneList': return { scenes: Object.keys(this.scenes).map(sceneName => ({ sceneName })) };
+      case 'GetVideoSettings': return { baseWidth: this.canvas.width, baseHeight: this.canvas.height, outputWidth: 1280, outputHeight: 720 };
       case 'GetReplayBufferStatus': return { outputActive: this.replayBuffer };
       case 'StartReplayBuffer': this.replayBuffer = true; return {};
       case 'SaveReplayBuffer': if (!this.replayBuffer) return null; this.saved++; return {};

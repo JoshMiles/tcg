@@ -20,6 +20,7 @@ import { checkObs, sendTestChat, testMixItUp, type TestResult } from './selftest
 import { BridgeService, type TrayLevel } from './service';
 import { cleanNotice, NOTICE_KINDS, type NoticeKind } from './notices';
 import { StaffTools } from './staff';
+import { previewFrameAllowed } from './preview';
 import { cleanScenePause, ScenePause } from './scenepause';
 import { eventsAfter, mergeEvents, type EventLine } from './events';
 import { acceptStatMap, siteStats, STAT_IDS, STAT_LABELS, TextWriter, wantedTexts, type StatFacts } from './obsstats';
@@ -45,6 +46,7 @@ const SIX_HOURS = 6 * 60 * 60 * 1000;
 let win: BrowserWindow | null = null;
 let feedWin: BrowserWindow | null = null; // the live pull feed (55.11)
 let summaryWin: BrowserWindow | null = null;
+let previewWin: BrowserWindow | null = null;
 let lastSummary: Summary | null = null;
 let splash: BrowserWindow | null = null;
 let startup = new Startup(Date.now());
@@ -377,6 +379,16 @@ function openSummary(): void {
   summaryWin.on('closed', () => { summaryWin = null; });
 }
 
+/** The Preview overlay window (57.10): the site's overlay page in a frame, with a read-only key of its own. Staff PCs only. */
+function openPreview(): void {
+  if (!staff) return;
+  if (previewWin && !previewWin.isDestroyed()) { previewWin.show(); previewWin.focus(); return; }
+  previewWin = toolWindow('preview.html', { width: 1000, height: 680, minWidth: 560, minHeight: 460, title: 'Preview overlay' });
+  // A frame may only ever go to the paired site's own overlay page (will-navigate does not see frames).
+  previewWin.webContents.on('will-frame-navigate', e => { if (!previewFrameAllowed(settings.site, e.url)) e.preventDefault(); });
+  previewWin.on('closed', () => { previewWin = null; });
+}
+
 function sendSummary(): void {
   if (lastSummary && summaryWin && !summaryWin.isDestroyed()) summaryWin.webContents.send('summary-data', lastSummary);
 }
@@ -486,6 +498,7 @@ function staffMenu(): MenuItemConstructorOptions[] {
   if (!staff) return [];
   return [
     { label: 'Pause trading', type: 'checkbox', checked: tradingPaused, click: () => { void setTrading(!tradingPaused); } },
+    { label: 'Preview overlay', click: openPreview },
     { label: 'Switch scene', enabled: sceneList().length > 0, submenu: sceneList().map(name => ({ label: name, click: () => { void staffTools?.run({ op: 'scene', name }).then(r => log(`Staff: scene ${name}: ${r.ok ? 'ok' : 'failed'}, ${r.text}`)); } })) },
     { label: 'Admin', submenu: ADMIN_LINKS.map(l => ({ label: l.label, click: () => { void staffTools?.run({ op: 'open', href: l.path }); } })) },
   ];
@@ -647,6 +660,23 @@ function setupIpc(): void {
     }
   });
   ipcMain.handle('staff-trading', (_e, pause: boolean) => setTrading(!!pause));
+
+  // ── Preview overlay (57.10): the Control tab opens it; the window asks for its address and sends only Test pull, Show a card and the viewer list ──
+  ipcMain.handle('open-preview', () => { openPreview(); });
+  ipcMain.handle('preview-data', async e => {
+    if (!previewWin || e.sender !== previewWin.webContents || !staffTools || !staff) return { ok: false, text: 'Staff tools are off for this PC' };
+    try { return await staffTools.run({ op: 'preview-url' }); } catch (err) { return { ok: false, text: err instanceof Unauthorized ? 'Pair again' : err instanceof Error ? err.message : 'Something went wrong' }; }
+  });
+  ipcMain.handle('preview-run', async (e, req: Record<string, unknown>) => {
+    if (!previewWin || e.sender !== previewWin.webContents || !staffTools || !staff) return { ok: false, text: 'Staff tools are off for this PC' };
+    const act = req?.op === 'do' && (req.action === 'test-pull' || req.action === 'show-card');
+    if (!act && req?.op !== 'users') return { ok: false, text: 'Unknown request.' };
+    try {
+      const r = await staffTools.run(req);
+      if (act) log(`Staff: ${String(req.action)} (preview): ${r.ok ? 'ok' : 'failed'}, ${r.text}`);
+      return r;
+    } catch (err) { return { ok: false, text: err instanceof Unauthorized ? 'Pair again' : err instanceof Error ? err.message : 'Something went wrong' }; }
+  });
 
   // ── Self-tests ──
   ipcMain.handle('test-mix', async (_e, name: string) => asText(await testMixItUp(new MixItUpClient(), String(name), service?.state.currencyId ?? '')));
