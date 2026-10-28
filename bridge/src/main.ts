@@ -26,6 +26,7 @@ import { acceptStatMap, siteStats, STAT_IDS, STAT_LABELS, TextWriter, wantedText
 import { FileSettingsStore, defaults, type Settings } from './settings';
 import { cleanSite, pair, SiteClient, Unauthorized, type QueueRow } from './site';
 import { Startup, type StartupEvent, type StartupStep } from './startup';
+import { loadReleases, parseNotes, RELEASES_API, RELEASES_URL, releasesBetween, type Note } from './releases';
 import { checkText, releaseUrl, updatedTo, updateText, type UpdateStage } from './update';
 
 // Development only: `npm start -- --demo-startup [--shots=<folder>]` walks the start-up window through its states and then shows the
@@ -50,6 +51,8 @@ let startup = new Startup(Date.now());
 let startupTimer: ReturnType<typeof setInterval> | undefined;
 let handedOver = false;
 let startNote = ''; // "Couldn't check for updates", from the start-up check
+let whatsNewFrom = ''; // the version last seen before this update: set for the whole run when the app was updated, so the What's new tab stays
+let whatsNewOpen = false; // true once the window has been shown after the update: the window then opens the tab, once
 let demoState: object | null = null; // the demo window shows this instead of the real state
 let tray: Tray | null = null;
 let service: BridgeService | null = null;
@@ -124,6 +127,7 @@ const appState = (): object => demoState ?? ({
   update: updateText(update),
   updateVersion: update.stage === 'available' ? update.version : '',
   updatedTo: updatedNote,
+  whatsNew: whatsNewFrom ? { open: whatsNewOpen } : null,
   service: service?.state ?? null,
 });
 
@@ -400,6 +404,13 @@ function createWindow(show: boolean): void {
   win.setMenu(null);
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', e => e.preventDefault());
+  win.once('show', () => { // the first time the window is really shown after an update: open What's new once and count it as seen
+    if (!whatsNewFrom) return;
+    whatsNewOpen = true;
+    settings = { ...settings, lastSeenVersion: app.getVersion() };
+    void store.save(settings);
+    push();
+  });
   win.on('close', e => { if (!quitting) { e.preventDefault(); win?.hide(); } });
   void win.loadFile(join(RENDERER, 'index.html'));
 }
@@ -750,6 +761,21 @@ function setupIpc(): void {
   });
   ipcMain.handle('restart-to-update', () => { if (update.stage === 'available') restartToUpdate(); });
   ipcMain.handle('open-release', () => shell.openExternal(releaseUrl(app.getVersion())));
+  ipcMain.handle('open-releases', () => shell.openExternal(RELEASES_URL));
+  ipcMain.handle('whats-new', async (): Promise<{ ok: boolean; notes: Note[] }> => { // the notes since the version last seen, newest first; never throws
+    if (!whatsNewFrom) return { ok: true, notes: [] };
+    try {
+      const all = await loadReleases(app.getPath('userData'), Date.now(), async () => {
+        const res = await fetch(RELEASES_API, { headers: { accept: 'application/vnd.github+json', 'user-agent': 'tcg-bridge' }, signal: AbortSignal.timeout(10_000) });
+        if (!res.ok) throw new Error(`GitHub answered ${res.status}`);
+        return res.json();
+      });
+      return { ok: true, notes: releasesBetween(all, whatsNewFrom, app.getVersion()).map(r => ({ version: r.version, blocks: parseNotes(r.body) })) };
+    } catch (e) {
+      log(`Could not load the release notes: ${e instanceof Error ? e.message : String(e)}`);
+      return { ok: false, notes: [] };
+    }
+  });
   ipcMain.handle('open-commit', () => (build ? shell.openExternal(commitUrl(build.full)) : undefined));
   ipcMain.handle('dismiss-updated', async () => {
     updatedNote = '';
@@ -788,6 +814,7 @@ async function launchApp(): Promise<void> {
   });
   settings = await store.load();
   updatedNote = updatedTo(settings.lastSeenVersion, app.getVersion());
+  if (updatedNote) whatsNewFrom = settings.lastSeenVersion;
   if (!settings.lastSeenVersion) { // the first run ever: nothing to announce
     settings = { ...settings, lastSeenVersion: app.getVersion() };
     await store.save(settings);
