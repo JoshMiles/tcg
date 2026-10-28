@@ -6,18 +6,18 @@ import { networkInterfaces, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import WebSocket from 'ws';
 import type { ControlAction } from '../src/control';
-import { DeckServer, deckStaff, deckStats, runStaffKey, runStaffPcKey, toAction, toStaff, type StaffPcEnv } from '../src/deck';
+import { DeckServer, deckChecklist, deckStaff, deckStats, runStaffKey, runStaffPcKey, toAction, toStaff, type StaffPcEnv } from '../src/deck';
 import { statsPlan, noStatMap } from '../src/obsstats';
 import { manifestVersion, installedPluginVersion, pluginOutdated, streamDeckAppFound, type DeckEnv, PLUGIN_UUID } from '../src/deckinstall';
 import { CLOSE_REFUSED, parseClient, parseLinkFile, parseRequest, parseServer, type DeckStaff, type DeckState } from '../src/deckprotocol';
 import { versionProblems } from './check-version';
 import { Keys, type KeyHandle } from '../../streamdeck/src/controller';
-import { ACTION_KIND, HOLD_MS, SKIP_MS, happyStart, requestFor, view } from '../../streamdeck/src/keys';
+import { ACTION_KIND, HOLD_MS, SKIP_MS, happyStart, liveHold, requestFor, view } from '../../streamdeck/src/keys';
 import { BridgeLink, type Socket } from '../../streamdeck/src/link';
 
 const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 const until = async (what: string, ok: () => boolean) => { for (let i = 0; i < 200 && !ok(); i++) await wait(10); assert.ok(ok(), `timed out waiting for ${what}`); };
-const state = (over: Partial<DeckState> = {}): DeckState => ({ ready: true, paused: false, reason: '', happy: null, buffs: [{ id: 'b1', name: 'Speed up' }], stats: {}, staff: null, ...over });
+const state = (over: Partial<DeckState> = {}): DeckState => ({ ready: true, paused: false, reason: '', happy: null, buffs: [{ id: 'b1', name: 'Speed up' }], stats: {}, staff: null, live: false, checklist: null, ...over });
 
 /** A raw client: what it was sent and how it closed (or why it was never let in). */
 function client(url: string, opts: WebSocket.ClientOptions = {}) {
@@ -147,10 +147,11 @@ export async function deckChecks(): Promise<void> {
   assert.deepEqual(happyStart({ preset: 'custom', minutes: 9999, kind: 'discount', percent: 0 }), { what: 'happy-start', minutes: 240, kind: 'discount', percent: 1 }, 'custom values are kept in range');
   assert.equal(requestFor('buff', {}), null, 'no buff picked = nothing to ask for');
   assert.deepEqual(requestFor('last-buff', {}), { what: 'last-buff' });
-  assert.equal(view('test-pull', state(), {}, now).title, 'Test pull');
+  const anyStaff = state({ staff: { can: ['trading', 'scene', 'preview-url', 'test-pull', 'show-card'], tradingPaused: false, scene: 'Main', scenes: [] } });
+  assert.equal(view('test-pull', anyStaff, {}, now).title, 'Test pull');
   assert.deepEqual(requestFor('test-pull', {}), { what: 'test-pull' });
-  assert.equal(view('show-card', state(), { viewer: '@Cheesy_1' }, now).title, 'Show card\ncheesy_1');
-  assert.equal(view('show-card', state(), {}, now).title, 'Name a viewer');
+  assert.equal(view('show-card', anyStaff, { viewer: '@Cheesy_1' }, now).title, 'Show card\ncheesy_1');
+  assert.equal(view('show-card', anyStaff, {}, now).title, 'Name a viewer');
   assert.equal(requestFor('show-card', {}), null, 'no viewer named = nothing to ask for');
   assert.equal(requestFor('show-card', { viewer: 'x' }), null, 'a name that cannot be a Twitch login is not sent');
   assert.deepEqual(requestFor('show-card', { viewer: ' @Cheesy_1 ' }), { what: 'show-card', username: 'cheesy_1' });
@@ -220,7 +221,7 @@ export async function deckChecks(): Promise<void> {
   assert.doesNotMatch(readFileSync(join(__dirname, '..', '..', 'streamdeck', 'src', 'controller.ts'), 'utf8'), /setInterval/, 'the keys poll nothing themselves');
 
   // ── The 61.3 staff keys: Pause trading, Switch scene, Preview overlay ──
-  const staffOpen: DeckStaff = { can: ['trading', 'scene', 'preview-url'], tradingPaused: false, scene: 'Main', scenes: ['Main', 'Break'] };
+  const staffOpen: DeckStaff = { can: ['trading', 'scene', 'preview-url', 'test-pull', 'show-card'], tradingPaused: false, scene: 'Main', scenes: ['Main', 'Break'] };
   const adminPc = state({ staff: staffOpen });
   const modPc = state({ staff: { ...staffOpen, can: ['trading', 'scene'] } });
   assert.deepEqual(parseRequest({ what: 'trading', pause: true }), { what: 'trading', pause: true });
@@ -261,8 +262,9 @@ export async function deckChecks(): Promise<void> {
   assert.deepEqual(requestFor('preview', {}), { what: 'preview' });
   // The app side: deckStaff and the refusal in runStaffPcKey (not only the key's display).
   assert.equal(deckStaff(false, null, false, 'Main', ['Main']), null, 'not a staff PC');
-  assert.deepEqual(deckStaff(true, null, true, 'Main', ['Main', 'Break']), { can: ['trading', 'scene', 'preview-url'], tradingPaused: true, scene: 'Main', scenes: ['Main', 'Break'] }, 'a PC paired with a code may use every action');
+  assert.deepEqual(deckStaff(true, null, true, 'Main', ['Main', 'Break']), { can: ['trading', 'scene', 'preview-url', 'test-pull', 'show-card'], tradingPaused: true, scene: 'Main', scenes: ['Main', 'Break'] }, 'a PC paired with a code may use every action');
   assert.deepEqual(deckStaff(true, ['trading', 'scene', 'state', 'users'], false, '', [])?.can, ['trading', 'scene'], 'a mod-linked PC: the mod actions only');
+  assert.deepEqual(deckStaff(true, ['trading', 'scene', 'preview-url', 'test-pull', 'show-card', 'gift'], false, '', [])?.can, ['trading', 'scene', 'preview-url', 'test-pull', 'show-card'], 'an admin account');
   assert.deepEqual(deckStaff(true, [], false, '', [])?.can, [], 'a signed-in account with no role may do nothing');
   const pcLog: string[] = [];
   const pcDid: string[] = [];
@@ -304,8 +306,62 @@ export async function deckChecks(): Promise<void> {
   assert.deepEqual(staffLog, ['Staff: test-pull (Stream Deck key): refused, Staff tools are off for this PC', 'Staff: show-card (Stream Deck key): refused, Staff tools are off for this PC']);
   assert.deepEqual(await runStaffKey({ run: async () => { throw new Error('boom'); } }, true, { action: 'test-pull' }, () => undefined), { ok: false, text: 'boom' });
 
+  // ── The 61.5 OBS and overlay keys: Refresh overlay, Test pull / Show a card (the live hold, the card), Run checklist ──
+  assert.deepEqual(parseRequest({ what: 'refresh' }), { what: 'refresh' });
+  assert.deepEqual(parseRequest({ what: 'checklist' }), { what: 'checklist' });
+  assert.deepEqual(parseRequest({ what: 'show-card', username: 'cheesy_1', card: '#12' }), { what: 'show-card', username: 'cheesy_1', card: '#12' });
+  assert.deepEqual(parseRequest({ what: 'show-card', username: 'cheesy_1', card: 5 }), { what: 'show-card', username: 'cheesy_1' }, 'a card that is not text is left out');
+  assert.deepEqual(parseRequest({ what: 'show-card', username: 'cheesy_1', card: 'x'.repeat(81) }), { what: 'show-card', username: 'cheesy_1' }, 'and so is one that is too long');
+  assert.deepEqual(toAction({ what: 'refresh' }), { action: 'refresh' }, 'the same action as the Refresh the overlay button and hotkey, so the app\'s own OBS path runs');
+  assert.equal(toAction({ what: 'checklist' }), null, 'the checklist has its own path in the app');
+  assert.equal(toStaff({ what: 'refresh' }), null);
+  assert.equal(toStaff({ what: 'checklist' }), null);
+  assert.deepEqual(toStaff({ what: 'show-card', username: 'cheesy_1', card: '#12' }), { action: 'show-card', username: 'cheesy_1', card: '#12' }, 'the card goes to the staff action as the Staff tab sends it');
+  assert.equal(ACTION_KIND['tv.cheesygidds.tcgbridge.refresh'], 'refresh');
+  assert.equal(ACTION_KIND['tv.cheesygidds.tcgbridge.checklist'], 'checklist');
+  const liveWire = parseServer(JSON.stringify({ t: 'state', state: { ...state(), live: true, checklist: { total: 8, failing: 2, junk: 1 } } }));
+  assert.deepEqual(liveWire?.t === 'state' ? [liveWire.state.live, liveWire.state.checklist] : null, [true, { total: 8, failing: 2 }], 'live and the checklist survive the wire, rebuilt field by field');
+  assert.deepEqual(oldApp?.t === 'state' ? [oldApp.state.live, oldApp.state.checklist] : null, [false, null], 'an app without them is not live and has run no checklist');
+  const junkList = parseServer(JSON.stringify({ t: 'state', state: { ...state(), live: 'yes', checklist: { total: 'x' } } }));
+  assert.deepEqual(junkList?.t === 'state' ? [junkList.state.live, junkList.state.checklist] : null, [false, null]);
+  assert.equal(deckChecklist(null), null);
+  const lines = (ok: number, bad: number, muted = 0) => ({ lines: [...Array(ok).fill({ tone: 'ok' }), ...Array(bad).fill({ tone: 'bad' }), ...Array(muted).fill({ tone: 'muted' })] });
+  assert.deepEqual(deckChecklist(lines(8, 0)), { total: 8, failing: 0 });
+  assert.deepEqual(deckChecklist(lines(6, 2, 1)), { total: 9, failing: 2 }, 'only the red lines fail');
+  // Refresh overlay and Run checklist: the views.
+  assert.equal(view('refresh', state(), {}, now).title, 'Refresh\noverlay');
+  assert.deepEqual(requestFor('refresh', {}), { what: 'refresh' });
+  assert.deepEqual(requestFor('checklist', {}), { what: 'checklist' });
+  assert.equal(view('checklist', state(), {}, now).title, 'Run\nchecklist', 'before the first run');
+  const okList = view('checklist', state({ checklist: { total: 8, failing: 0 } }), {}, now);
+  const badList = view('checklist', state({ checklist: { total: 8, failing: 2 } }), {}, now);
+  assert.equal(okList.title, 'Checklist\n8/8 OK');
+  assert.equal(badList.title, 'Checklist\n2 failing');
+  assert.ok(decodeURIComponent(okList.image).includes('#4ade80'), 'green when nothing fails');
+  assert.ok(decodeURIComponent(badList.image).includes('#ee3b3b') && !decodeURIComponent(badList.image).includes('#4ade80'), 'red when something fails');
+  assert.notEqual(okList.image, view('checklist', state(), {}, now).image);
+  for (const k of ['refresh', 'checklist'] as const) {
+    assert.match(view(k, null, {}, now).title, /App closed/);
+    assert.match(view(k, state({ ready: false }), {}, now).title, /Not paired/);
+    assert.equal(view(k, state(), {}, now).title === 'Staff only', false, `${k} is not a staff key`);
+  }
+  for (const c of [{ total: 12, failing: 0 }, { total: 12, failing: 11 }, { total: 100, failing: 100 }]) for (const line of view('checklist', state({ checklist: c }), {}, now).title.split('\n')) assert.ok(line.length <= 10, `"${line}" fits a key`);
+  // Test pull and Show a card: the staff rules, the LIVE title, the card setting.
+  assert.equal(view('test-pull', state(), {}, now).title, 'Staff only');
+  assert.equal(view('show-card', modPc, { viewer: 'cheesy_1' }, now).title, 'Admins only', 'a mod-linked PC may not play on the overlay');
+  assert.equal(view('test-pull', modPc, {}, now).title, 'Admins only');
+  assert.equal(view('test-pull', { ...anyStaff, live: true }, {}, now).title, 'Test pull\nLIVE');
+  assert.notEqual(view('test-pull', { ...anyStaff, live: true }, {}, now).image, view('test-pull', anyStaff, {}, now).image, 'live looks different');
+  assert.equal(view('show-card', { ...anyStaff, live: true }, { viewer: 'cheesy_1' }, now).title, 'Show card\ncheesy_1');
+  assert.equal(view('show-card', anyStaff, { viewer: 'a_very_long_viewer_name', card: ' Charizard VMAX Rainbow ' }, now).title, 'a_very_lo.\nCharizard.', 'with a card picked the key names the viewer and the card, cut to fit');
+  assert.deepEqual(requestFor('show-card', { viewer: 'Cheesy_1', card: ' #12 ' }), { what: 'show-card', username: 'cheesy_1', card: '#12' });
+  assert.deepEqual(requestFor('show-card', { viewer: 'cheesy_1', card: 7 }), { what: 'show-card', username: 'cheesy_1' }, 'no card = the site picks one');
+  assert.equal(liveHold('test-pull', { ...anyStaff, live: true }), true);
+  assert.equal(liveHold('test-pull', anyStaff), false, 'not live: one press');
+  assert.equal(liveHold('refresh', { ...anyStaff, live: true }), false, 'only the two that play on the overlay need the hold');
+
   // ── The server: token, loopback only ──
-  const dir = mkdtempSync(join(tmpdir(), 'tcg-deck-'));
+  const dir =mkdtempSync(join(tmpdir(), 'tcg-deck-'));
   const file = join(dir, 'streamdeck.json');
   const calls: ControlAction[] = [];
   let refuse = false;
@@ -315,12 +371,15 @@ export async function deckChecks(): Promise<void> {
   const staffRuns: Record<string, unknown>[] = [];
   let staffOn = false;
   let liveStaff: DeckStaff | null = null;
+  let roleCan: string[] | null = null;
+  let checklistRuns = 0;
   const staffTools = { run: async (req: Record<string, unknown>) => { staffRuns.push(req); return { ok: true, text: 'Queued' }; } };
   const server = new DeckServer({
     file, version: '9.9.9', state: () => current, ports: [0], helloMs: 150, log: l => logs.push(l), onChange: () => { changes++; },
     run: async a => { calls.push(a); return refuse ? { ok: false, text: 'Pulls are not open' } : { ok: true, text: 'Done' }; },
-    staff: body => runStaffKey(staffTools, staffOn, body, l => logs.push(l)),
+    staff: body => runStaffKey(staffTools, staffOn, body, l => logs.push(l), roleCan),
     staffPc: r => runStaffPcKey({ ...pcEnv, staff: () => liveStaff, log: l => logs.push(l) }, r),
+    checklist: async () => { checklistRuns++; return { ok: true, text: 'Ready to stream.' }; },
   });
   await server.start();
   try {
@@ -435,12 +494,26 @@ export async function deckChecks(): Promise<void> {
     calls.length = 0;
     await keys.down('k-test');
     await keys.down('k-card');
+    assert.equal(x.test.title, 'Staff only', 'since 61.5 the keys say so on a PC that is not a staff PC');
     assert.equal(x.test.alerts, 1, 'a test pull from a PC without staff tools shows the alert');
     assert.equal(x.card.alerts, 1);
     assert.deepEqual(staffRuns, [], 'nothing reached the site');
+    // The app refuses a request sent to it anyway, and logs why.
+    const rawS = client(url);
+    rawS.ws.on('open', () => rawS.ws.send(hello(server.token)));
+    await until('the raw client to be let in', () => rawS.got.length > 0);
+    rawS.ws.send(JSON.stringify({ t: 'do', n: 1, req: { what: 'test-pull' } }));
+    rawS.ws.send(JSON.stringify({ t: 'do', n: 2, req: { what: 'show-card', username: 'cheesy_1' } }));
+    await until('two refusals', () => rawS.got.filter(g => g.includes('"done"')).length === 2);
+    assert.ok(rawS.got.filter(g => g.includes('"done"')).every(g => g.includes('"ok":false') && g.includes('Staff tools are off for this PC')));
+    assert.deepEqual(staffRuns, [], 'enforced in the app, not only on the key');
     assert.ok(logs.includes('Staff: test-pull (Stream Deck key): refused, Staff tools are off for this PC'), 'the log says why');
     assert.ok(logs.includes('Staff: show-card (Stream Deck key): refused, Staff tools are off for this PC'));
+    rawS.ws.close();
     staffOn = true;
+    current = adminPc;
+    server.broadcast();
+    await until('the staff test pull key', () => x.test.title === 'Test pull');
     await keys.down('k-test');
     await keys.down('k-card');
     assert.deepEqual(staffRuns, [{ op: 'do', action: 'test-pull' }, { op: 'do', action: 'show-card', username: 'cheesy_1' }], 'a staff PC runs the same staff actions as the Preview overlay');
@@ -450,6 +523,97 @@ export async function deckChecks(): Promise<void> {
     assert.equal(x.nocard.alerts, 1, 'a Show a card key with no viewer named shows the alert');
     assert.equal(staffRuns.length, 2, 'and asks for nothing');
     assert.deepEqual(calls, [], 'the staff keys never run a control action');
+
+    // 61.5, through the real server. Refresh overlay is one press and runs the app's refresh action; Show a card sends the card picked in its settings.
+    const ob = { refresh: new FakeKey(), checklist: new FakeKey(), pick: new FakeKey() };
+    keys.add('k-refresh', 'refresh', ob.refresh, {});
+    keys.add('k-checklist', 'checklist', ob.checklist, {});
+    keys.add('k-pick', 'show-card', ob.pick, { viewer: 'Cheesy_1', card: ' #12 ' });
+    await keys.down('k-refresh');
+    assert.deepEqual(calls, [{ action: 'refresh' }], 'Refresh overlay runs the same action as the Refresh the overlay button');
+    assert.equal(ob.refresh.oks, 1);
+    refuse = true;
+    await keys.down('k-refresh');
+    assert.equal(ob.refresh.alerts, 1, 'OBS not answering shows the alert');
+    refuse = false;
+    calls.length = 0;
+    staffRuns.length = 0;
+    await keys.down('k-pick');
+    assert.deepEqual(staffRuns, [{ op: 'do', action: 'show-card', username: 'cheesy_1', card: '#12' }], 'the card picked in the key\'s settings reaches the staff action');
+    assert.equal(ob.pick.title, 'cheesy_1\n#12');
+    keys.setSettings('k-pick', { viewer: 'cheesy_1' });
+    staffRuns.length = 0;
+    await keys.down('k-pick');
+    assert.deepEqual(staffRuns, [{ op: 'do', action: 'show-card', username: 'cheesy_1' }], 'no card picked: the site picks');
+
+    // While OBS is live both play on the live overlay: a short press only says so, a 1 second hold plays. Not live: one press.
+    current = state({ staff: staffOpen, live: true });
+    server.broadcast();
+    await until('the LIVE keys', () => x.test.title === 'Test pull\nLIVE' && x.card.title === 'Show card\ncheesy_1');
+    staffRuns.length = 0;
+    for (const [id, fake, body] of [['k-test', x.test, { op: 'do', action: 'test-pull' }], ['k-card', x.card, { op: 'do', action: 'show-card', username: 'cheesy_1' }]] as const) {
+      const oks = fake.oks;
+      const alerts = fake.alerts;
+      await keys.down(id); clockNow += 200; await keys.up(id);
+      assert.deepEqual(staffRuns, [], `${id}: a short press while live plays nothing`);
+      assert.equal(fake.title, 'Live!\nHold 1 s');
+      assert.equal(fake.alerts, alerts + 1, `${id}: and shows the alert`);
+      clockNow += 2100;
+      await keys.down(id); clockNow += HOLD_MS - 1; await keys.up(id);
+      assert.deepEqual(staffRuns, [], `${id}: just under a second plays nothing`);
+      clockNow += 2100;
+      await keys.down(id); clockNow += HOLD_MS; await keys.up(id);
+      assert.deepEqual(staffRuns, [body], `${id}: a 1 second hold plays it`);
+      assert.equal(fake.oks, oks + 1);
+      staffRuns.length = 0;
+      clockNow += 2100;
+    }
+    for (const line of ['Test pull', 'LIVE', 'Live!', 'Hold 1 s']) assert.ok(line.length <= 10);
+    current = adminPc;
+    server.broadcast();
+    await until('the keys when not live', () => x.test.title === 'Test pull');
+    await keys.down('k-test'); await keys.up('k-test');
+    assert.deepEqual(staffRuns, [{ op: 'do', action: 'test-pull' }], 'not live: one press plays it, once');
+    staffRuns.length = 0;
+    // A mod-linked PC: the keys say so and send nothing, and the app refuses a request sent anyway.
+    roleCan = modPc.staff!.can;
+    current = state({ staff: modPc.staff, live: true });
+    server.broadcast();
+    await until('Admins only', () => x.test.title === 'Admins only' && x.card.title === 'Admins only');
+    await keys.down('k-test'); await keys.up('k-test');
+    await keys.down('k-card'); await keys.up('k-card');
+    assert.deepEqual(staffRuns, [], 'a mod-linked PC plays nothing');
+    const rawM = client(url);
+    rawM.ws.on('open', () => rawM.ws.send(hello(server.token)));
+    await until('the mod raw client', () => rawM.got.length > 0);
+    rawM.ws.send(JSON.stringify({ t: 'do', n: 1, req: { what: 'test-pull' } }));
+    rawM.ws.send(JSON.stringify({ t: 'do', n: 2, req: { what: 'show-card', username: 'cheesy_1' } }));
+    await until('two mod refusals', () => rawM.got.filter(g => g.includes('"done"')).length === 2);
+    assert.ok(rawM.got.filter(g => g.includes('"done"')).every(g => g.includes('"ok":false') && g.includes('role cannot do that')), 'enforced in the app by role');
+    assert.deepEqual(staffRuns, []);
+    rawM.ws.close();
+    roleCan = null;
+
+    // Run checklist: a press runs the app's checklist; the key shows the last result (green with the count, or red with the failing count) until the next run.
+    current = state();
+    server.broadcast();
+    await until('Run checklist', () => ob.checklist.title === 'Run\nchecklist');
+    await keys.down('k-checklist');
+    assert.equal(checklistRuns, 1, 'a press runs the checklist once');
+    assert.equal(ob.checklist.oks, 1);
+    current = state({ checklist: deckChecklist(lines(8, 0)) });
+    server.broadcast();
+    await until('the green checklist', () => ob.checklist.title === 'Checklist\n8/8 OK');
+    clockNow += 60_000;
+    keys.drawAll();
+    assert.equal(ob.checklist.title, 'Checklist\n8/8 OK', 'the result stays until the next run');
+    current = state({ checklist: deckChecklist(lines(6, 2)) });
+    server.broadcast();
+    await until('the red checklist', () => ob.checklist.title === 'Checklist\n2 failing');
+    assert.notEqual(ob.checklist.image, okList.image);
+    for (const id of ['k-refresh', 'k-checklist', 'k-pick']) keys.remove(id);
+    current = state();
+    server.broadcast();
 
     // Stat keys: the app wants stats only while a Stat key is on a deck.
     assert.deepEqual(server.wanted, [], 'no Stat key, no stats wanted');
@@ -628,10 +792,10 @@ export async function deckChecks(): Promise<void> {
   assert.ok(changes > 0);
 
   // Every port taken: the app says so.
-  const blocker = new DeckServer({ file: join(tmpdir(), 'tcg-deck-blocker.json'), version: '1', state: () => state(), ports: [0], run: async () => ({ ok: true, text: '' }), staff: async () => ({ ok: true, text: '' }), staffPc: async () => ({ ok: true, text: '' }), onChange: () => undefined, log: () => undefined });
+  const blocker = new DeckServer({ file: join(tmpdir(), 'tcg-deck-blocker.json'), version: '1', state: () => state(), ports: [0], run: async () => ({ ok: true, text: '' }), staff: async () => ({ ok: true, text: '' }), staffPc: async () => ({ ok: true, text: '' }), checklist: async () => ({ ok: true, text: '' }), onChange: () => undefined, log: () => undefined });
   await blocker.start();
   try {
-    const busy = new DeckServer({ file: join(tmpdir(), 'tcg-deck-busy.json'), version: '1', state: () => state(), ports: [blocker.listeningPort], run: async () => ({ ok: true, text: '' }), staff: async () => ({ ok: true, text: '' }), staffPc: async () => ({ ok: true, text: '' }), onChange: () => undefined, log: () => undefined });
+    const busy = new DeckServer({ file: join(tmpdir(), 'tcg-deck-busy.json'), version: '1', state: () => state(), ports: [blocker.listeningPort], run: async () => ({ ok: true, text: '' }), staff: async () => ({ ok: true, text: '' }), staffPc: async () => ({ ok: true, text: '' }), checklist: async () => ({ ok: true, text: '' }), onChange: () => undefined, log: () => undefined });
     await busy.start();
     assert.match(busy.error, /are used by other programs/);
     assert.equal(existsSync(join(tmpdir(), 'tcg-deck-busy.json')), false, 'no file is written when nothing listens');

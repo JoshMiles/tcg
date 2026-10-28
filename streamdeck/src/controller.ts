@@ -1,6 +1,6 @@
 // The keys on the decks (ROADMAP 57.13), without the Stream Deck SDK: plugin.ts hands the SDK's events and key objects to this, bridge/scripts/check-deck.ts hands it fakes.
 import type { BridgeLink } from './link';
-import { HOLD_MS, SKIP_MS, requestFor, staffRefused, statOf, view, type KeyKind, type Settings } from './keys';
+import { HOLD_MS, SKIP_MS, liveHold, requestFor, staffRefused, statOf, view, type KeyKind, type Settings } from './keys';
 import type { DeckStatKind } from './protocol';
 
 /** What a key object must do; the SDK's KeyAction does all of it. */
@@ -49,7 +49,7 @@ export class Keys {
     const k = this.keys.get(id);
     if (!k) return;
     const v = view(k.kind, this.link.state, k.settings, this.now());
-    const title = k.hintUntil > this.now() ? `Hold 1 second\nto ${k.kind === 'clear-queue' ? 'clear' : k.kind === 'trading' ? 'pause' : 'end'}` : k.skipUntil > this.now() ? 'Press again\nto skip' : v.title;
+    const title = k.hintUntil > this.now() ? (k.kind === 'test-pull' || k.kind === 'show-card' ? 'Live!\nHold 1 s' : `Hold 1 second\nto ${k.kind === 'clear-queue' ? 'clear' : k.kind === 'trading' ? 'pause' : 'end'}`) : k.skipUntil > this.now() ? 'Press again\nto skip' : v.title;
     const shown = `${title}|${v.image}`;
     if (shown === k.shown) return;
     k.shown = shown;
@@ -69,9 +69,9 @@ export class Keys {
     const k = this.keys.get(id);
     if (!k) return;
     k.downAt = this.now();
-    k.wasRunning = k.kind === 'trading' ? !!this.link.state?.staff?.tradingPaused : this.happyRunning();
+    k.wasRunning = k.kind === 'trading' ? !!this.link.state?.staff?.tradingPaused : k.kind === 'test-pull' || k.kind === 'show-card' ? liveHold(k.kind, this.link.state) : this.happyRunning();
     if (k.kind === 'stat') return this.pressStat(id, k);
-    if (k.kind !== 'happy' && k.kind !== 'clear-queue' && k.kind !== 'queue' && k.kind !== 'trading') await this.run(k, k.kind, k.settings);
+    if (k.kind !== 'happy' && k.kind !== 'clear-queue' && k.kind !== 'queue' && k.kind !== 'trading' && !liveHold(k.kind, this.link.state)) await this.run(k, k.kind, k.settings);
   }
 
   /** Only the Queue stat does anything: the first press says how to skip, a second within SKIP_MS skips the next pull. */
@@ -91,7 +91,14 @@ export class Keys {
   /** Happy hour: a press starts one; while one runs, only a press of a second or more ends it. Clear queue: only a press of a second or more clears. Trading: a press resumes it; pausing needs a second or more. */
   async up(id: string): Promise<void> {
     const k = this.keys.get(id);
-    if (!k || (k.kind !== 'happy' && k.kind !== 'clear-queue' && k.kind !== 'trading')) return;
+    if (!k || (k.kind !== 'happy' && k.kind !== 'clear-queue' && k.kind !== 'trading' && k.kind !== 'test-pull' && k.kind !== 'show-card')) return;
+    if (k.kind === 'test-pull' || k.kind === 'show-card') { // while OBS is live (wasRunning = live at the press): played only after a 1 second hold; when not live it ran on the press
+      if (!k.wasRunning) return;
+      if (staffRefused(k.kind, this.link.state) || this.now() - k.downAt >= HOLD_MS) return this.run(k, k.kind, k.settings);
+      k.hintUntil = this.now() + 2000;
+      this.draw(id);
+      return void k.handle.showAlert();
+    }
     if (k.kind === 'trading') {
       if (staffRefused('trading', this.link.state) || k.wasRunning || this.now() - k.downAt >= HOLD_MS) return this.run(k, 'trading', k.settings);
       k.hintUntil = this.now() + 2000;
