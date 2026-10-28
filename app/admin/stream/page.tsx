@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { staffPage } from '@/lib/staff-guard';
 import { Icon } from '@/app/components/Icon';
@@ -22,7 +23,6 @@ import { readWatchdogAt } from '@/lib/overlay-watchdog';
 import { isPullsPaused, pauseChatOn, pauseReason } from '@/lib/pull-pause';
 import { CommandsPanel } from './CommandsPanel';
 import { ChannelPoints } from './ChannelPoints';
-import { ConnectionTab } from './ConnectionTab';
 import { channelConnectReady, readChannelStatus } from '@/lib/twitch-channel';
 import { readEventSub, recentTwitchEvents } from '@/lib/twitch-events';
 import { lineText, listeningLine } from '@/lib/twitch-events-core';
@@ -36,7 +36,18 @@ import { MixItUpLog } from './MixItUpLog';
 import { CommandsHelper } from './CommandsHelper';
 import { CardFrame } from './CardFrame';
 import { EventsCard, PacksCard, PaidCard, ShoutoutCard, StartEndCard, StreamDeckCard } from './ViewerCards';
-import { BrieBucksSafetyPanel, LedgerCheckPanel, WatchdogPanel } from './SafetyPanels';
+import { LedgerCheckPanel, WatchdogPanel } from './SafetyPanels';
+import { BridgeVersionLine } from '../BridgeRelease';
+import { BridgeCard, type BridgeRow } from './BridgeCard';
+import { CommandCheckCard } from './CommandCheckCard';
+import { BridgeErrorsCard } from './BridgeErrorsCard';
+import { TwitchChannelCard } from './TwitchChannelCard';
+import { Connections } from './Connections';
+import { MixItUpPanel } from './MixItUpPanel';
+import { SetupWizard } from './SetupWizard';
+import { TestViewers, TryIt } from './TestExtras';
+import { connectionList, defaultConn } from '@/lib/stream-connections';
+import { notSetUp } from '@/lib/mixitup-wizard';
 import { CARDS, cardHref, cardSummaries } from '@/lib/viewers-cards';
 import { helperGroups } from '@/lib/viewers-helper';
 import { describeBuffDef } from '@/lib/buffs-core';
@@ -44,6 +55,7 @@ import { Chip } from '../components/ui';
 import { getBuffDefs } from '@/lib/buffs';
 import { readCommandCheck } from '@/lib/mixitup-command-check';
 import { errorDays, readErrors } from '@/lib/bridge-errors';
+import { errorsInLast24h } from '@/lib/bridge-errors-core';
 import { getHappyHour, happyHourWhat } from '@/lib/happyhour';
 import { readPackGoal } from '@/lib/pack-goal';
 import { Card, ChecklistPanel, UptimeStrip } from './StatusCards';
@@ -66,7 +78,7 @@ export const instant = false;
 
 export const metadata = { title: 'Stream · Admin', robots: { index: false } };
 
-/** The connected Twitch channel (58.1) for the Connection tab; null when none. */
+/** The connected Twitch channel (58.1) for the Connections section; null when none. */
 async function twitchView() {
   const c = await readChannelStatus();
   if (!c) return null;
@@ -92,7 +104,7 @@ async function happyHourView(now: number) {
 const SECTION_HINT: Record<string, string> = {
   live: 'Run the stream: pause pulls, extra pulls, who is waiting and what just happened',
   viewers: 'What viewers get: one card for each thing a viewer can earn or do, with a summary of how it is set',
-  connections: 'TCG Bridge, the currency viewers pay with and how the site reaches Mix It Up',
+  connections: 'TCG Bridge, Mix It Up, OBS, the Twitch channel, the command check and error reports',
   test: 'Try a pull, a balance check or a chat message before you go live',
   history: 'The log of every request and how the bridge held up on past streams',
 };
@@ -105,10 +117,10 @@ async function packGoalView() {
   return { buffs, running: cur ? { label: cur.goal.label, target: cur.goal.target, count: cur.count, reward, by: cur.goal.by } : null };
 }
 
-export default async function StreamPage({ searchParams }: { searchParams: Promise<{ section?: string; tab?: string; card?: string; feed?: string; saved?: string; error?: string; note?: string; filter?: string }> }) {
+export default async function StreamPage({ searchParams }: { searchParams: Promise<{ section?: string; tab?: string; card?: string; conn?: string; step?: string; feed?: string; saved?: string; error?: string; note?: string; filter?: string }> }) {
   await staffPage('admin');
-  const { section: sectionParam, tab: tabParam, card: cardParam, feed, saved, error, note, filter } = await searchParams;
-  const { section, tab, card } = resolveStream(sectionParam, tabParam, cardParam);
+  const { section: sectionParam, tab: tabParam, card: cardParam, conn: connParam, step, feed, saved, error, note, filter } = await searchParams;
+  const { section, tab, card, conn } = resolveStream(sectionParam, tabParam, cardParam, connParam);
   const settings = await getMixItUpSettings();
   const bridge = await readBridge();
   const health = await readMixItUpHealth();
@@ -116,7 +128,11 @@ export default async function StreamPage({ searchParams }: { searchParams: Promi
   const watchdogAt = await readWatchdogAt();
   const bridges = await listBridges();
   const now = Date.now();
-  const setupLabel = bridges.length > 0 || Object.values(health.seen).some(s => s.okAt) ? 'Run setup again' : 'Set up Mix It Up';
+  const firstRun = notSetUp(bridges.length, health);
+  const setupLabel = firstRun ? 'Set up Mix It Up' : 'Run setup again';
+  // The wizard (63.4) replaces Live while nothing is connected and the address names no section; `?section=setup` shows it at any time.
+  const setupView = sectionParam === 'setup' || (firstRun && !sectionParam && !tabParam && !cardParam);
+  const bridgeRows: BridgeRow[] = bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never', staff: isStaffPc(b), account: bridgeAccount(b), by: b.by ?? '' }));
   const cards = statusCards({ health, settings, bridge, paired: bridges.length, obs, now, ago: timeAgo, watchdogAt });
   const checklist = await readChecklist();
   const strip = statusStrip(cards, checklist, now);
@@ -149,6 +165,35 @@ export default async function StreamPage({ searchParams }: { searchParams: Promi
           </Panel>
         )}
       </div>
+    );
+  };
+  const connections = async () => {
+    const [commandCheck, errs, days, twitch] = await Promise.all([getBuffDefs().then(readCommandCheck), readErrors(), errorDays(), twitchView()]);
+    const list = connectionList({
+      cards, connection: settings.connection, paired: bridges.length, commandCheck, errors24h: errorsInLast24h(errs, now),
+      twitch: twitch && { login: twitch.login, listening: !!twitch.listening, chat: twitch.chat },
+    });
+    const active = conn ?? defaultConn(list);
+    return (
+      <Connections list={list} active={active} setupLabel={setupLabel}>
+        {active === 'bridge' && (
+          <>
+            <BridgeCard version={bridge.appVersion} bridges={bridgeRows} />
+            {bridges.length > 0 && <Suspense fallback={null}><BridgeVersionLine running={bridge.appVersion} /></Suspense>}
+            {settings.connection === 'bridge' && <Card card={cards[1]} />}
+          </>
+        )}
+        {active === 'mixitup' && <MixItUpPanel settings={settings} bridge={bridge} statuses={settings.connection === 'addresses' ? [cards[0], cards[1]] : [cards[0]]} />}
+        {active === 'obs' && (
+          <>
+            <Card card={cards[2]} />
+            <WatchdogPanel on={settings.overlayWatchdog} />
+          </>
+        )}
+        {active === 'twitch' && <TwitchChannelCard channel={twitch} ready={channelConnectReady()} />}
+        {active === 'command' && (commandCheck ? <CommandCheckCard rows={commandCheck} /> : <Panel title="Mix It Up commands" icon="list"><p className="text-sm text-gray-400">Not checked yet. It runs once TCG Bridge has reported Mix It Up&rsquo;s commands.</p></Panel>)}
+        {active === 'errors' && <BridgeErrorsCard errors={{ rows: errs.map(e => ({ ...e, ago: timeAgo(e.at) })), days }} />}
+      </Connections>
     );
   };
   const viewers = async () => {
@@ -201,10 +246,10 @@ export default async function StreamPage({ searchParams }: { searchParams: Promi
   };
   return (
     <div className="space-y-6">
-      <PageHeader title="Stream" subtitle={SECTION_HINT[section]} />
+      <PageHeader title="Stream" subtitle={setupView ? 'Set up Mix It Up and TCG Bridge, one step at a time' : SECTION_HINT[section]} />
       <StatusStrip strip={strip} />
-      <PageTabs tabs={SECTIONS} active={section} base="/admin/stream" param="section" label="Stream sections" />
-      {subs && <PageTabs tabs={subs} active={tab!} base="/admin/stream" keep={{ section }} label={`${SECTIONS.find(x => x.id === section)!.label} pages`} />}
+      <PageTabs tabs={SECTIONS} active={setupView ? (sectionParam === 'setup' ? 'connections' : 'live') : section} base="/admin/stream" param="section" label="Stream sections" />
+      {subs && !setupView && <PageTabs tabs={subs} active={tab!} base="/admin/stream" keep={{ section }} label={`${SECTIONS.find(x => x.id === section)!.label} pages`} />}
 
       {error && <div role="alert" className="rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-2.5 text-sm text-red-300">Not saved: {error}</div>}
       {note && <div role="status" className="rounded-lg border border-green-500/30 bg-green-950/30 px-4 py-2.5 text-sm text-green-300">{note}</div>}
@@ -214,28 +259,24 @@ export default async function StreamPage({ searchParams }: { searchParams: Promi
         </div>
       )}
 
-      {section === 'live' && await live()}
-      {section === 'connections' && (
+      {setupView && <SetupWizard step={step} settings={settings} bridge={bridge} bridges={bridgeRows} health={health} cards={cards} />}
+      {!setupView && section === 'live' && await live()}
+      {!setupView && section === 'connections' && await connections()}
+      {!setupView && section === 'test' && (
         <div className="space-y-6">
-          <div className="grid gap-4 lg:grid-cols-3">{cards.map(c => <Card key={c.id} card={c} />)}</div>
-          <Link href="/admin/stream/setup" className="btn btn-primary btn-sm"><Icon name="wrench" />{setupLabel}</Link>
-          <ConnectionTab settings={settings} bridge={bridge} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never', staff: isStaffPc(b), account: bridgeAccount(b), by: b.by ?? '' }))} commandCheck={await readCommandCheck(await getBuffDefs())} errors={{ rows: (await readErrors()).map(e => ({ ...e, ago: timeAgo(e.at) })), days: await errorDays() }} twitch={await twitchView()} twitchReady={channelConnectReady()} />
-          {tab === 'connection' && <div className="grid gap-6 lg:grid-cols-2"><WatchdogPanel on={settings.overlayWatchdog} /><BrieBucksSafetyPanel chat={settings.chat} /></div>}
-        </div>
-      )}
-      {section === 'test' && (
-        <div className="space-y-6">
-          <Panel title="Test pulls" icon="flask" hint="Pretend a test viewer typed !pack in chat and watch every step: the balance check, the charge, the overlay, the save and the rules. The edition is kept apart from the real collection and counts nowhere. Test viewers are managed under Connections.">
+          <Panel title="Test pulls" icon="flask" hint="Pretend a test viewer typed !pack in chat and watch every step: the balance check, the charge, the overlay, the save and the rules. The edition is kept apart from the real collection and counts nowhere. Test viewers are managed below.">
             <TestPulls viewers={settings.testViewers} paidOn={settings.enabled} sandbox={await inSandbox()} recent={await recentTests()} />
           </Panel>
           <Panel title="Quick tests" icon="zap" hint="Each one shows its answer right here.">
             <TestActions login={CHANNEL_LOGIN} />
           </Panel>
           <ChecklistPanel checklist={checklist} now={now} />
+          <TryIt />
+          <TestViewers viewers={settings.testViewers} />
         </div>
       )}
-      {section === 'history' && await history()}
-      {section === 'viewers' && await viewers()}
+      {!setupView && section === 'history' && await history()}
+      {!setupView && section === 'viewers' && await viewers()}
     </div>
   );
 }

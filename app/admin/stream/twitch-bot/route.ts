@@ -12,11 +12,11 @@ import { channelConnectReady } from '@/lib/twitch-channel';
 export async function GET(req: NextRequest) {
   const staff = (await hasStaffCapability('admin')) ? await getStaff() : null;
   if (!staff) return NextResponse.redirect(new URL('/admin', req.url));
-  if (!channelConnectReady()) return NextResponse.redirect(new URL('/admin/stream?tab=connection&error=' + encodeURIComponent('the Twitch connection needs TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET and BACKUP_ENCRYPTION_KEY'), req.url));
+  if (!channelConnectReady()) return NextResponse.redirect(new URL('/admin/stream?section=connections&conn=twitch&error=' + encodeURIComponent('the Twitch connection needs TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET and BACKUP_ENCRYPTION_KEY'), req.url));
   const state = randomBytes(24).toString('base64url');
   const url = new URL(authorizeUrl(state, BOT_SCOPES.join(' ')));
   url.searchParams.set('force_verify', 'true');
   const res = NextResponse.redirect(url);
-  res.cookies.set(OAUTH_COOKIE, JSON.stringify({ state, bot: true, by: staff.login, returnTo: '/admin/stream?tab=connection' }), sessionCookieOptions(60 * 10));
+  res.cookies.set(OAUTH_COOKIE, JSON.stringify({ state, bot: true, by: staff.login, returnTo: '/admin/stream?section=connections&conn=twitch' }), sessionCookieOptions(60 * 10));
   return res;
 }

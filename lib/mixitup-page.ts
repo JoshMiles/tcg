@@ -5,6 +5,7 @@ import { ROUTE_NAMES, routeName, OUT_KINDS, outLine, type HealthChip, type MixIt
 import { REFUSAL_LABELS, type MixItUpSettings } from './mixitup-core';
 import type { MixItUpLogEntry } from './mixitup';
 import { cardHref } from './viewers-cards';
+import { connHref } from './stream-connections';
 
 type Tone = HealthChip['tone'];
 type Ago = (at: number, now: number) => string;
@@ -34,8 +35,8 @@ export interface StatusInput {
   watchdogAt?: number | null;
 }
 
-const TAB = (id: string) => `/admin/stream?tab=${id}`; // an old tab id; app/admin/stream/page.tsx puts it in its section (lib/stream-page.ts)
-const CONNECTION = { href: TAB('connection'), label: 'Open Connection' };
+const BRIDGE = { href: connHref('bridge'), label: 'Open TCG Bridge' };
+const MIXITUP = { href: connHref('mixitup'), label: 'Open Mix It Up' };
 
 /** The three cards: Mix It Up to the site, the site to Mix It Up, OBS. */
 export function statusCards(i: StatusInput): StatusCard[] {
@@ -65,8 +66,8 @@ function outgoingCard({ health, settings: s, bridge, paired, now, ago }: StatusI
     const urls = { balance: s.balanceUrl, deduct: s.deductUrl, add: s.addUrl, viewers: s.viewersUrl };
     const chips = OUT_KINDS.map(k => outLine(k, urls, health, now, ago));
     const rows = chips.map(c => ({ label: c.text.split(':')[0], text: c.text.slice(c.text.indexOf(':') + 2), tone: c.tone }));
-    if (!s.balanceUrl) return { ...base, rows, tone: 'bad', state: 'No balance address saved', todo: 'Paid pulls need the balance address. Save it, or switch to TCG Bridge.', fix: CONNECTION };
-    if (chips.some(c => c.tone === 'bad')) return { ...base, rows, tone: 'bad', state: 'An address is failing', todo: 'Check the failing address in Mix It Up, then try again with the buttons below.', fix: CONNECTION };
+    if (!s.balanceUrl) return { ...base, rows, tone: 'bad', state: 'No balance address saved', todo: 'Paid pulls need the balance address. Save it, or switch to TCG Bridge.', fix: MIXITUP };
+    if (chips.some(c => c.tone === 'bad')) return { ...base, rows, tone: 'bad', state: 'An address is failing', todo: 'Check the failing address in Mix It Up, then try again with the buttons below.', fix: MIXITUP };
     if (!health.out.balance) return { ...base, rows, tone: 'muted', state: 'Addresses saved, not used yet', todo: 'Run a balance check below to see that Mix It Up answers.' };
     return { ...base, rows, tone: 'ok', state: 'Working' };
   }
@@ -79,10 +80,10 @@ function outgoingCard({ health, settings: s, bridge, paired, now, ago }: StatusI
     { label: 'Currency', text: currency ? currency.name : s.currencyId ? `${s.currency} (saved, not in the last list)` : 'not chosen', tone: currency ? 'ok' : 'muted' },
     ...calls,
   ];
-  if (paired === 0) return { ...base, rows, tone: 'bad', state: 'TCG Bridge is not paired', todo: 'Download TCG Bridge on the stream PC and pair it with a code.', fix: CONNECTION };
-  if (!connected) return { ...base, rows, tone: 'bad', state: 'TCG Bridge is not connected', todo: 'Open TCG Bridge on the stream PC. It stays paired between runs.', fix: CONNECTION };
-  if (!bridge.currencies.length) return { ...base, rows, tone: 'warn', state: 'TCG Bridge is connected, Mix It Up was not found', todo: 'Start Mix It Up and switch on its Developer API (Services, Developer API, Connect).', fix: CONNECTION };
-  if (!currency) return { ...base, rows, tone: 'warn', state: 'Choose the currency viewers pay with', todo: 'Pick the currency on the Connection tab and save.', fix: CONNECTION };
+  if (paired === 0) return { ...base, rows, tone: 'bad', state: 'TCG Bridge is not paired', todo: 'Download TCG Bridge on the stream PC and pair it with a code.', fix: BRIDGE };
+  if (!connected) return { ...base, rows, tone: 'bad', state: 'TCG Bridge is not connected', todo: 'Open TCG Bridge on the stream PC. It stays paired between runs.', fix: BRIDGE };
+  if (!bridge.currencies.length) return { ...base, rows, tone: 'warn', state: 'TCG Bridge is connected, Mix It Up was not found', todo: 'Start Mix It Up and switch on its Developer API (Services, Developer API, Connect).', fix: BRIDGE };
+  if (!currency) return { ...base, rows, tone: 'warn', state: 'Choose the currency viewers pay with', todo: 'Pick the currency under Mix It Up in Connections and save.', fix: MIXITUP };
   const failing = OUT_KINDS.find(k => health.out[k] && !health.out[k]!.ok);
   if (failing) return { ...base, rows, tone: 'warn', state: `The last ${failing} call failed`, todo: `${health.out[failing]!.detail}. Try a balance check below; TCG Bridge's window lists each job.` };
   return { ...base, rows, tone: 'ok', state: 'Working' };
@@ -95,7 +96,7 @@ const callRow = (k: OutKind, health: MixItUpHealth, now: number, ago: Ago): { te
 
 function obsCard({ obs, paired, now, ago, watchdogAt }: StatusInput): StatusCard {
   const base = { id: 'obs' as const, title: 'OBS' };
-  if (paired === 0) return { ...base, rows: [], tone: 'muted', state: 'Not checked', todo: 'TCG Bridge watches OBS and can refresh the overlay. Pair it first.', fix: CONNECTION };
+  if (paired === 0) return { ...base, rows: [], tone: 'muted', state: 'Not checked', todo: 'TCG Bridge watches OBS and can refresh the overlay. Pair it first.', fix: BRIDGE };
   if (!obs) return { ...base, rows: [], tone: 'muted', state: 'TCG Bridge has not reported OBS', todo: 'In TCG Bridge, switch on "Talk to OBS" and type the OBS WebSocket password.' };
   const rows: StatusCard['rows'] = [{ label: 'Last report', text: ago(obs.at, now), tone: 'muted' }];
   if (watchdogAt) rows.push({ label: 'Overlay watchdog', text: `last refreshed the overlay ${ago(watchdogAt, now)}`, tone: 'muted' });

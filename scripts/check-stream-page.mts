@@ -17,20 +17,58 @@ for (const t of OLD_TABS) {
   const r = s.resolveStream(undefined, t);
   ok(s.SECTIONS.some(x => x.id === r.section), `old tab ${t} lands in a real section`);
   if (r.section === 'viewers') ok(r.tab === null && r.card !== null, `old tab ${t} opens a card (What viewers get has no sub-tabs)`);
+  else if (t === 'connection') ok(r.tab === null && r.conn === null, 'the old connection tab is the Connections section, with no sub-tab');
   else if (t !== 'overview') ok(r.tab === t, `old tab ${t} is still the sub-tab shown`);
 }
 ok(s.resolveStream(undefined, 'overview').section === 'live', 'Overview is now Live');
 ok(s.resolveStream(undefined, 'paid').section === 'viewers' && s.resolveStream(undefined, 'events').section === 'viewers', 'viewer tabs are under What viewers get');
 ok(s.resolveStream(undefined, 'connection').section === 'connections' && s.resolveStream(undefined, 'log').section === 'history', 'connection and log have their sections');
 ok(s.resolveStream(undefined, undefined).section === 'live' && s.resolveStream('nope', 'nope').section === 'live', 'no or unknown params is Live');
-ok(s.resolveStream('connections', undefined).tab === 'connection', 'a section with sub-tabs opens its first');
-ok(s.resolveStream('connections', 'log').tab === 'connection', 'a tab from another section falls back to the first');
+ok(s.resolveStream('history', undefined).tab === 'log', 'a section with sub-tabs opens its first');
+ok(s.resolveStream('history', 'connection').tab === 'log', 'a tab from another section falls back to the first');
+ok(!s.SUB_TABS.connections, 'Connections has no sub-tabs (63.4)');
 ok(s.resolveStream('viewers', undefined).card === null && s.resolveStream('live', undefined).card === null, 'the card grid has no card open, and other sections have none');
 ok(s.resolveStream('live', 'paid').tab === null && s.resolveStream('test', undefined).tab === null, 'Live and Test have no sub-tabs');
 ok(s.resolveStream('__proto__', '__proto__').section === 'live', 'a prototype name is not a section');
 ok(s.legacyStreamHref({ tab: 'log', filter: 'refused', note: 'hi' }) === '/admin/stream?section=history&tab=log&note=hi&filter=refused', 'the redirect keeps note and filter and maps the tab');
 ok(s.legacyStreamHref({}) === '/admin/stream?section=live', 'the redirect with nothing is Live');
 ok(s.legacyStreamHref({ tab: 'commands', saved: 'mixitup', error: 'x y' }).startsWith('/admin/stream?section=viewers&card=commands&error=x+y&saved=mixitup'), 'the redirect keeps saved and error');
+
+// ── Connections (63.4): old ids and anchors, the list, the default, the first-run rule, wizard addresses ──
+const cn = await import('../lib/stream-connections');
+const wz = await import('../lib/mixitup-wizard');
+ok(s.legacyStreamHref({ tab: 'connection' }) === '/admin/stream?section=connections', '?tab=connection lands on Connections');
+ok(s.legacyStreamHref({ tab: 'connection', conn: 'twitch', error: 'x' }) === '/admin/stream?section=connections&conn=twitch&error=x', 'a conn is kept, with error');
+ok(s.legacyStreamHref({ tab: 'connection', conn: 'nope' }) === '/admin/stream?section=connections', 'an unknown conn is dropped');
+ok(s.resolveStream('connections', undefined, undefined, 'obs').conn === 'obs' && s.resolveStream('live', undefined, undefined, 'obs').conn === null, 'conn is read only in Connections');
+ok(cn.connForAnchor('#bridge-errors') === 'errors' && cn.connForAnchor('bridge-errors') === 'errors' && cn.connForAnchor('#x') === null && cn.connForAnchor('__proto__') === null, '#bridge-errors is the errors connection');
+ok(cn.CONNS.map(c => c.id).join() === 'bridge,mixitup,obs,twitch,command,errors', 'the six connections in order');
+ok(cn.connHref('errors') === '/admin/stream?section=connections&conn=errors', 'a connection address');
+ok(cn.pickConn('twitch') === 'twitch' && cn.pickConn('constructor') === null && cn.pickConn(undefined) === null, 'pickConn');
+const mk = (id: Card['id'], tone: Card['tone'], state = `state ${id}`): Card => ({ id, title: `T ${id}`, tone, state, rows: [] });
+const green = [mk('incoming', 'ok'), mk('outgoing', 'ok'), mk('obs', 'ok')];
+const cmdRow = (found: boolean) => ({ found }) as import('../lib/mixitup-command-check-core').CommandCheckRow;
+const base = { cards: green, connection: 'bridge' as const, paired: 2, twitch: { login: 'a', listening: true, chat: true }, commandCheck: [cmdRow(true)], errors24h: 0 };
+let list = cn.connectionList(base);
+ok(list.length === 6 && list.every(c => c.tone === 'ok' && c.state.length > 0), 'all good: six green items, each with a state line');
+ok(list[0].state === '2 PCs linked' && cn.connectionList({ ...base, paired: 1 })[0].state === '1 PC linked', 'TCG Bridge counts PCs');
+ok(cn.defaultConn(list) === 'bridge', 'nothing needs attention: TCG Bridge opens');
+list = cn.connectionList({ ...base, paired: 0, cards: [mk('incoming', 'muted'), mk('outgoing', 'bad', 'not paired'), mk('obs', 'muted')], twitch: null, commandCheck: null });
+ok(list[0].tone === 'bad' && list[0].state === 'No PC linked yet' && list[3].tone === 'muted' && list[3].state === 'Not connected' && list[4].tone === 'muted', 'nothing connected: bridge red, others waiting');
+list = cn.connectionList({ ...base, cards: [mk('incoming', 'ok'), mk('outgoing', 'warn', 'Choose the currency'), mk('obs', 'ok')] });
+ok(list[0].tone === 'warn' && list[0].state === 'Choose the currency', 'the site-to-Mix-It-Up status folds into TCG Bridge');
+list = cn.connectionList({ ...base, cards: [mk('incoming', 'warn', 'wrong secret'), mk('outgoing', 'ok'), mk('obs', 'warn', 'Overlay hidden')] });
+ok(list[1].tone === 'warn' && list[1].state === 'wrong secret' && list[2].state === 'Overlay hidden', 'Mix It Up to the site folds into Mix It Up; OBS shows its card');
+ok(cn.defaultConn(list) === 'mixitup', 'the first connection that needs attention opens');
+list = cn.connectionList({ ...base, connection: 'addresses', paired: 0, cards: [mk('incoming', 'ok'), mk('outgoing', 'ok'), mk('obs', 'muted')] });
+ok(list[0].tone === 'muted' && list[1].state === 'Direct addresses working', 'direct addresses: bridge not used, Mix It Up shows the addresses');
+list = cn.connectionList({ ...base, twitch: { login: 'a', listening: false, chat: true }, commandCheck: [cmdRow(false), cmdRow(true), cmdRow(false)], errors24h: 3 });
+ok(list[3].tone === 'warn' && list[3].state === 'TCG Bridge is not listening' && list[4].state === '2 missing' && list[5].state === '3 in 24 h' && cn.defaultConn(list) === 'twitch', 'twitch, command check and errors states');
+ok(cn.connectionList({ ...base, twitch: { login: 'a', listening: true, chat: false } })[3].state === 'Reconnect to allow chat', 'chat permission missing');
+ok(Object.keys(cn.TONE_WORD).length === 4 && Object.values(cn.TONE_WORD).every(w => w.length > 0), 'every dot has a text equivalent');
+ok(wz.setupHref() === '/admin/stream?section=setup' && wz.setupHref('rules') === '/admin/stream?section=setup&step=rules', 'wizard step addresses');
+ok(wz.legacySetupHref({ step: 'outgoing', note: 'Saved.', error: 'x y', extra: 'z' }) === '/admin/stream?section=setup&step=outgoing&note=Saved.&error=x+y', 'the old setup address keeps step, note and error');
+ok(wz.legacySetupHref({}) === '/admin/stream?section=setup', 'the old setup address with nothing');
 
 // ── Status strip ──
 const card = (id: Card['id'], tone: Card['tone'], extra: Partial<Card> = {}): Card => ({ id, title: `T ${id}`, tone, state: `state ${id}`, rows: [], ...extra });

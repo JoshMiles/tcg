@@ -20,7 +20,7 @@ export async function DataHealthPanel() {
     <Panel title="Data health" icon="database" hint={`Each season's collection is stored per viewer, so a pull, trade or upgrade only touches the viewers involved. The leaderboard, search and admin lists still read the whole season; it is flagged at ${formatBytes(BLOB_WARN_BYTES)} and again at ${formatBytes(BLOB_HIGH_BYTES)}. Trades and the activity log are capped, so they stay small. Measured just now.`}>
       {bridgeErrors > 0 && (
         <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
-          TCG Bridge reported {n(bridgeErrors)} error{bridgeErrors === 1 ? '' : 's'} in the last 24 hours. <Link href="/admin/stream?tab=connection#bridge-errors" className="underline hover:text-white">See the list</Link>
+          TCG Bridge reported {n(bridgeErrors)} error{bridgeErrors === 1 ? '' : 's'} in the last 24 hours. <Link href="/admin/stream?section=connections&conn=errors#bridge-errors" className="underline hover:text-white">See the list</Link>
         </p>
       )}
       {h.seasons.length === 0 ?<p className="text-sm text-gray-500">No published seasons yet.</p> : (

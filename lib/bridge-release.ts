@@ -1,4 +1,4 @@
-// The newest TCG Bridge release on GitHub (ROADMAP 56.2), for the admin dashboard and the Mix It Up Connection tab. The first half is pure.
+// The newest TCG Bridge release on GitHub (ROADMAP 56.2), for the admin dashboard and the Mix It Up Connections section. The first half is pure.
 import { kv } from './db';
 
 export const BRIDGE_REPO = 'JoshMiles/tcg';
