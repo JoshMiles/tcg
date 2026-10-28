@@ -21,7 +21,10 @@ export const SEEN_TTL_S = 600;
 export const REPORT_STALE_MS = 3 * 60_000;
 
 /** What the Connection tab and the feed show for a recorded event. */
-export interface EventLine { id: string; type: EventType; at: number; text: string }
+export interface EventLine { id: string; type: EventType; at: number; text: string; /** 58.3: what a channel points award did ("redeemed Open a pack") or why it failed. */ result?: { ok: boolean; text: string } }
+
+/** The line as the Connection tab shows it: the event, then what its award did. */
+export const lineText = (l: Pick<EventLine, 'text' | 'result'>): string => (l.result ? `${l.text} (${l.result.text})` : l.text);
 export interface CleanEvent { messageId: string; type: EventType; event: Record<string, unknown> }
 
 const MESSAGE_ID = /^[A-Za-z0-9_-]{8,100}$/;

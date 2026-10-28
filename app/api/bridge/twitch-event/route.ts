@@ -6,7 +6,7 @@ import { recordTwitchEvent } from '@/lib/twitch-events';
 import { EVENT_BODY_MAX, cleanTwitchEvent } from '@/lib/twitch-events-core';
 
 // One Twitch EventSub notification from TCG Bridge's WebSocket (ROADMAP 58.2): `{ messageId, type, event }`. The site records it (a short recent list)
-// and feeds stream.online / stream.offline into the live state; it awards nothing (58.3 onwards). Admin PCs only, like twitch-token; a repeated
+// and feeds stream.online / stream.offline into the live state; a channel points redemption runs its reward's award (58.3). Admin PCs only, like twitch-token; a repeated
 // message id is dropped for 10 minutes. 120 calls a minute per PC.
 export async function POST(req: Request) {
   const g = await bridgeStaffGuard(req);

@@ -4,6 +4,9 @@ import { describeBuffDef, type BuffDef } from '@/lib/buffs-core';
 import { EVENT_INFO, EVENT_NAMES, EVENT_PACK_CAP, EVENT_SETUP, type EventRewards } from '@/lib/event-rewards-core';
 import { incomingSetup } from '@/lib/mixitup-setup';
 import { Panel, fieldClass, selectClass } from '../components/ui';
+import type { RewardList } from '@/lib/twitch-awards';
+import type { Awards } from '@/lib/twitch-awards-core';
+import { ChannelPoints } from './ChannelPoints';
 import { saveEventRewardsAction } from './mixitup-actions';
 import { CopyCard } from './setup/SetupClient';
 
@@ -12,11 +15,11 @@ const WHAT: Record<string, string> = {
   'gifted-subs': 'One pack for each sub given.',
   bits: 'One pack for every set number of bits in a cheer, rounded down.',
   raid: 'One pack when the raid is big enough.',
-  redeem: 'One pack for each redeem.',
+  redeem: 'One pack for each redeem. Ignored while Twitch handles redemptions (the live channel is connected and a channel points reward below has an award).',
 };
 
 /** Mix It Up → Events (ROADMAP 55.4g): what gifted subs, bits, raids and channel point redeems earn, and the Copy setup cards for the event commands. */
-export function EventsTab({ rewards, buffs, url, secret }: { rewards: EventRewards; buffs: BuffDef[]; url: string; secret: string }) {
+export function EventsTab({ rewards, buffs, url, secret, points, awards }: { rewards: EventRewards; buffs: BuffDef[]; url: string; secret: string; points: RewardList; awards: Awards }) {
   const usable = buffs.filter(b => b.streamDeck && b.scope !== 'community' && b.type !== 'grant-achievement');
   return (
     <div className="space-y-6">
@@ -71,6 +74,7 @@ export function EventsTab({ rewards, buffs, url, secret }: { rewards: EventRewar
         </Panel>
         <PendingButton type="submit" className="btn btn-primary btn-sm self-start">Save event rewards</PendingButton>
       </form>
+      <ChannelPoints list={points} awards={awards} buffs={buffs} />
       <section className="space-y-3">
         <h2 className="font-semibold text-white">Copy setup</h2>
         <p className="text-sm text-gray-300">
