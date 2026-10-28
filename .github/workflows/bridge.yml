@@ -141,7 +141,6 @@ jobs:
             echo
             if [ -n "$pr" ]; then echo "Pull request: https://github.com/$GITHUB_REPOSITORY/pull/$pr"; fi
             echo "Commit: https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
-            if [ -n "$pr" ]; then echo "Pull request: https://github.com/$GITHUB_REPOSITORY/pull/$pr"; fi
             echo
             echo "Windows installer for TCG Bridge. This build is not code-signed: Windows SmartScreen shows \"More info\", then \"Run anyway\"."
           } > release/notes.md
