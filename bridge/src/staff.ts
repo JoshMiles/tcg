@@ -5,6 +5,7 @@ import { siteUrl } from './notices';
 import type { MixItUpClient } from './mixitup';
 import type { ObsWatcher } from './obs';
 import { previewAddress } from './preview';
+import { findViewers, viewerFacts } from './staffpages';
 
 export interface StaffReply { ok: boolean; text: string; data?: Record<string, unknown> }
 export interface StaffDeps {
@@ -59,6 +60,7 @@ export class StaffTools {
       switch (req.op) {
         case 'state': return await this.state();
         case 'users': return await this.userList();
+        case 'find': return await this.find(req.q);
         case 'cards': return await this.read('cards', clean(req.q, 60));
         case 'viewer': return await this.viewer(req.name);
         case 'do': return await this.act(req);
@@ -79,6 +81,7 @@ export class StaffTools {
   private async read(what: string, q = ''): Promise<StaffReply> {
     const json = await this.d.client.staffGet(what, q);
     if (!json) return { ok: false, text: 'Staff tools are off for this PC.' };
+    if (typeof json.error === 'string' && json.error) return { ok: false, text: json.error }; // the site's refusal (a role that cannot read this) or "Type a Twitch name"
     return { ok: true, text: '', data: json };
   }
 
@@ -99,6 +102,12 @@ export class StaffTools {
     return { ok: true, text: '', data: { users: this.users.list } };
   }
 
+  /** "Find a viewer": the names that match what was typed, from the cached list. */
+  private async find(q: unknown): Promise<StaffReply> {
+    const r = await this.userList();
+    return r.ok ? { ok: true, text: '', data: { names: findViewers(r.data!.users as string[], clean(q, 40)) } } : r;
+  }
+
   /** The site's side of a viewer (cards, rank, pulls, refusals) plus their Brie Bucks, which only Mix It Up on this PC knows. */
   private async viewer(rawName: unknown): Promise<StaffReply> {
     const name = cleanViewer(rawName);
@@ -111,7 +120,8 @@ export class StaffTools {
       const u = await this.d.mix.twitchUser(name).catch(() => null);
       bucks = u?.amounts.find(a => a.id.toLowerCase() === currency)?.amount ?? null;
     }
-    return { ok: true, text: '', data: { ...r.data, bucks } };
+    const data = { ...r.data, bucks };
+    return { ok: true, text: '', data: { ...data, facts: viewerFacts(data) } };
   }
 
   private async act(req: Record<string, unknown>): Promise<StaffReply> {

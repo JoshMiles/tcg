@@ -1,6 +1,6 @@
 {
   "name": "tcg-bridge-streamdeck",
-  "version": "0.31.0",
+  "version": "0.32.0",
   "description": "The TCG Bridge Stream Deck plugin (ROADMAP 57.13). Built and packed by the bridge build; its version is always the bridge's.",
   "private": true,
   "scripts": {

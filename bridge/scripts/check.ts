@@ -32,6 +32,7 @@ import { releasesChecks } from './check-releases';
 import { winStateChecks } from './check-winstate';
 import { statusChecks } from './check-status';
 import { homeChecks } from './check-home';
+import { staffPagesChecks } from './check-staffpages';
 import { BridgeService } from '../src/service';
 import { cleanStaffAction, StaffTools } from '../src/staff';
 import { cleanCanvas, previewAddress, previewFrameAllowed } from '../src/preview';
@@ -1010,6 +1011,7 @@ async function main() {
       if (req.method === 'GET') {
         if (what === 'users') return send(res, 200, { users: ['alice', 'bob'] });
         if (what === 'state') return send(res, 200, { tradingPaused: true, extra: 2, blocks: [], variants: [] });
+        if (what === 'cards' && req.url?.includes('q=refused')) return send(res, 200, { error: 'Your account (Mod) cannot do that on the TCG site: it needs an admin.' }); // the site's refusal of a read
         if (what === 'viewer') return send(res, 200, { username: 'alice', copies: 3, unique: 2, rank: 1, of: 9, pulls: [], refusals: [], blocked: false });
         return send(res, 200, { cards: [{ number: 1, name: 'Gouda' }] });
       }
@@ -1046,6 +1048,11 @@ async function main() {
     const v = await tools.run({ op: 'viewer', name: 'Alice' });
     assert.ok(v.ok && v.data?.bucks === 42 && v.data?.rank === 1, 'Brie Bucks come from Mix It Up, the rest from the site');
     assert.equal((await tools.run({ op: 'viewer', name: 'nobody' })).data?.bucks, null);
+    assert.deepEqual((v.data?.facts as string[][])[3], ['Brie Bucks', '42'], 'the viewer card gets its facts ready-made');
+    assert.deepEqual((await tools.run({ op: 'find', q: 'AL' })).data?.names, ['alice', 'al'], 'Find a viewer matches the cached names, then offers the typed name');
+    assert.deepEqual((await tools.run({ op: 'find', q: 'carol' })).data?.names, ['carol'], 'a new valid name can still be looked up');
+    const refused = await tools.run({ op: 'cards', q: 'refused' });
+    assert.ok(!refused.ok && /needs an admin/.test(refused.text), "the site's refusal of a read is shown as the result line, not swallowed");
     assert.equal((await tools.run({ op: 'viewer', name: 'bad name!' })).ok, false);
     const gift = await tools.run({ op: 'do', action: 'gift', username: 'alice', count: 2 });
     assert.ok(!gift.ok && gift.data?.needsForce === true);
@@ -1089,6 +1096,7 @@ async function main() {
   winStateChecks();
   statusChecks();
   homeChecks();
+  staffPagesChecks();
 
   miSrv.server.close();
   siSrv.server.close();
