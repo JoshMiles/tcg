@@ -97,8 +97,8 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
   const state = (mixFound: boolean, extra: { startNote?: string; update?: string; updateVersion?: string; updatedTo?: string; staff?: boolean; whatsNew?: { open: boolean } } = {}): object => ({
     control, scenePause, obsStats, notices, pcName: 'STREAM-PC', staff: false, whatsNew: null, home, queue, events: [], commandsMissing: mixFound ? [] : null,
     checklist: readySummary({ ready: mixFound, at: now - 120_000, lines: mixFound ? checklistLines : checklistLines.map(l => (l.label === 'Mix It Up' ? { ...l, tone: 'bad' as const, text: 'Not answering. Open Mix It Up and switch its Developer API on.' } : l)) }),
-    attention: attentionItems({ paired: true, updateVersion: extra.updateVersion ?? '', startNote: extra.startNote ?? '', site: 'connected', mixFound, obsEnabled: true, obsConnected: true }),
-    connections: connectionRows({ paired: true, pairedAs: 'STREAM-PC', site: 'connected', siteError: '', mixFound, obsEnabled: true, obsConnected: true, obsStreaming: true, obsError: '', deckInstalled: true, deckOn: true, deckConnected: true, deckError: '' }),
+    attention: attentionItems({ paired: true, updateVersion: extra.updateVersion ?? '', startNote: extra.startNote ?? '', site: 'connected', mixFound, obsEnabled: true, obsConnected: true, deckReason: '' }),
+    connections: connectionRows({ paired: true, pairedAs: 'STREAM-PC', site: 'connected', siteError: '', mixFound, obsEnabled: true, obsConnected: true, obsStreaming: true, obsError: '', deckInstalled: true, deckOn: true, deckConnected: true, deckError: '', deckSeen: true }),
     liveSince: now - 47 * 60_000,
     deck: { on: true, error: '', connected: true, found: true, installed: ctx.version, offer: false },
     startNote: '', paired: true, site: 'https://cheesytcg.app', pairedAs: 'STREAM-PC', startWithWindows: true, alerts: true,
@@ -136,7 +136,7 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
     ['main-13-staff-this-stream', state(true, { staff: true }), 'stream', staffReads], // extra pulls, scene select, trading, preview, search, back up
     ['main-14-feed-and-history', state(false), 'feed'], // everyone: the history only
     ['main-14b-feed-and-history-staff', state(true, { staff: true }), 'feed'], // a staff PC: the activity part as well
-    ['main-15-connect-screen', { ...state(false), paired: false, site: 'https://cheesytcg.app', pairedAs: '', service: null, attention: attentionItems({ paired: false, updateVersion: '', startNote: '', site: null, mixFound: false, obsEnabled: false, obsConnected: false }) }, 'home'], // the first-run Connect screen
+    ['main-15-connect-screen', { ...state(false), paired: false, site: 'https://cheesytcg.app', pairedAs: '', service: null, attention: attentionItems({ paired: false, updateVersion: '', startNote: '', site: null, mixFound: false, obsEnabled: false, obsConnected: false, deckReason: '' }) }, 'home'], // the first-run Connect screen
   ];
   if (w.isMaximized()) w.unmaximize();
   w.setSize(1280, 800); // the size the Home dashboard is made to fit

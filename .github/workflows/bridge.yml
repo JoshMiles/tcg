@@ -45,12 +45,12 @@ jobs:
       - name: Version rule (a change under bridge/ raises the minor version above main's)
         run: npx tsx scripts/check-version.ts HEAD^1
       - run: npm run typecheck
-      - run: npm run check
       - name: Stream Deck plugin (typecheck, build, validate and pack with Elgato's CLI)
         run: |
           npm --prefix ../streamdeck ci
           npm --prefix ../streamdeck run typecheck
           npm --prefix ../streamdeck run pack
+      - run: npm run check # also runs the built plugin against a fake Stream Deck and checks the packed file (check-deckplugin.ts)
 
   # Decides whether this push releases: a hand-pushed tag always does; a push to main does when bridge/package.json's version differs from the
   # previous commit's. Either way it skips (with a notice) when that release already exists.

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { attentionItems, type AttentionFacts } from '../src/status';
-import { CONN_ORDER, GO_CONNECT, connOf, connectionRows, fixPlan, goFor, rowFor, type ConnFacts, type ConnId } from '../src/connections';
+import { CONN_ORDER, GO_CONNECT, connOf, connectionRows, deckReason, fixPlan, goFor, rowFor, type ConnFacts, type ConnId } from '../src/connections';
 
 /** The sidebar and the jumps (59.4): the page of every `go:` id, and every id the window script uses, must exist in index.html. */
 function pageChecks(): void {
@@ -28,10 +28,10 @@ function pageChecks(): void {
     const before = [...html.slice(0, at).matchAll(/data-panel="([\w-]+)"/g)];
     return before[before.length - 1][1];
   };
-  const bad: AttentionFacts = { paired: true, updateVersion: '1', startNote: 'x', site: 'revoked', mixFound: false, obsEnabled: true, obsConnected: false };
+  const bad: AttentionFacts = { paired: true, updateVersion: '1', startNote: 'x', site: 'revoked', mixFound: false, obsEnabled: true, obsConnected: false, deckReason: 'x' };
   const gos = new Set<string>();
   for (const f of [bad, { ...bad, site: 'offline' as const }, { ...bad, paired: false }]) for (const i of attentionItems(f)) if (i.go) gos.add(i.go);
-  assert.deepEqual([...gos].sort(), ['conn-account', 'conn-mix', 'conn-obs', 'connect'], 'the jumps the pill can make');
+  assert.deepEqual([...gos].sort(), ['conn-account', 'conn-deck', 'conn-mix', 'conn-obs', 'connect'], 'the jumps the pill can make');
   // A conn-<id> jump selects that connection on the Connections page; 'connect' is the first-run screen, before every page.
   for (const go of gos) {
     if (go === GO_CONNECT) continue;
@@ -47,7 +47,7 @@ function pageChecks(): void {
 
 export function statusChecks(): void {
   pageChecks();
-  const good: AttentionFacts = { paired: true, updateVersion: '', startNote: '', site: 'connected', mixFound: true, obsEnabled: true, obsConnected: true };
+  const good: AttentionFacts = { paired: true, updateVersion: '', startNote: '', site: 'connected', mixFound: true, obsEnabled: true, obsConnected: true, deckReason: '' };
   const ids = (o: Partial<AttentionFacts>): string[] => attentionItems({ ...good, ...o }).map(i => i.id);
 
   assert.deepEqual(ids({}), [], 'everything fine: no items, "All good"');
@@ -64,6 +64,8 @@ export function statusChecks(): void {
   assert.deepEqual(attentionItems({ ...good, obsConnected: false }).map(i => i.go), ['conn-obs'], 'OBS down while switched on');
   assert.deepEqual(attentionItems({ ...good, site: 'offline' }).map(i => i.go), ['conn-account'], 'site unreachable');
   assert.deepEqual(attentionItems({ ...good, site: 'revoked' }).map(i => i.go), ['conn-account'], 'the site dropped this PC: unpair, then pair again');
+  const deck = attentionItems({ ...good, deckReason: 'The link is off.' })[0];
+  assert.deepEqual([deck.id, deck.fix, deck.go, deck.text, deck.detail], ['deck', 'goto', 'conn-deck', 'Stream Deck plugin installed but not linked', 'The link is off.'], 'plugin installed but not linked: Fix goes to its connection');
 
   assert.deepEqual(ids({ updateVersion: '0.28.0', startNote: 'x', site: 'offline', mixFound: false, obsConnected: false }), ['update', 'check', 'site', 'mix', 'obs'], 'all of it, update first');
   assert.deepEqual(ids({ paired: false, site: 'offline', mixFound: false, updateVersion: '0.28.0' }), ['update', 'pair'], 'not paired: only the update and the pairing, no link noise');
@@ -76,7 +78,7 @@ export function statusChecks(): void {
 
 /** The Connections page's rows and fix steps (59.6). */
 function connectionChecks(): void {
-  const ok: ConnFacts = { paired: true, pairedAs: 'Josh', site: 'connected', siteError: '', mixFound: true, obsEnabled: true, obsConnected: true, obsStreaming: false, obsError: '', deckInstalled: true, deckOn: true, deckConnected: true, deckError: '' };
+  const ok: ConnFacts = { paired: true, pairedAs: 'Josh', site: 'connected', siteError: '', mixFound: true, obsEnabled: true, obsConnected: true, obsStreaming: false, obsError: '', deckInstalled: true, deckOn: true, deckConnected: true, deckError: '', deckSeen: true };
   const line = (id: ConnId, o: Partial<ConnFacts> = {}): string => rowFor(id, { ...ok, ...o }).line;
   const tone = (id: ConnId, o: Partial<ConnFacts> = {}): string => rowFor(id, { ...ok, ...o }).tone;
   assert.deepEqual(CONN_ORDER, ['account', 'mix', 'obs', 'deck'], 'the list order');
@@ -111,6 +113,18 @@ function connectionChecks(): void {
   assert.deepEqual(fixPlan('obs', { ...ok, obsEnabled: false, obsConnected: false }).steps, [], 'OBS switched off needs no fix');
   assert.equal(fixPlan('account', { ...ok, site: 'offline' }).steps.length, 2);
   assert.equal(fixPlan('deck', { ...ok, deckConnected: false }).steps.length, 1);
+  assert.equal(fixPlan('deck', { ...ok, deckConnected: false, deckSeen: false }).steps.length, 2, 'never connected: also says to restart the Stream Deck app');
+  assert.equal(fixPlan('deck', { ...ok, deckOn: false, deckConnected: false }).steps.length, 1, 'installed but the link is off: turn it on');
+
+  // Why an installed plugin is not linked, in words (the status pill and the connection say it).
+  const why = (o: Partial<ConnFacts>) => deckReason({ ...ok, ...o });
+  assert.equal(why({}), '', 'linked: nothing to say');
+  assert.equal(why({ deckInstalled: false, deckConnected: false }), '', 'not installed: that is the Install button, not a broken link');
+  assert.match(why({ deckOn: false, deckConnected: false }), /switched off/);
+  assert.match(why({ deckError: 'Ports 1 to 2 are used by other programs.', deckConnected: false }), /not listening.*Ports 1 to 2/);
+  assert.match(why({ deckConnected: false, deckSeen: false }), /has not connected since it started/);
+  assert.match(why({ deckConnected: false }), /has gone/);
+  assert.match(rowFor('deck', { ...ok, deckOn: false, deckConnected: false }).sentence, /installed but not linked/);
 
   // Jumps.
   assert.equal(goFor('obs'), 'conn-obs');
@@ -120,7 +134,8 @@ function connectionChecks(): void {
 
   // No long dash anywhere in what the window shows.
   const bad = { ...ok, site: 'offline' as const, mixFound: false, obsConnected: false, deckConnected: false };
-  for (const r of [...connectionRows(ok), ...connectionRows(bad)]) {
+  const never = { ...bad, deckSeen: false };
+  for (const r of [...connectionRows(ok), ...connectionRows(bad), ...connectionRows(never), ...connectionRows({ ...bad, deckOn: false }), ...connectionRows({ ...bad, deckError: 'x' })]) {
     const text = [r.name, r.line, r.sentence, ...r.fix.steps].join(' ');
     assert.ok(![8212, 8211].some(c => text.includes(String.fromCharCode(c))), `${r.id} has no long dash`);
   }

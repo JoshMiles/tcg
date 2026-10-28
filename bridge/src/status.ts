@@ -3,7 +3,7 @@
 import { GO_CONNECT, goFor } from './connections';
 
 export interface AttentionItem {
-  id: 'update' | 'check' | 'pair' | 'site' | 'mix' | 'obs';
+  id: 'update' | 'check' | 'pair' | 'site' | 'mix' | 'obs' | 'deck';
   text: string;
   detail: string;
   button: string;
@@ -20,6 +20,8 @@ export interface AttentionFacts {
   mixFound: boolean;
   obsEnabled: boolean;
   obsConnected: boolean;
+  /** Why an installed Stream Deck plugin is not linked (deckReason in connections.ts); '' = it is linked, not installed, or the app has only just started. */
+  deckReason: string;
 }
 
 export function attentionItems(f: AttentionFacts): AttentionItem[] {
@@ -34,5 +36,6 @@ export function attentionItems(f: AttentionFacts): AttentionItem[] {
   else if (f.site === 'offline') out.push({ id: 'site', text: 'Cannot reach the site', detail: 'TCG Bridge keeps trying.', button: 'Fix', fix: 'goto', go: goFor('account') });
   if (f.site && !f.mixFound) out.push({ id: 'mix', text: 'Mix It Up is not connected', detail: 'Mix It Up is closed, or its Developer API is off.', button: 'Fix', fix: 'goto', go: goFor('mix') });
   if (f.site && f.obsEnabled && !f.obsConnected) out.push({ id: 'obs', text: 'OBS is not connected', detail: 'OBS is closed, or its WebSocket server is off.', button: 'Fix', fix: 'goto', go: goFor('obs') });
+  if (f.deckReason) out.push({ id: 'deck', text: 'Stream Deck plugin installed but not linked', detail: f.deckReason, button: 'Fix', fix: 'goto', go: goFor('deck') });
   return out;
 }
