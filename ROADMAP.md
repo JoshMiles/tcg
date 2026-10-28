@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-**Last updated 2026-10-27**
+**Last updated 2026-10-28**
 
 Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked Ready; Needs design or Needs a decision goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item.
 
@@ -22,7 +22,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 47 | Access hardening (47.11) | Blocked (Josh, from 2026-11-02) | S |
 | 50 | Swap finder trial (50.3) | Blocked (trial readout from 2026-11-24) | S |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
-| 55 | Mix It Up: command downloads (55.5) | In review (#603) | M |
+| 56 | TCG Bridge: version rule and automatic releases, commit on the About tab, dashboard card, README rewrite (56.1 to 56.3) | Ready | M |
 
 Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52, 54 and 55 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -57,29 +57,20 @@ Checked against the code on 2026-10-25, most of the 16 breaking changes need not
 ### 43.3 Rename `middleware.ts` to `proxy.ts` (Blocked: panel freeze, S)
 The file holds the extension's CORS rules, which stay as submitted while panel 0.0.2 is under review (Rules in force). Pick this up when the review is back. `proxy.ts` runs on Node only; today the file runs on edge and reads through `lib/admin-auth-edge` and `lib/access-edge`. Rename the file and its export (the codemod does both), then test the admin and mod gates, the access gate and the `/api/twitch/*` CORS answers (the panel's requests from the Twitch origin) on a preview deployment. Drop the `-edge` variants only if nothing else uses them.
 
-## Track 55: Mix It Up integration (2026-10-27)
+## Track 56: TCG Bridge versions, releases and docs (2026-10-28)
 
-Josh: connecting Mix It Up is confusing, there are too few settings, and Cheesygidds rewards viewers from the Stream Deck a lot. Read `docs/admin/mixitup.md` first; it describes the bridge, the TCG Bridge app, the page, the wizard, buffs, test pulls and every reply shape as built.
+Josh: every PR that touches TCG Bridge bumps its minor version; the app's info screen shows the commit it was built from; the admin dashboard shows the latest TCG Bridge; the README needs a big update. Today the app is 0.11.0 (`bridge/package.json`); 0.6.0 to 0.10.0 were bumped but never released, because a release needs a hand-pushed `bridge-v*` tag (`.github/workflows/bridge.yml`). Read `bridge/README.md` and `docs/admin/mixitup.md` ("TCG Bridge") first. One PR per item, in order.
 
-**Where it stands (2026-10-27).** Everything but 55.5 is done (#579 to #612, archived). 55.5 (PR #603) waits for Josh to test-import a file; once it merges, a small follow-up adds download files for the four event commands (55.4g, the Events tab).
+### 56.1 Version rule, automatic releases, commit on the About tab (Ready, M)
+1. **Rule:** a PR that changes anything under `bridge/` (except `bridge/README.md`) must raise the minor of `bridge/package.json` `version` above `main`'s, patch reset to 0 (0.11.0 to 0.12.0); `bridge/package-lock.json`'s two version fields match. A new step in the workflow's PR job fails with the reason in words otherwise. Write the rule in `CLAUDE.md` (Gotchas, one line) and `bridge/README.md`.
+2. **Releases without a tag:** on a push to `main` that changes `bridge/package.json`'s version, the workflow builds the installer and publishes release `bridge-v<version>` itself (a tag pushed by the workflow's token would not start another run, so build in the same run). Skip if that release already exists. Hand-pushed tags keep working. The release notes are the merged PR's title and its Changelog bullets, plus the commit.
+3. **Commit stamp:** the build writes the commit (short and full SHA from `GITHUB_SHA`, else `git rev-parse`), the build date and the PR number into the packaged app (a generated JSON file or electron-builder `extraMetadata`, never committed). The About tab shows "Version 0.12.0, built from <short sha> (PR #N) on <date>", the sha linking to the commit on GitHub. **Copy diagnostics** includes it. The app sends the short sha with its `hello` so the site knows it too (`cleanHello` keeps accepting an older app without it).
 
-**From Mix It Up's source (github.com/MixItUpBot/Desktop, read 2026-10-27).**
-- Mix It Up has no action that sends a custom answer back to an HTTP request. The site's paid-pull calls (balance, deduct, add, viewers) expect a Mix It Up command to answer with JSON, which stock Mix It Up cannot do, so those addresses can only work through something in between. See 55.0.
-- Mix It Up's own hosted Webhooks (a Webhook command with JSON parameters mapped to special identifiers) are one-way: the cloud pushes the call to the desktop app over a websocket and nothing is sent back.
-- The Developer API listens on `http://localhost:8911` (or `http://*:8911` in its advanced mode) with no authentication. V1 has `GET /api/users/twitch/{name}` (the viewer's currency amounts), `PUT /api/users/{name}/currency/{currencyID}/adjust`, `POST /api/currency/{currencyID}/give` (bulk give), `GET /api/currency` (currency ids) and `POST /api/commands/{id}` (runs a command, with an arguments array, as the streamer, requirements ignored). The Stream Deck plugin runs commands through it, so a Stream Deck button has no viewer of its own: `$username` is the streamer.
-- Command types for 55.5 are all in the source: `ChatCommandModel`, `EventCommandModel` (stream start and end), `ActionGroupCommandModel` (Stream Deck buttons) and `WebhookCommandModel`. Special identifiers are `$name`; there is no `{{...}}` syntax.
+### 56.2 TCG Bridge on the admin dashboard (Ready, S to M)
+A card on `/admin` (staff who can see the Mix It Up page only): the latest release (version, date, commit, link to the release and the installer), from the GitHub releases API (`bridge-v*`, newest by date), cached in KV for 10 minutes; a failed lookup shows the cached one with "could not check GitHub" and never breaks the page. Beside it the connected app (from the bridge's `hello`: version, commit, last seen, connected or not) and "Out of date: 0.11.0 running, 0.12.0 available" when they differ. The Mix It Up page's Connection tab shows the same line. The Download TCG Bridge button keeps pointing at the newest release.
 
-### 55.5 Download command presets for Mix It Up (In review: #603, M)
-Josh exported a sample on 2026-10-27: `scripts/fixtures/mixitup-chat-command.miucommand` (the secret replaced with `YOUR_INCOMING_SECRET`). A `.miucommand` file is one JSON object written by Json.NET with `$type` on every object, so it must be written with those exact `$type` strings and key order kept as in the sample. What the sample shows:
-- The command: `ChatCommandModel` (`Type: 1`), `Name`, `Triggers` (without the `!`; `IncludeExclamation: true` adds it), `IsEnabled`, a fresh `ID` (a UUID) and the `Requirements` set (role, arguments, threshold, settings; copy the sample's values: `UserRole: 100` is everyone).
-- `WebRequestActionModel` (`Type: 11`): `Url`, `HttpMethod: 1` (POST), `RequestBody` (a JSON string), `CustomHeaders` (an empty dictionary with its own `$type`), `ResponseType: 1` (JSON) and `JSONToSpecialIdentifiers`, a dictionary from a reply key to a special identifier name (key `message` to `reply` makes `$reply`).
-- `ChatActionModel` (`Type: 1`): `ChatText` using Mix It Up's `$` identifiers (`$username`, `$reply`), `SendAsStreamer: false`.
-- Each action has its own fresh `ID`, `Name`, `Type` and `Enabled: true`.
-
-1. **Generator** `lib/mixitup-presets.ts` (pure): `chatCommandFile({ name, aliases, url, body, replyKeys, chatText })` returns the file text, with new UUIDs each call. The body uses Mix It Up's identifiers (`$username`, `$allargs`), never `{{...}}`. Every reply key the route answers (`message` and the command's `vars`) is mapped to a special identifier so the Chat Message can use them.
-2. **Downloads:** each chat-command setup card (`!pack`, every switched-on command from the Commands tab, `!showoff`, and the Stream Deck buttons from 55.2 once they exist) gets "Download for Mix It Up", served by a staff-only route (`requireAdmin`) as `<name>.miucommand` with the real incoming secret and site URL filled in. One file per command (Mix It Up imports one at a time); no zip. The button says the file holds the secret and must not be shared; the page offers to rotate the secret.
-3. **Also in this item, from the source** (no more samples needed): stream start and end as `EventCommandModel` files and Stream Deck buttons as `ActionGroupCommandModel` files, each with a Web Request action; read the model classes and the `EventTypeEnum` values in github.com/MixItUpBot/Desktop. Josh test-imports one of each before merge. No files for balance, deduct, add or viewers (see 55.0).
-4. `scripts/check-mixitup-presets.mts`: the generated file parses, has the same `$type`s and keys as the fixture, fresh IDs each call, and the secret and URL in the body. Josh imports one generated file into Mix It Up before merge (that can't be checked locally).
+### 56.3 README rewrite (Ready, M)
+`README.md` predates Tracks 53 to 56: rewrite it for someone new to the project. What the site is (the overlay, the public site, the Twitch panel, the Mix It Up integration and TCG Bridge), how the pieces connect (one short diagram in text), running it locally (point to `docs/local-dev.md`), checks, deploys and versions (site and bridge), the docs index (every area doc, one line each, matching `CLAUDE.md`'s table), and how work is done (ROADMAP, one feature per PR). Bring `bridge/README.md` up to date with 0.11.0's features and 56.1. No em dashes.
 
 ## Twitch extension
 
