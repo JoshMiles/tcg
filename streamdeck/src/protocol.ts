@@ -46,7 +46,8 @@ export type DeckRequest =
   | { what: 'happy-end' }
   | { what: 'test-pull' }
   | { what: 'show-card'; username: string }
-  | { what: 'skip' };
+  | { what: 'skip' }
+  | { what: 'clear-queue' };
 
 /** `stats` says which stats the keys on the decks show right now (a full list each time, [] = none); the app asks the site for them only then. */
 export type ClientMessage = { t: 'hello'; token: string; protocol: number; version: string } | { t: 'do'; n: number; req: DeckRequest } | { t: 'stats'; want: DeckStatKind[] };
@@ -66,6 +67,7 @@ export function parseRequest(v: unknown): DeckRequest | null {
     case 'happy-end': return { what: 'happy-end' };
     case 'test-pull': return { what: 'test-pull' };
     case 'skip': return { what: 'skip' };
+    case 'clear-queue': return { what: 'clear-queue' };
     case 'show-card': return text(v.username, 40) && v.username ? { what: 'show-card', username: v.username } : null;
     case 'happy-start': return num(v.minutes) && num(v.percent) && (v.kind === 'free' || v.kind === 'discount') ? { what: 'happy-start', minutes: v.minutes, kind: v.kind, percent: v.percent } : null;
     default: return null;

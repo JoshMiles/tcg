@@ -104,12 +104,13 @@ export async function deckPluginChecks(): Promise<void> {
   const home = join(tmp, 'sdPlugin'); // the plugin runs in a copy: the SDK writes logs/ in its working directory
   cpSync(dir, home, { recursive: true });
   let st = state();
+  let skipOk = false; // the Skip next pull key gets the app's answer; the Queue stat key's second press is refused
   const ran: ControlAction[] = [];
   const staffRan: Record<string, unknown>[] = [];
   const serve = async () => {
     const s = new DeckServer({
       file: join(appData, 'TCG Bridge', 'streamdeck.json'), version: '0.0.0', state: () => st, onChange: () => undefined, log: () => undefined, ports: [0],
-      run: async a => { ran.push(a); return a.action === 'skip' ? { ok: false, text: 'The queue is empty' } : { ok: true, text: 'Done' }; },
+      run: async a => { ran.push(a); return a.action === 'skip' && !skipOk ?{ ok: false, text: 'The queue is empty' } : { ok: true, text: 'Done' }; },
       staff: async b => { staffRan.push(b); return { ok: true, text: 'Done' }; },
     });
     await s.start();
@@ -118,7 +119,7 @@ export async function deckPluginChecks(): Promise<void> {
   };
   let server = await serve();
 
-  const keys = { buff: { buff: 'b1' }, 'last-buff': {}, pause: {}, 'happy-hour': { preset: 'p15' }, 'test-pull': {}, 'show-card': { viewer: '@Alice' }, stat: { stat: 'queue' } } as Record<string, Record<string, unknown>>;
+  const keys = { buff: { buff: 'b1' }, 'last-buff': {}, pause: {}, 'happy-hour': { preset: 'p15' }, 'test-pull': {}, 'show-card': { viewer: '@Alice' }, stat: { stat: 'queue' }, skip: {}, 'clear-queue': {}, queue: {} } as Record<string, Record<string, unknown>>;
   const seen: Record<string, { title: string; ok: number; alert: number }> = {};
   const ctx = (name: string) => `ctx-${name}`;
   for (const name of Object.keys(keys)) seen[ctx(name)] = { title: '', ok: 0, alert: 0 };
@@ -210,6 +211,29 @@ export async function deckPluginChecks(): Promise<void> {
     assert.equal(ran.length, 0);
     await answered('stat', () => press('stat'), 'alert');
     assert.deepEqual(ran.pop(), { action: 'skip' });
+
+    // Queue keys (61.2): Skip next pull is one press; Clear queue needs a hold of a second (a short press only says so); Pulls waiting shows the app's number.
+    assert.equal(seen[ctx('skip')].title, 'Skip\nnext pull');
+    assert.equal(seen[ctx('clear-queue')].title, 'Clear\nqueue');
+    await until('the waiting count', () => seen[ctx('queue')].title === 'Waiting\n3');
+    skipOk = true;
+    await answered('skip', () => press('skip'));
+    assert.deepEqual(ran.pop(), { action: 'skip' });
+    await answered('clear-queue', () => press('clear-queue'), 'alert');
+    assert.equal(ran.length, 0, 'a short press does not clear the queue');
+    assert.equal(seen[ctx('clear-queue')].title, 'Hold 1 second\nto clear');
+    down('clear-queue');
+    await wait(1100);
+    await answered('clear-queue', () => up('clear-queue'));
+    assert.deepEqual(ran.pop(), { action: 'clear-queue' });
+    const before = seen[ctx('queue')].ok + seen[ctx('queue')].alert;
+    await press('queue');
+    await wait(200);
+    assert.equal(seen[ctx('queue')].ok + seen[ctx('queue')].alert, before, 'a press on the waiting count does nothing');
+    assert.equal(ran.length, 0);
+    st = state({ stats: { queue: 7 } });
+    server.broadcast();
+    await until('the new waiting count', () => seen[ctx('queue')].title === 'Waiting\n7');
 
     // The app closes and comes back (a new port and token): the keys notice and recover without a restart of the plugin.
     await server.stop();

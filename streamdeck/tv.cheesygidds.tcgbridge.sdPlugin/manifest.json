@@ -2,7 +2,7 @@
   "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
   "UUID": "tv.cheesygidds.tcgbridge",
   "Name": "TCG Bridge",
-  "Version": "0.35.0.0",
+  "Version": "0.36.0.0",
   "Author": "CheesyGidds",
   "Description": "Buffs, pause pulls, happy hours, test pulls, show a card and live stats for the stream, run through the TCG Bridge app on the same PC.",
   "Category": "TCG Bridge",
@@ -134,6 +134,57 @@
       "States": [
         {
           "Image": "imgs/actions/stat",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.skip",
+      "Name": "Skip next pull",
+      "Tooltip": "Skips the next pull in the queue. A paid pull is refunded.",
+      "Icon": "imgs/actions/skip",
+      "PropertyInspectorPath": "ui/skip.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/skip",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.clear-queue",
+      "Name": "Clear queue",
+      "Tooltip": "Hold the key for a second to clear the whole queue. Paid pulls are refunded.",
+      "Icon": "imgs/actions/clear-queue",
+      "PropertyInspectorPath": "ui/clear-queue.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/clear-queue",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.queue",
+      "Name": "Pulls waiting",
+      "Tooltip": "Shows how many pulls are waiting in the queue.",
+      "Icon": "imgs/actions/queue",
+      "PropertyInspectorPath": "ui/queue.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/queue",
           "TitleAlignment": "bottom",
           "FontSize": 12
         }

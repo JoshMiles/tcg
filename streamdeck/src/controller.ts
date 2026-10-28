@@ -33,7 +33,7 @@ export class Keys {
   /** The stats the visible Stat keys show: the app asks the site for them only while this is not empty. */
   private tell(): void {
     const want = new Set<DeckStatKind>();
-    for (const k of this.keys.values()) if (k.kind === 'stat') { const s = statOf(k.settings); if (s) want.add(s); }
+    for (const k of this.keys.values()) if (k.kind === 'stat') { const s = statOf(k.settings); if (s) want.add(s); } else if (k.kind === 'queue') want.add('queue');
     this.link.want([...want]);
   }
 
@@ -49,7 +49,7 @@ export class Keys {
     const k = this.keys.get(id);
     if (!k) return;
     const v = view(k.kind, this.link.state, k.settings, this.now());
-    const title = k.hintUntil > this.now() ? 'Hold 1 second\nto end' : k.skipUntil > this.now() ? 'Press again\nto skip' : v.title;
+    const title = k.hintUntil > this.now() ? `Hold 1 second\nto ${k.kind === 'clear-queue' ? 'clear' : 'end'}` : k.skipUntil > this.now() ? 'Press again\nto skip' : v.title;
     const shown = `${title}|${v.image}`;
     if (shown === k.shown) return;
     k.shown = shown;
@@ -71,7 +71,7 @@ export class Keys {
     k.downAt = this.now();
     k.wasRunning = this.happyRunning();
     if (k.kind === 'stat') return this.pressStat(id, k);
-    if (k.kind !== 'happy') await this.run(k, k.kind, k.settings);
+    if (k.kind !== 'happy' && k.kind !== 'clear-queue' && k.kind !== 'queue') await this.run(k, k.kind, k.settings);
   }
 
   /** Only the Queue stat does anything: the first press says how to skip, a second within SKIP_MS skips the next pull. */
@@ -88,13 +88,13 @@ export class Keys {
     await this.run(k, 'stat', k.settings);
   }
 
-  /** Happy hour: a press starts one; while one runs, only a press of a second or more ends it. */
+  /** Happy hour: a press starts one; while one runs, only a press of a second or more ends it. Clear queue: only a press of a second or more clears. */
   async up(id: string): Promise<void> {
     const k = this.keys.get(id);
-    if (!k || k.kind !== 'happy') return;
-    if (!k.wasRunning) return this.run(k, 'happy', k.settings);
+    if (!k || (k.kind !== 'happy' && k.kind !== 'clear-queue')) return;
+    if (k.kind === 'happy' && !k.wasRunning) return this.run(k, 'happy', k.settings);
     if (this.now() - k.downAt >= HOLD_MS) {
-      const r = await this.link.request({ what: 'happy-end' });
+      const r = await this.link.request(k.kind === 'happy' ? { what: 'happy-end' } : { what: 'clear-queue' });
       await (r.ok ? k.handle.showOk() : k.handle.showAlert());
       return;
     }
