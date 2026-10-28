@@ -1,8 +1,9 @@
 // Draws the app icon and the three tray icons from the site's own icon (public/brand/icon.png). Run from bridge/: npm run icons
 // Writes build/icon.png (256, for electron-builder, which turns it into the .ico), renderer/icon.png (256, for the windows) and assets/tray-*.png (32).
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Resvg } from '@resvg/resvg-js';
+import { GLYPHS } from '../../streamdeck/src/keys';
 
 const root = join(__dirname, '..');
 const png = (svg: string, size: number): Buffer => Buffer.from(new Resvg(svg, { fitTo: { mode: 'width', value: size } }).render().asPng());
@@ -25,4 +26,18 @@ const BADGES = {
 writeFileSync(join(root, 'build', 'icon.png'), png(svg(), 256));
 writeFileSync(join(root, 'renderer', 'icon.png'), png(svg(), 256));
 for (const [level, badge] of Object.entries(BADGES)) writeFileSync(join(root, 'assets', `tray-${level}.png`), png(svg(badge), 32));
+
+// The Stream Deck plugin's images (streamdeck/): the plugin and category icons from the app icon, and one white glyph per action for Stream Deck's action list.
+// The action images reuse the key glyphs, so the list and the keys look alike. Each has a 2x file; the plugin icon is 256, the action icons 20.
+const sd = join(root, '..', 'streamdeck', 'tv.cheesygidds.tcgbridge.sdPlugin', 'imgs');
+for (const d of ['plugin', 'actions']) mkdirSync(join(sd, d), { recursive: true });
+const both = (path: string, make: (size: number) => Buffer, size: number) => {
+  writeFileSync(join(sd, `${path}.png`), make(size));
+  writeFileSync(join(sd, `${path}@2x.png`), make(size * 2));
+};
+both('plugin/icon', s => png(svg(), s), 256);
+both('plugin/category', s => png(svg(), s), 28);
+for (const [file, glyph] of [['buff', 'buff'], ['last-buff', 'last-buff'], ['pause', 'pause'], ['happy-hour', 'happy']] as const) {
+  both(`actions/${file}`, s => png(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144" width="${s}" height="${s}"><g fill="#fff" stroke="#fff" stroke-width="0">${GLYPHS[glyph]}</g></svg>`, s), 20);
+}
 console.log('Icons written');

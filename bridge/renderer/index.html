@@ -124,6 +124,13 @@
 
             <section class="card">
               <div class="card-head">
+                <span class="badge"><svg class="i"><use href="#i-keyboard"/></svg></span>
+                <div class="card-title"><h2>Stream Deck</h2><p class="line"><span id="deck-dot" class="dot off"></span><span id="deck-state"></span></p></div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
                 <span class="badge"><svg class="i"><use href="#i-globe"/></svg></span>
                 <div class="card-title"><h2>Site</h2><p class="line"><span id="site-dot" class="dot"></span><span id="site-state"></span></p></div>
               </div>
@@ -362,6 +369,18 @@
             <label class="switch-row"><span><b>Start with Windows</b><small>TCG Bridge opens in the tray when you sign in.</small></span><input id="autostart" class="switch" type="checkbox"></label>
             <label class="switch-row"><span><b>Alert me when a link drops while live</b><small>A Windows notification when the site, Mix It Up or OBS drops during a stream.</small></span><input id="alerts" class="switch" type="checkbox"></label>
             <label class="switch-row"><span><b>Start Mix It Up with TCG Bridge</b><small>Opens Mix It Up when this app starts, if it is not running.</small></span><input id="mix-autostart" class="switch" type="checkbox"></label>
+          </section>
+          <section class="card">
+            <h2 class="plain-title">Stream Deck plugin</h2>
+            <label class="switch-row"><span><b>Stream Deck plugin</b><small>Lets the TCG Bridge plugin in the Stream Deck app talk to this app, on this PC only. Install turns it on.</small></span><input id="deck-on" class="switch" type="checkbox"></label>
+            <p id="deck-offer" class="note" hidden>The Stream Deck plugin is out of date for this version of TCG Bridge.</p>
+            <div class="row tools">
+              <button type="button" id="deck-install" class="btn plain"><svg class="i"><use href="#i-download"/></svg><span id="deck-install-label">Install Stream Deck plugin</span></button>
+              <button type="button" id="deck-offer-dismiss" class="btn plain" hidden>Not now</button>
+            </div>
+            <p id="deck-install-result" class="result" role="status"></p>
+            <p id="deck-error" class="bad-text" role="alert"></p>
+            <p class="muted small">Needs the Elgato Stream Deck app. The plugin adds Buff, Last buff again, Pause pulls and Happy hour keys; the Mix It Up Stream Deck commands and the Website buttons on the Control tab keep working.</p>
           </section>
           <section class="card" id="notice-card" hidden>
             <h2 class="plain-title">Staff notices</h2>

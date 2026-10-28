@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Buff</title>
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+<label for="buff">Buff or quick action</label>
+<select id="buff"><option value="">Waiting for TCG Bridge</option></select>
+<div class="note" id="note">The list comes from the TCG Bridge app. Open it and switch on the Stream Deck plugin in Settings.</div>
+<script src="pi.js"></script>
+<script>
+const sel = document.getElementById('buff');
+const note = document.getElementById('note');
+function fill() {
+  const keep = typeof settings.buff === 'string' ? settings.buff : '';
+  sel.replaceChildren();
+  const none = document.createElement('option');
+  none.value = '';
+  none.textContent = offer.connected ? 'Pick one' : 'Waiting for TCG Bridge';
+  sel.appendChild(none);
+  const list = offer.buffs.slice();
+  if (keep && !list.some(b => b.id === keep)) list.unshift({ id: keep, name: settings.name || keep });
+  for (const b of list) {
+    const o = document.createElement('option');
+    o.value = b.id;
+    o.textContent = b.name;
+    sel.appendChild(o);
+  }
+  sel.value = keep;
+  note.textContent = !offer.connected ? 'The list comes from the TCG Bridge app. Open it and switch on the Stream Deck plugin in Settings.'
+    : !offer.ready ? 'TCG Bridge is open but not paired with the site yet.' : 'The key shows the buff name.';
+}
+onSettings = fill;
+onOffer = fill;
+sel.addEventListener('change', () => {
+  const b = offer.buffs.find(x => x.id === sel.value);
+  save({ buff: sel.value, name: b ? b.name : '' });
+});
+</script>
+</body>
+</html>

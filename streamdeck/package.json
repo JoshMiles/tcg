@@ -1,0 +1,22 @@
+{
+  "name": "tcg-bridge-streamdeck",
+  "version": "0.24.0",
+  "description": "The TCG Bridge Stream Deck plugin (ROADMAP 57.13). Built and packed by the bridge build; its version is always the bridge's.",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "node scripts/build.mjs",
+    "pack": "npm run build && node scripts/pack.mjs"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^3.0.3",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@elgato/cli": "^1.10.3",
+    "@types/node": "^24.19.2",
+    "@types/ws": "^8.18.2",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}

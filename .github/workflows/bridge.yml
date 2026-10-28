@@ -1,7 +1,7 @@
 name: TCG Bridge
 
-# Pull requests that touch the desktop app typecheck it, run its checks and enforce the version rule (a change under bridge/ raises the minor
-# of bridge/package.json). A push to main that changes that version builds the Windows installer and publishes the release `bridge-v<version>`
+# Pull requests that touch the desktop app typecheck it, run its checks and enforce the version rule (a change under bridge/ or streamdeck/ raises
+# the minor of bridge/package.json). The Stream Deck plugin in streamdeck/ is typechecked and built here too, and packed into the installer by `npm run dist`. A push to main that changes that version builds the Windows installer and publishes the release `bridge-v<version>`
 # itself, in the same run (a tag pushed with the workflow's token would not start another run). A hand-pushed tag `bridge-v<version>` still
 # builds and publishes the same way. The app updates itself from that release.
 on:
@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - 'bridge/**'
+      - 'streamdeck/**'
       - '.github/workflows/bridge.yml'
   push:
     branches: [main]
@@ -45,6 +46,11 @@ jobs:
         run: npx tsx scripts/check-version.ts HEAD^1
       - run: npm run typecheck
       - run: npm run check
+      - name: Stream Deck plugin (typecheck, build, validate and pack with Elgato's CLI)
+        run: |
+          npm --prefix ../streamdeck ci
+          npm --prefix ../streamdeck run typecheck
+          npm --prefix ../streamdeck run pack
 
   # Decides whether this push releases: a hand-pushed tag always does; a push to main does when bridge/package.json's version differs from the
   # previous commit's. Either way it skips (with a notice) when that release already exists.

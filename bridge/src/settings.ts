@@ -20,9 +20,11 @@ export interface Settings {
   scenePause: ScenePauseSettings;
   /** Which OBS text source shows which stat (ROADMAP 57.4); '' = not mapped, and nothing is written for it. */
   obsStats: StatMap;
+  /** The Stream Deck plugin link (ROADMAP 57.13), off until switched on (Install turns it on); `deckOfferedFor` = the app version the "Update the Stream Deck plugin" offer was last shown for. */
+  streamDeck: boolean; deckOfferedFor: string;
 }
 export const DEFAULT_SITE = 'https://cheesytcg.app';
-export const defaults = (): Settings => ({ site: DEFAULT_SITE, token: '', pairedAs: '', startWithWindows: true, obsEnabled: false, obsAddress: 'ws://127.0.0.1:4455', obsPassword: '', obsStartReplay: false, alerts: true, startMixItUp: false, mixItUpPath: '', lastSeenVersion: '', controlKey: '', hotkeys: noHotkeys(), feed: defaultFeed(), summary: false, startObs: false, obsPath: '', notices: defaultNotices(), scenePause: defaultScenePause(), obsStats: noStatMap() });
+export const defaults = (): Settings => ({ site: DEFAULT_SITE, token: '', pairedAs: '', startWithWindows: true, obsEnabled: false, obsAddress: 'ws://127.0.0.1:4455', obsPassword: '', obsStartReplay: false, alerts: true, startMixItUp: false, mixItUpPath: '', lastSeenVersion: '', controlKey: '', hotkeys: noHotkeys(), feed: defaultFeed(), summary: false, startObs: false, obsPath: '', notices: defaultNotices(), scenePause: defaultScenePause(), obsStats: noStatMap(), streamDeck: false, deckOfferedFor: '' });
 
 export interface Cipher { encrypt(plain: string): Promise<Buffer>; decrypt(data: Buffer): Promise<string> }
 export interface SettingsStore { load(): Promise<Settings>; save(s: Settings): Promise<void> }
@@ -54,6 +56,8 @@ export class FileSettingsStore implements SettingsStore {
       s.notices = cleanNoticeSwitches(raw.notices);
       s.scenePause = cleanScenePause(raw.scenePause);
       s.obsStats = cleanStatMap(raw.obsStats);
+      if (typeof raw.streamDeck === 'boolean') s.streamDeck = raw.streamDeck;
+      if (typeof raw.deckOfferedFor === 'string') s.deckOfferedFor = raw.deckOfferedFor.slice(0, 40);
       const hk = raw.hotkeys as Record<string, unknown> | undefined;
       for (const k of HOTKEYS) if (typeof hk?.[k] === 'string') s.hotkeys[k] = (hk[k] as string).slice(0, 40);
       if (typeof raw.obsPassword === 'string' && raw.obsPassword) s.obsPassword = await this.cipher.decrypt(Buffer.from(raw.obsPassword, 'base64')).catch(() => '');
@@ -67,7 +71,7 @@ export class FileSettingsStore implements SettingsStore {
     const seal = async (plain: string) => (plain ? (await this.cipher.encrypt(plain)).toString('base64') : '');
     const out = {
       site: s.site, pairedAs: s.pairedAs, startWithWindows: s.startWithWindows, obsEnabled: s.obsEnabled, obsAddress: s.obsAddress, obsStartReplay: s.obsStartReplay,
-      alerts: s.alerts, startMixItUp: s.startMixItUp, mixItUpPath: s.mixItUpPath, lastSeenVersion: s.lastSeenVersion, controlKey: s.controlKey, hotkeys: s.hotkeys, feed: s.feed, summary: s.summary, startObs: s.startObs, obsPath: s.obsPath, notices: s.notices, scenePause: s.scenePause, obsStats: s.obsStats,
+      alerts: s.alerts, startMixItUp: s.startMixItUp, mixItUpPath: s.mixItUpPath, lastSeenVersion: s.lastSeenVersion, controlKey: s.controlKey, hotkeys: s.hotkeys, feed: s.feed, summary: s.summary, startObs: s.startObs, obsPath: s.obsPath, notices: s.notices, scenePause: s.scenePause, obsStats: s.obsStats, streamDeck: s.streamDeck, deckOfferedFor: s.deckOfferedFor,
       obsPassword: await seal(s.obsPassword), token: await seal(s.token),
     };
     const tmp = this.file + '.tmp';

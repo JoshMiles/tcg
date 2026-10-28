@@ -1,0 +1,93 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "UUID": "tv.cheesygidds.tcgbridge",
+  "Name": "TCG Bridge",
+  "Version": "0.24.0.0",
+  "Author": "CheesyGidds",
+  "Description": "Buffs, pause pulls and happy hours for the stream, run through the TCG Bridge app on the same PC.",
+  "Category": "TCG Bridge",
+  "CategoryIcon": "imgs/plugin/category",
+  "Icon": "imgs/plugin/icon",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.9"
+  },
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "Nodejs": {
+    "Version": "20"
+  },
+  "CodePath": "bin/plugin.js",
+  "Actions": [
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.buff",
+      "Name": "Buff",
+      "Tooltip": "Fires one Stream Deck buff or quick action.",
+      "Icon": "imgs/actions/buff",
+      "PropertyInspectorPath": "ui/buff.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/buff",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.last-buff",
+      "Name": "Last buff again",
+      "Tooltip": "Fires the last buff again.",
+      "Icon": "imgs/actions/last-buff",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/last-buff",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.pause",
+      "Name": "Pause pulls",
+      "Tooltip": "Pauses or resumes pack pulls.",
+      "Icon": "imgs/actions/pause",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/pause",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.happy-hour",
+      "Name": "Happy hour",
+      "Tooltip": "Starts a happy hour. While one runs, hold the key for a second to end it.",
+      "Icon": "imgs/actions/happy-hour",
+      "PropertyInspectorPath": "ui/happy-hour.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/happy-hour",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    }
+  ]
+}

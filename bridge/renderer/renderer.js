@@ -252,6 +252,20 @@ function renderObsStats() {
   }));
 }
 
+// The Stream Deck plugin (57.13): connected or not on the Status tab; the switch, Install and the once-only update offer in Settings.
+function renderDeck() {
+  const d = state.deck;
+  if (!d) return;
+  const up = d.on && !d.error && d.connected;
+  setDot('deck-dot', up ? 'ok' : d.on && !d.error ? 'warn' : d.error ? '' : 'off');
+  $('deck-state').textContent = d.error ? d.error : !d.on ? 'Off. Switch it on in Settings.' : up ? 'Plugin connected' : d.installed ? 'Not connected. Open the Stream Deck app.' : 'Not connected. The plugin is not installed yet.';
+  $('deck-on').checked = d.on;
+  $('deck-error').textContent = d.error;
+  $('deck-offer').hidden = !d.offer;
+  $('deck-offer-dismiss').hidden = !d.offer;
+  $('deck-install-label').textContent = d.offer ? 'Update the Stream Deck plugin' : d.installed ? 'Reinstall Stream Deck plugin' : 'Install Stream Deck plugin';
+}
+
 function render() {
   if (!state) return;
   const svc = state.service;
@@ -289,6 +303,7 @@ function render() {
   $('obs-path').textContent = state.tools.obsPath;
   renderBanners();
   renderControl();
+  renderDeck();
   renderScenePause();
   renderObsStats();
   const level = svc ? svc.tray : 'offline';
@@ -379,6 +394,8 @@ $('unpair').addEventListener('click', () => window.bridge.unpair());
 $('autostart').addEventListener('change', e => window.bridge.setStartWithWindows(e.target.checked));
 
 $('alerts').addEventListener('change', e => window.bridge.setAlerts(e.target.checked));
+$('deck-on').addEventListener('change', e => window.bridge.setStreamDeck(e.target.checked));
+$('deck-offer-dismiss').addEventListener('click', () => window.bridge.dismissDeckOffer());
 $('mix-autostart').addEventListener('change', e => window.bridge.setStartMixItUp(e.target.checked));
 $('feed-on').addEventListener('change', e => window.bridge.setFeed({ on: e.target.checked }));
 $('feed-top').addEventListener('change', e => window.bridge.setFeed({ onTop: e.target.checked }));
@@ -431,6 +448,7 @@ action('open-logs', 'help-result', () => window.bridge.openLogs());
 action('open-backups', 'backup-result', () => window.bridge.openBackups());
 action('copy-diagnostics', 'help-result', () => window.bridge.copyDiagnostics());
 action('check-update', 'update-result', () => window.bridge.checkUpdate());
+action('deck-install', 'deck-install-result', () => window.bridge.installStreamDeck());
 
 $('control-pause').addEventListener('change', async e => {
   const r = await window.bridge.setPause(e.target.checked);

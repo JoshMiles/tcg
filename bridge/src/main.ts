@@ -1,13 +1,16 @@
 // TCG Bridge, the Electron glue: one instance, a tray icon, a small window, auto start and updates. The logic is in the other modules.
 import { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, Menu, nativeImage, Notification, safeStorage, shell, Tray, type MenuItemConstructorOptions } from 'electron';
 import { autoUpdater } from 'electron-updater';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { hostname, release, tmpdir, version as osVersion } from 'node:os';
 import { dirname, join } from 'node:path';
 import { Alerts, snapshotOf } from './alerts';
 import { aboutParts, commitUrl, readBuildInfo, stampText } from './buildinfo';
 import { Ledger } from './bucks';
 import { buttonUrl, ControlServer, HOTKEY_ACTION, HOTKEYS, Hotkeys, newControlKey, type ControlAction, type ControlResult, type HotkeyMap, type HotkeyName } from './control';
+import { DeckServer } from './deck';
+import type { DeckState } from './deckprotocol';
+import { installedPluginVersion, PLUGIN_FILE, pluginOutdated, realEnv, streamDeckAppFound } from './deckinstall';
 import { diagnosticsText } from './diagnostics';
 import { HAPPY_PRESETS, happyText, type HappyFacts } from './happyhour';
 import { cleanFeed, cleanFeedSettings, cleanSummary, shouldPlay, summaryMarkdown, type FeedSettings, type Summary } from './feed';
@@ -61,6 +64,9 @@ let service: BridgeService | null = null;
 let ledger: Ledger | null = null; // every deduct and add this PC made (bucks.ts), kept across reconnects
 let client: SiteClient | null = null;
 let control: ControlServer | null = null; // the Stream Deck buttons (control.ts)
+let deck: DeckServer | null = null; // the link to the Stream Deck plugin (deck.ts), only while the Settings switch is on
+let deckFactsAt = 0; // the Stream Deck app and the installed plugin are looked up at most every 5 seconds
+let deckFacts = { found: false, installed: '' };
 let hotkeys: Hotkeys | null = null;
 let hotkeyErrors: Partial<Record<HotkeyName, string>> = {};
 let paused: boolean | null = null; // pulls paused on the site; null until the site has said
@@ -106,7 +112,22 @@ const buttons = (): { label: string; url: string }[] => {
     ...buffs.map(b => ({ label: `Buff: ${b.name}`, url: buttonUrl(key, `buff/${encodeURIComponent(b.id)}`) })),
   ];
 };
+/** What the Status and Settings tabs show about the Stream Deck plugin (57.13). */
+function deckInfo(): object {
+  if (Date.now() - deckFactsAt >= 5000) {
+    deckFactsAt = Date.now();
+    const env = realEnv();
+    deckFacts = { found: streamDeckAppFound(env), installed: installedPluginVersion(env) };
+  }
+  return {
+    on: settings.streamDeck, error: deck?.error ?? '', connected: !!deck?.connected, found: deckFacts.found, installed: deckFacts.installed,
+    offer: settings.deckOfferedFor !== app.getVersion() && pluginOutdated(deckFacts.installed, app.getVersion()), // "Update the Stream Deck plugin", once per app version
+  };
+}
+const deckState = (): DeckState => ({ ready: !!client, paused, reason: pauseReason, happy, buffs });
+const pluginFile = (): string => (app.isPackaged ? join(process.resourcesPath, PLUGIN_FILE) : join(__dirname, '..', '..', 'streamdeck', 'dist', PLUGIN_FILE));
 const appState = (): object => demoState ?? ({
+  deck: deckInfo(),
   startNote,
   paired: !!settings.token,
   site: settings.site,
@@ -160,6 +181,7 @@ function push(): void {
   tray?.setToolTip(trayTip(level));
   if (win && !win.isDestroyed()) win.webContents.send('state', appState());
   tickAlerts();
+  deck?.broadcast();
   scenePause?.update(settings.scenePause, !!service?.state.obs.connected, service?.state.obs.scene ?? '');
   const menu =`${paused}${!!client}${!!happy}${staff}${tradingPaused}${staff ? sceneList().join('|') : ''}${update.stage === 'available' ? update.version : ''}`;
   if (menu !== menuFor) { menuFor = menu; tray?.setContextMenu(trayMenu()); }
@@ -185,6 +207,44 @@ async function runControl(a: ControlAction): Promise<ControlResult> {
   } catch (e) {
     return { ok: false, text: e instanceof Unauthorized ? 'Pair again' : e instanceof Error ? e.message : 'Something went wrong' };
   }
+}
+
+/** Starts or stops the link to the Stream Deck plugin to match the Settings switch (57.13). A key runs through runControl, like the Control tab and the tray. */
+async function applyDeck(): Promise<void> {
+  if (settings.streamDeck && !deck) {
+    const d = new DeckServer({
+      file: join(app.getPath('userData'), 'streamdeck.json'), version: app.getVersion(), state: deckState, onChange: push, log,
+      run: async a => {
+        const r = await runControl(a);
+        if (!r.ok) log(`Stream Deck key ${a.action} refused: ${r.text}`);
+        return r;
+      },
+    });
+    deck = d;
+    await d.start();
+    log(d.error || `Stream Deck link is listening on 127.0.0.1:${d.listeningPort}`);
+  } else if (!settings.streamDeck && deck) {
+    const d = deck;
+    deck = null;
+    await d.stop();
+    log('Stream Deck link is off');
+  }
+  push();
+}
+
+/** Install Stream Deck plugin: the Stream Deck app opens the packed file and installs or updates the plugin. Turns the link on. */
+async function installDeck(): Promise<{ ok: boolean; text: string }> {
+  if (!streamDeckAppFound(realEnv())) return { ok: false, text: 'Stream Deck app not found. Install the Elgato Stream Deck app, then try again.' };
+  const file = pluginFile();
+  if (!existsSync(file)) return { ok: false, text: 'This build has no plugin file (a dev run needs "npm run deck" in bridge/ first).' };
+  settings = { ...settings, streamDeck: true, deckOfferedFor: app.getVersion() };
+  await store.save(settings);
+  await applyDeck();
+  const error = await shell.openPath(file);
+  log(error ? `Could not open the Stream Deck plugin: ${error}` : 'Opened the Stream Deck plugin file');
+  deckFactsAt = 0;
+  push();
+  return error ? { ok: false, text: 'Could not open the plugin file.' } : { ok: true, text: 'Opened. The Stream Deck app asks you to confirm; then find "TCG Bridge" in its list of actions.' };
 }
 
 /** Asks the site whether pulls are paused and which buffs have a button. Quiet when the site cannot be reached. */
@@ -622,6 +682,18 @@ function setupIpc(): void {
   ipcMain.handle('pause', (_e, on: boolean) => runControl({ action: 'pause', on: !!on }));
   ipcMain.handle('happy-start', (_e, minutes: number, kind: string, percent: number) => runControl({ action: 'happy-hour-start', minutes: Number(minutes), kind: kind === 'free' ? 'free' : 'discount', percent: Number(percent) })); // the site checks the numbers
   ipcMain.handle('happy-end', () => runControl({ action: 'happy-hour-end' }));
+  // ── Stream Deck plugin (57.13) ──
+  ipcMain.handle('deck-switch', async (_e, on: boolean) => {
+    settings = { ...settings, streamDeck: !!on };
+    await store.save(settings);
+    await applyDeck();
+  });
+  ipcMain.handle('deck-install', () => installDeck());
+  ipcMain.handle('deck-dismiss-offer', async () => { // the update offer is shown once per app version
+    settings = { ...settings, deckOfferedFor: app.getVersion() };
+    await store.save(settings);
+    push();
+  });
   ipcMain.handle('copy-button', (_e, i: number) => {
     const b = buttons()[Math.trunc(Number(i))];
     if (!b) return { ok: false, text: 'That button is gone' };
@@ -819,7 +891,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', showWindow);
-  app.on('before-quit', () => { quitting = true; hotkeys?.stop(); });
+  app.on('before-quit', () => { quitting = true; hotkeys?.stop(); void deck?.stop(); }); // stop() removes streamdeck.json first
   app.on('window-all-closed', () => { /* stays in the tray */ });
   process.on('unhandledRejection', e => log(`Error: ${e instanceof Error ? e.message : String(e)}`));
   void app.whenReady().then(async () => {
@@ -858,6 +930,7 @@ async function launchApp(): Promise<void> {
   if (control.error) log(control.error);
   hotkeys = new Hotkeys(globalShortcut, name => { void runControl(HOTKEY_ACTION[name]); });
   hotkeyErrors = hotkeys.apply(settings.hotkeys);
+  await applyDeck();
   applyAutoStart();
   setupIpc();
   createWindow(!settings.token); // paired: start minimised in the tray
