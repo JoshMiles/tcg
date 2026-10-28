@@ -1,7 +1,7 @@
 {
   "name": "tcg-bridge",
   "productName": "TCG Bridge",
-  "version": "0.39.0",
+  "version": "0.41.0",
   "description": "Carries the TCG site's Mix It Up requests to Mix It Up on the stream PC.",
   "private": true,
   "author": "Cheesygidds TCG",

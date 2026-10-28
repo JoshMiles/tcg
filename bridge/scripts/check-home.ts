@@ -31,6 +31,16 @@ export function homeChecks(): void {
   assert.deepEqual(filterFeed(rows, 'jobs').map(r => r.kind), ['job', 'job']);
   assert.ok(filterFeed(rows, 'jobs').some(r => r.badge === '!'), 'a failed job is in Jobs');
 
+  // Twitch events (58.5) are event rows: E when the award ran or nothing was refused, ! with "refused" when the award failed (paused included).
+  const tw = mergeFeed([], [
+    { at: t0 + 3000, time: '19:28:03', event: 'Channel point redeem', viewer: 'cat', amount: '-', ok: true, result: 'Twitch channel points: redeemed Open a pack' },
+    { at: t0 + 2000, time: '19:28:02', event: 'Channel point redeem', viewer: 'cat', amount: '-', ok: false, result: 'Ignored: Twitch channel points: Open a pack failed for Open a pack: awards paused' },
+    { at: t0 + 1000, time: '19:28:01', event: 'Stream online', viewer: '-', amount: '-', ok: true, result: 'The stream went online' },
+  ], []);
+  assert.deepEqual(filterFeed(tw, 'events').map(r => [r.badge, r.tag]), [['E', 'rewarded'], ['!', 'refused'], ['E', 'rewarded']], 'Twitch events are under Events');
+  assert.match(tw[1].text, /awards paused$/);
+  assert.equal(tw[2].text, 'Stream online: The stream went online');
+
   // The pull list keeps the newest 500.
   let held: PullEntry[] = [];
   for (let i = 0; i < PULLS_KEEP + 5; i++) held = keepPull(held, pull(i, 'x', 1));
@@ -66,13 +76,15 @@ export function homeChecks(): void {
     const before = [...html.slice(0, at).matchAll(/data-panel="([\w-]+)"/g)];
     return before[before.length - 1][1];
   };
-  for (const id of ['chip-site', 'chip-mix', 'chip-obs', 'chip-deck', 'card-pulls', 'card-happy', 'card-queue', 'card-numbers', 'card-feed', 'card-ready']) assert.equal(pageOf(id), 'home', `${id} is on Home`);
+  for (const id of ['chip-site', 'chip-mix', 'chip-obs', 'chip-deck', 'card-pulls', 'card-awards', 'card-happy', 'card-queue', 'card-numbers', 'card-feed', 'card-ready']) assert.equal(pageOf(id), 'home', `${id} is on Home`);
   assert.equal(pageOf('card-happy-custom'), 'controls', 'Custom... lands on the Controls page');
   assert.equal(pageOf('card-history'), 'feed');
   assert.ok(!/id="rail-feed"[^>]*hidden/.test(html) && !/data-tab="feed"[^>]*hidden/.test(html), 'Feed and history is in the sidebar for everyone');
   assert.ok(/<section[^>]*id="card-activity"[^>]*hidden/.test(html), 'the Activity part starts hidden (staff PCs only)');
   const js = readFileSync(join(__dirname, '..', 'renderer', 'renderer.js'), 'utf8');
   assert.ok(js.includes("'card-happy-custom'"), 'card-happy-custom is a jump target in renderer.js');
+  assert.ok(js.includes('window.bridge.setPauseAwards(') && html.includes('id="control-awards"'), 'Pause channel point awards (58.5) is a button wired to the control path');
+  assert.ok(readFileSync(join(__dirname, '..', 'src', 'main.ts'), 'utf8').includes("label: 'Pause channel point awards'"), 'and a tray item');
   for (const c of ['site', 'mix', 'obs', 'deck']) assert.ok(js.includes(`'chip-${c}'`), `the ${c} chip is wired in renderer.js`);
   for (const c of ['account', 'mix', 'obs', 'deck']) assert.equal(pageOf(`detail-${c}`), 'connections', `the ${c} connection is on Connections`);
   assert.ok(/class="feed-list"[^>]*aria-label="[^"]+"/.test(html) || /aria-label="[^"]+"[^>]*class="feed-list"/.test(html), 'the feed is a list with an accessible name');

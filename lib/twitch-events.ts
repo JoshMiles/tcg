@@ -8,6 +8,7 @@ import { setLiveFromBridge } from './twitch-live';
 import { readChannelStatus } from './twitch-channel';
 import { awardRedemption } from './twitch-awards';
 import { rewardTwitchEvent } from './event-rewards';
+import { noteFeedEvent } from './mixitup';
 import {
   EVENTS_KEPT, EVENT_TYPES, REWARD_EVENT, SEEN_TTL_S, eventChannelId, eventText,
   type CleanEvent, type EventLine,
@@ -51,7 +52,9 @@ export async function recordTwitchEvent(e: CleanEvent, now = Date.now(), fetchFn
     const line: EventLine = { id: e.messageId, type: e.type, at: now, text: eventText(e.type, e.event), ...(result ? { result } : {}) };
     await kv.lpush(EVENTS_KEY, line);
     await kv.ltrim(EVENTS_KEY, 0, EVENTS_KEPT - 1);
-    if ((e.type === 'stream.online' || e.type === 'stream.offline') && !channel.testing) {
+    const stream = e.type === 'stream.online' || e.type === 'stream.offline';
+    if (stream && !channel.testing) await noteFeedEvent({ at: now, username: '', event: e.type === 'stream.online' ? 'stream-online' : 'stream-offline', ok: true, detail: line.text }); // 58.5: the app's event feed
+    if (stream && !channel.testing) {
       await setLiveFromBridge(e.type === 'stream.online');
       return { status: 'recorded', live: e.type === 'stream.online' };
     }

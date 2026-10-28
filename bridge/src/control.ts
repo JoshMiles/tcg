@@ -7,7 +7,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 export const CONTROL_PORT = 47653;
 
 /** What a button or hotkey asks for. `on` is for the window's pause switch; a button or hotkey toggles. */
-export type ControlAction = { action: 'buff'; id: string } | { action: 'pause'; on?: boolean } | { action: 'refresh' } | { action: 'last-buff' } | { action: 'skip' } | { action: 'clear-queue' } | { action: 'status' }
+export type ControlAction = { action: 'buff'; id: string } | { action: 'pause'; on?: boolean } | { action: 'pause-awards'; on?: boolean } | { action: 'refresh' } | { action: 'last-buff' } | { action: 'skip' } | { action: 'clear-queue' } | { action: 'status' }
   | { action: 'happy-hour-start'; minutes: number; kind: 'free' | 'discount'; percent?: number } | { action: 'happy-hour-end' };
 export interface ControlResult { ok: boolean; text: string }
 

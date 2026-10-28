@@ -163,6 +163,10 @@ function renderControl() {
   $('pulls-state').textContent = c.paused === null ? 'Not known yet' : c.paused ? 'Paused' : 'Open';
   $('control-pause').textContent = c.paused ? 'Resume pulls' : 'Pause pulls';
   $('control-pause').disabled = c.paused === null;
+  setDot('awards-dot', c.awardsPaused === null ? 'off' : c.awardsPaused ? 'warn' : 'ok');
+  $('awards-state').textContent = c.awardsPaused === null ? 'Not known yet' : c.awardsPaused ? 'Paused' : 'On';
+  $('control-awards').textContent = c.awardsPaused ? 'Resume channel point awards' : 'Pause channel point awards';
+  $('control-awards').disabled = c.awardsPaused === null;
   const byScene = c.paused && typeof c.reason === 'string' && c.reason.startsWith('scene ');
   $('control-reason').hidden = !byScene;
   $('control-reason').textContent = byScene ? 'Paused by scene: ' + c.reason.slice(6) : '';
@@ -677,6 +681,15 @@ $('control-pause').addEventListener('click', async () => {
   $('control-pause').disabled = false;
   $('control-pause-result').textContent = r.text;
   $('control-pause-result').className = 'result ' + (r.ok ? 'ok' : 'fail');
+});
+$('control-awards').addEventListener('click', async () => {
+  const c = state && state.control;
+  if (!c || c.awardsPaused === null) return;
+  $('control-awards').disabled = true;
+  const r = await window.bridge.setPauseAwards(!c.awardsPaused);
+  $('control-awards').disabled = false;
+  $('control-awards-result').textContent = r.text;
+  $('control-awards-result').className = 'result ' + (r.ok ? 'ok' : 'fail');
 });
 // Happy hour (57.3): the site keeps the end time; this only counts down to the `endsAt` it last sent. Home has the presets, Controls the custom form.
 const clockText = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };

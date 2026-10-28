@@ -6,9 +6,10 @@ import { Panel } from '../components/ui';
 import { disconnectTwitchBotAction, disconnectTwitchChannelAction, setReplyAsAction } from './bridge-actions';
 
 /** `listening`: "TCG Bridge listening on STREAM-PC since ..., last event ..." (58.2), null when the app is not; `problem` says why not; `events` are the newest forwarded events.
+ *  58.5: `awardsPaused` = channel point awards are paused from TCG Bridge.
  *  58.6: `chat` = the channel allowed chat (else "Reconnect to allow chat"); `chatLine` is set while chat comes through TCG Bridge; `bot` is the optional bot account. */
 export interface TwitchChannelView {
-  login: string; scopes: string[]; since: string; by: string; testing: boolean; testingLine: string; listening: string | null; problem: string; events: { text: string; ago: string }[];
+  login: string; scopes: string[]; since: string; by: string; testing: boolean; testingLine: string; awardsPaused: boolean; listening: string | null; problem: string; events: { text: string; ago: string }[];
   chat: boolean; chatLine: string | null; bot: { login: string; since: string; by: string } | null; replyAs: 'channel' | 'bot';
 }
 
@@ -23,6 +24,7 @@ export function TwitchChannelCard({ channel, ready }: { channel: TwitchChannelVi
           <p className="text-gray-200">Connected as <strong>{channel.login}</strong> since {channel.since}, by {channel.by}.</p>
           {channel.testing && <p role="status" className="text-amber-300">{channel.testingLine}</p>}
           <p className="text-xs text-gray-500">Allowed: {channel.scopes.join(', ')}.</p>
+          {channel.awardsPaused && <p role="status" className="text-amber-300">Channel point awards are paused (from TCG Bridge). Redemptions are recorded, but no award runs.</p>}
           {channel.listening ? <p className="text-emerald-300">{channel.listening}.</p> : <p className="text-amber-300">{channel.problem}.</p>}
           {!channel.chat && <p role="status" className="text-amber-300">Reconnect to allow chat. Chat commands stay off until the channel is connected again; everything else keeps working.</p>}
           {channel.chatLine && <p className="text-emerald-300">{channel.chatLine}</p>}

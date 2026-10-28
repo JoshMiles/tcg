@@ -10,7 +10,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { same, type ControlAction, type ControlResult } from './control';
 import { Unauthorized } from './site';
 import type { StaffTools } from './staff';
-import { CLOSE_REFUSED, DECK_HOST, DECK_PORTS, DECK_STATS, HELLO_MS, MAX_MESSAGE, PROTOCOL, parseClient, type DeckLinkFile, type DeckRequest, type DeckState, type DeckStaff, type DeckStatKind, type DeckStats, type ServerMessage } from './deckprotocol';
+import { CLOSE_REFUSED, DECK_HOST, DECK_PORTS, DECK_STATS, HELLO_MS, MAX_MESSAGE, PROTOCOL, parseClient, type DeckLinkFile, type DeckRequest, type DeckChecklist, type DeckState, type DeckStaff, type DeckStatKind, type DeckStats, type ServerMessage } from './deckprotocol';
 import type { StatFacts } from './obsstats';
 
 export interface DeckOptions {
@@ -23,6 +23,8 @@ export interface DeckOptions {
   staff: (body: Record<string, unknown>) => Promise<ControlResult>;
   /** Pause / resume trading, Switch scene and Open preview (61.3): refused unless this is a staff PC whose role may do it (runStaffPcKey). */
   staffPc: (r: StaffPcRequest) => Promise<ControlResult>;
+  /** Run checklist (61.5): the same checklist as Home's Ready to go live; its result comes back to the keys in the state (`checklist`). Any paired PC may run it. */
+  checklist: () => Promise<ControlResult>;
   /** A client came or went. */
   onChange: () => void;
   /** The set of stats the keys show changed (`wanted`). */
@@ -42,6 +44,8 @@ export function toAction(r: DeckRequest): ControlAction | null {
   switch (r.what) {
     case 'skip': return { action: 'skip' };
     case 'clear-queue': return { action: 'clear-queue' };
+    case 'refresh': return { action: 'refresh' };
+    case 'checklist':
     case 'test-pull':
     case 'show-card':
     case 'trading':
@@ -58,16 +62,21 @@ export function toAction(r: DeckRequest): ControlAction | null {
 /** The staff action of Test pull and Show a card, the same bodies as the Preview overlay window sends (57.10); null for every other request. */
 export function toStaff(r: DeckRequest): Record<string, unknown> | null {
   if (r.what === 'test-pull') return { action: 'test-pull' };
-  if (r.what === 'show-card') return { action: 'show-card', username: r.username };
+  if (r.what === 'show-card') return { action: 'show-card', username: r.username, ...(r.card ? { card: r.card } : {}) };
   return null;
+}
+
+/** The last checklist run as the keys show it: every line counts, the red ones are the failing ones (the checklist is ready when none is red). */
+export function deckChecklist(r: { lines: { tone: string }[] } | null): DeckChecklist | null {
+  return r ? { total: r.lines.length, failing: r.lines.filter(l => l.tone === 'bad').length } : null;
 }
 
 /** The three staff keys of 61.3 and the staffpages.ts action each needs (STAFF_NEEDS: a mod may trade and switch scenes, the preview address is admin). */
 export type StaffPcRequest = Extract<DeckRequest, { what: 'trading' | 'scene' | 'preview' }>;
 export const isStaffPcRequest = (r: DeckRequest): r is StaffPcRequest => r.what === 'trading' || r.what === 'scene' || r.what === 'preview';
 const STAFF_KEY_NEEDS: Record<StaffPcRequest['what'], string> = { trading: 'trading', scene: 'scene', preview: 'preview-url' };
-/** The staff actions the keys use, in the order of DeckStaff.can. */
-export const DECK_STAFF_ACTIONS = ['trading', 'scene', 'preview-url'];
+/** The staff actions the keys use, in the order of DeckStaff.can (Test pull and Show a card are admin actions, so a mod-linked PC shows "Admins only" on them, 61.5). */
+export const DECK_STAFF_ACTIONS = ['trading', 'scene', 'preview-url', 'test-pull', 'show-card'];
 
 /** What the keys are told about the staff side: null on a PC that is not a staff PC; `can` null = a PC paired with a code (every action), else the account's role list. */
 export function deckStaff(isStaff: boolean, can: string[] | null, tradingPaused: boolean, scene: string, scenes: string[]): DeckStaff | null {
@@ -222,7 +231,7 @@ export class DeckServer {
       if (msg?.t !== 'do') return refuse();
       const n = msg.n;
       const action = toAction(msg.req);
-      const job = action ? this.o.run(action) : isStaffPcRequest(msg.req) ? this.o.staffPc(msg.req) : this.o.staff(toStaff(msg.req) ?? {});
+      const job = action ? this.o.run(action) : msg.req.what === 'checklist' ? this.o.checklist() : isStaffPcRequest(msg.req) ? this.o.staffPc(msg.req) : this.o.staff(toStaff(msg.req) ?? {});
       job.catch(() => ({ ok: false, text: 'Something went wrong' })).then(r => send({ t: 'done', n, ok: r.ok, text: r.text.slice(0, 500) }));
     });
     ws.on('close', () => {

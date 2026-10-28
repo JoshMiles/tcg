@@ -2,7 +2,7 @@
 // its own: it draws the state the app pushed and sends the app a request.
 import { DECK_STATS, type DeckRequest, type DeckState, type DeckStatKind } from './protocol';
 
-export type KeyKind = 'buff' | 'last-buff' | 'pause' | 'happy' | 'test-pull' | 'show-card' | 'stat' | 'skip' | 'clear-queue' | 'queue' | 'trading' | 'scene' | 'preview';
+export type KeyKind = 'buff' | 'last-buff' | 'pause' | 'happy' | 'test-pull' | 'show-card' | 'stat' | 'skip' | 'clear-queue' | 'queue' | 'trading' | 'scene' | 'preview' | 'refresh' | 'checklist';
 
 /** The action UUIDs in manifest.json. */
 export const ACTION_KIND: Record<string, KeyKind> = {
@@ -19,10 +19,12 @@ export const ACTION_KIND: Record<string, KeyKind> = {
   'tv.cheesygidds.tcgbridge.trading': 'trading',
   'tv.cheesygidds.tcgbridge.scene': 'scene',
   'tv.cheesygidds.tcgbridge.preview': 'preview',
+  'tv.cheesygidds.tcgbridge.refresh': 'refresh',
+  'tv.cheesygidds.tcgbridge.checklist': 'checklist',
 };
 
-/** The staff keys (61.3) and the staff action each needs, the names of bridge/src/staffpages.ts: a mod-linked PC has no 'preview-url'. */
-const STAFF_NEEDS: Partial<Record<KeyKind, string>> = { trading: 'trading', scene: 'scene', preview: 'preview-url' };
+/** The staff keys (61.3, and Test pull / Show a card since 61.5) and the staff action each needs, the names of bridge/src/staffpages.ts: a mod-linked PC has no 'preview-url', 'test-pull' or 'show-card'. */
+const STAFF_NEEDS: Partial<Record<KeyKind, string>> = { trading: 'trading', scene: 'scene', preview: 'preview-url', 'test-pull': 'test-pull', 'show-card': 'show-card' };
 /** The staff-only part of a view: null when the key may be used. The app refuses the request again (bridge/src/deck.ts runStaffPcKey), this is only what the key shows. */
 function staffRefusal(kind: KeyKind, state: DeckState): string | null {
   const need = STAFF_NEEDS[kind];
@@ -46,6 +48,12 @@ export const STAT_CHOICES = [...DECK_STATS, 'happy'] as const;
 export type StatChoice = (typeof STAT_CHOICES)[number];
 /** The stat a Stat key shows, or null when none is picked. */
 export const statOf = (s: Settings): StatChoice | null => STAT_CHOICES.find(k => k === s.stat) ?? null;
+
+/** The card a Show a card key shows, picked in its settings: a name or a number like "#12" (the same text as the Staff tab's card box); '' = the site picks one. */
+export const cardOf = (s: Settings): string => (typeof s.card === 'string' ? s.card.trim().slice(0, 80) : '');
+
+/** Test pull and Show a card play on the live overlay: while OBS is live they need the same 1 second hold as the other keys that cannot be undone (61.5). */
+export const liveHold = (kind: KeyKind, state: DeckState | null): boolean => (kind === 'test-pull' || kind === 'show-card') && !!state?.live;
 
 /** A name cut to fit one line of a key (about 10 characters). */
 export const fit = (t: string, n = 10): string => (t.length <= n ? t : `${t.slice(0, n - 1)}.`);
@@ -83,8 +91,8 @@ const offWords = (r: Extract<DeckRequest, { what: 'happy-start' }>) => (r.kind =
 
 // ── Drawing ──
 
-export type Tone = 'on' | 'idle' | 'warn' | 'off';
-const COLOURS: Record<Tone, string> = { on: '#4ade80', idle: '#e5e7eb', warn: '#fbbf24', off: '#6b7280' };
+export type Tone = 'on' | 'idle' | 'warn' | 'bad' | 'off';
+const COLOURS: Record<Tone, string> = { on: '#4ade80', idle: '#e5e7eb', warn: '#fbbf24', bad: '#ee3b3b', off: '#6b7280' };
 /** Each glyph is drawn on a 144 x 144 canvas, in the tone's colour. */
 export const GLYPHS: Record<KeyKind | 'play', string> = {
   buff: '<polygon points="80,20 42,82 70,82 62,126 102,60 74,60" />',
@@ -101,6 +109,8 @@ export const GLYPHS: Record<KeyKind | 'play', string> = {
   trading: '<polygon points="22,36 88,36 88,20 124,44 88,68 88,52 22,52"/><polygon points="122,92 56,92 56,76 20,100 56,124 56,108 122,108"/>',
   scene: '<rect x="22" y="34" width="100" height="76" rx="8" fill="none" stroke-width="9"/><polygon points="62,54 62,90 94,72"/>',
   preview: '<path d="M16 72Q72 14 128 72Q72 130 16 72Z" fill="none" stroke-width="9" stroke-linejoin="round"/><circle cx="72" cy="72" r="16"/>',
+  refresh: '<path d="M116 72a44 44 0 1 1-13-31" fill="none" stroke-width="9" stroke-linecap="round"/><polygon points="120,18 120,56 84,48" stroke="none"/>',
+  checklist: '<rect x="28" y="28" width="88" height="88" rx="10" fill="none" stroke-width="9"/><polyline points="48,64 60,78 82,50" fill="none" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><rect x="48" y="92" width="48" height="9" rx="3"/>',
 };
 
 /** A key image as an SVG data URI: a dark tile with one glyph, no text (the title is the key's own text). */
@@ -137,10 +147,12 @@ export function view(kind: KeyKind, state: DeckState | null, s: Settings, now: n
       const r = happyStart(s);
       return { title: `Happy hour\n${r.minutes} min ${offWords(r)}`, image: icon('happy', 'idle') };
     }
-    case 'test-pull': return { title: 'Test pull', image: icon('test-pull', 'idle') };
+    case 'test-pull': return state.live ? { title: 'Test pull\nLIVE', image: icon('test-pull', 'warn') } : { title: 'Test pull', image: icon('test-pull', 'idle') };
     case 'show-card': {
       const who = viewerOf(s);
-      return { title: who ? `Show card\n${who}` : 'Name a viewer', image: icon('show-card', who ? 'idle' : 'off') };
+      const card = cardOf(s);
+      const title = !who ? 'Name a viewer' : card ? `${fit(who)}\n${fit(card)}` : `Show card\n${fit(who)}`;
+      return { title, image: icon('show-card', !who ? 'off' : state.live ? 'warn' : 'idle') };
     }
     case 'stat': return statView(statOf(s), state, now);
     case 'skip': return { title: 'Skip\nnext pull', image: icon('skip', 'idle') };
@@ -152,6 +164,12 @@ export function view(kind: KeyKind, state: DeckState | null, s: Settings, now: n
       return name ? { title: `Scene\n${name}`, image: icon('scene', state.staff?.scene === name ? 'on' : 'idle') } : { title: 'Pick a scene', image: icon('scene', 'off') };
     }
     case 'preview': return { title: 'Preview\noverlay', image: icon('preview', 'idle') };
+    case 'refresh': return { title: 'Refresh\noverlay', image: icon('refresh', 'idle') };
+    case 'checklist': {
+      const c = state.checklist; // the last run's result stays until the next run
+      if (!c) return { title: 'Run\nchecklist', image: icon('checklist', 'idle') };
+      return c.failing > 0 ? { title: `Checklist\n${Math.min(c.failing, 99)} failing`, image: icon('checklist', 'bad') } : { title: `Checklist\n${c.total}/${c.total} OK`, image: icon('checklist', 'on') };
+    }
   }
 }
 
@@ -189,7 +207,9 @@ export function requestFor(kind: KeyKind, s: Settings, state: DeckState | null =
     case 'pause': return { what: 'pause' };
     case 'happy': return happyStart(s);
     case 'test-pull': return { what: 'test-pull' };
-    case 'show-card': { const username = viewerOf(s); return username ? { what: 'show-card', username } : null; }
+    case 'show-card': { const username = viewerOf(s); const card = cardOf(s); return username ? { what: 'show-card', username, ...(card ? { card } : {}) } : null; }
+    case 'refresh': return { what: 'refresh' };
+    case 'checklist': return { what: 'checklist' };
     case 'stat': return statOf(s) === 'queue' ? { what: 'skip' } : null; // the other stats do nothing on a press
     case 'skip': return { what: 'skip' };
     case 'clear-queue': return { what: 'clear-queue' }; // only sent after a 1 second hold (controller.ts)

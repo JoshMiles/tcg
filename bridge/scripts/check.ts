@@ -992,10 +992,13 @@ async function main() {
       calls.push(`${req.method} ${req.url} ${req.headers.authorization ?? ''}`);
       if (req.headers.authorization !== `Bearer ${TOKEN}`) return send(res, 401, { error: 'no' });
       if (req.url === '/api/bridge/queue') return send(res, 200, { rows: [{ id: 'a', kind: 'pull', username: 'alice', pack: 'Base', waitedS: 4 }] });
-      send(res, 200, { ok: true, message: `did ${JSON.parse(body).action}`, paused: true });
+      const action = JSON.parse(body).action;
+      send(res, 200, { ok: true, message: `did ${action}`, paused: true, ...(action === 'pause-awards' || action === 'status' ? { awardsPaused: true } : {}) });
     });
     const c = new SiteClient(s.url, TOKEN, '0.7.0');
     assert.deepEqual(await c.action({ action: 'pause' }), { ok: true, message: 'did pause', paused: true });
+    assert.deepEqual(await c.action({ action: 'pause-awards', on: true }), { ok: true, message: 'did pause-awards', paused: true, awardsPaused: true }, 'the awards pause (58.5) is carried by the control path and its answer read');
+    assert.equal((await c.action({ action: 'status' })).awardsPaused, true, 'status says whether awards are paused');
     assert.deepEqual((await c.queue()).map(r => r.username), ['alice']);
     const bad = new SiteClient(s.url, 'wrong', '0.7.0');
     await assert.rejects(bad.action({ action: 'pause' }), /Pair again/);

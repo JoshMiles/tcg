@@ -81,8 +81,8 @@ function built(root: string): { dir: string; packed: string } {
   return { dir, packed };
 }
 
-const state = (over: Partial<DeckState> = {}): DeckState => ({ ready: true, paused: false, reason: '', happy: null, buffs: [{ id: 'b1', name: 'Speed up' }], stats: { queue: 3 }, staff: null, ...over });
-const adminStaff: DeckStaff = { can: ['trading', 'scene', 'preview-url'], tradingPaused: false, scene: 'Main', scenes: ['Main', 'Break'] };
+const state = (over: Partial<DeckState> = {}): DeckState => ({ ready: true, paused: false, reason: '', happy: null, buffs: [{ id: 'b1', name: 'Speed up' }], stats: { queue: 3 }, staff: null, live: false, checklist: null, ...over });
+const adminStaff: DeckStaff = { can: ['trading', 'scene', 'preview-url', 'test-pull', 'show-card'], tradingPaused: false, scene: 'Main', scenes: ['Main', 'Break'] };
 
 export async function deckPluginChecks(): Promise<void> {
   const root = join(__dirname, '..', '..');
@@ -109,11 +109,13 @@ export async function deckPluginChecks(): Promise<void> {
   const ran: ControlAction[] = [];
   const staffRan: Record<string, unknown>[] = [];
   const pcRan: string[] = []; // the staff keys of 61.3 that reached the app's staff code
+  let checklistRuns = 0;
   const serve = async () => {
     const s = new DeckServer({
       file: join(appData, 'TCG Bridge', 'streamdeck.json'), version: '0.0.0', state: () => st, onChange: () => undefined, log: () => undefined, ports: [0],
       run: async a => { ran.push(a); return a.action === 'skip' && !skipOk ?{ ok: false, text: 'The queue is empty' } : { ok: true, text: 'Done' }; },
       staff: async b => { staffRan.push(b); return { ok: true, text: 'Done' }; },
+      checklist: async () => { checklistRuns++; return { ok: true, text: 'Ready to stream.' }; },
       staffPc: r => runStaffPcKey({
         staff: () => st.staff, log: () => undefined,
         setTrading: async pause => { pcRan.push(`trading ${pause}`); return { ok: true, text: 'Done' }; },
@@ -127,7 +129,7 @@ export async function deckPluginChecks(): Promise<void> {
   };
   let server = await serve();
 
-  const keys = { buff: { buff: 'b1' }, 'last-buff': {}, pause: {}, 'happy-hour': { preset: 'p15' }, 'test-pull': {}, 'show-card': { viewer: '@Alice' }, stat: { stat: 'queue' }, skip: {}, 'clear-queue': {}, queue: {}, trading: {}, scene: { scene: 'Break' }, preview: {} } as Record<string, Record<string, unknown>>;
+  const keys = { buff: { buff: 'b1' }, 'last-buff': {}, pause: {}, 'happy-hour': { preset: 'p15' }, 'test-pull': {}, 'show-card': { viewer: '@Alice', card: '#12' }, refresh: {}, checklist: {}, stat: { stat: 'queue' }, skip: {}, 'clear-queue': {}, queue: {}, trading: {}, scene: { scene: 'Break' }, preview: {} } as Record<string, Record<string, unknown>>;
   const seen: Record<string, { title: string; ok: number; alert: number }> = {};
   const ctx = (name: string) => `ctx-${name}`;
   for (const name of Object.keys(keys)) seen[ctx(name)] = { title: '', ok: 0, alert: 0 };
@@ -173,7 +175,10 @@ export async function deckPluginChecks(): Promise<void> {
     await until('the keys to be drawn from the app\'s state', () => seen[ctx('buff')].title === 'Speed up' && seen[ctx('stat')].title === 'Queue\n3');
     alive('drawing the keys');
     assert.equal(seen[ctx('pause')].title, 'Pulls open');
-    assert.equal(seen[ctx('show-card')].title, 'Show card\nalice', 'the Show a card key reads the viewer from its settings');
+    assert.equal(seen[ctx('show-card')].title, 'Staff only', 'since 61.5 the Test pull and Show a card keys need a staff PC');
+    assert.equal(seen[ctx('test-pull')].title, 'Staff only');
+    assert.equal(seen[ctx('refresh')].title, 'Refresh\noverlay');
+    assert.equal(seen[ctx('checklist')].title, 'Run\nchecklist');
     assert.ok(server.connected && server.seen, 'the app sees the plugin connected');
 
     // ── Each key: the app receives the request, the key gets the app's answer ──
@@ -188,10 +193,11 @@ export async function deckPluginChecks(): Promise<void> {
     assert.deepEqual(ran.pop(), { action: 'last-buff' });
     await answered('pause', () => press('pause'));
     assert.deepEqual(ran.pop(), { action: 'pause' });
-    await answered('test-pull', () => press('test-pull'));
-    assert.deepEqual(staffRan.pop(), { action: 'test-pull' });
-    await answered('show-card', () => press('show-card'));
-    assert.deepEqual(staffRan.pop(), { action: 'show-card', username: 'alice' });
+    await answered('refresh', () => press('refresh'));
+    assert.deepEqual(ran.pop(), { action: 'refresh' }, 'Refresh overlay runs the app\'s refresh');
+    await answered('test-pull', () => press('test-pull'), 'alert');
+    await answered('show-card', () => press('show-card'), 'alert');
+    assert.deepEqual(staffRan, [], 'Test pull and Show a card on a PC that is not a staff PC reach nothing');
     await answered('happy-hour', () => press('happy-hour'));
     assert.deepEqual(ran.pop(), { action: 'happy-hour-start', minutes: 15, kind: 'free' });
 
@@ -281,6 +287,35 @@ export async function deckPluginChecks(): Promise<void> {
     await answered('scene', () => press('scene'));
     await answered('preview', () => press('preview'));
     assert.deepEqual(pcRan.splice(0), ['scene Break', 'preview']);
+    // 61.5: Test pull and Show a card on a staff PC (not live: one press; the card picked in the key's settings goes with it).
+    await until('the staff overlay keys', () => seen[ctx('test-pull')].title === 'Test pull' && seen[ctx('show-card')].title === 'alice\n#12');
+    await answered('test-pull', () => press('test-pull'));
+    assert.deepEqual(staffRan.pop(), { action: 'test-pull' });
+    await answered('show-card', () => press('show-card'));
+    assert.deepEqual(staffRan.pop(), { action: 'show-card', username: 'alice', card: '#12' });
+    // While OBS is live a short press only says so; a 1 second hold plays it.
+    st = state({ staff: adminStaff, live: true });
+    server.broadcast();
+    await until('the LIVE test pull', () => seen[ctx('test-pull')].title === 'Test pull\nLIVE');
+    await answered('test-pull', () => press('test-pull'), 'alert');
+    assert.equal(seen[ctx('test-pull')].title, 'Live!\nHold 1 s');
+    assert.deepEqual(staffRan, [], 'a short press while live plays nothing');
+    down('test-pull');
+    await wait(1100);
+    await answered('test-pull', () => up('test-pull'));
+    assert.deepEqual(staffRan.pop(), { action: 'test-pull' }, 'a 1 second hold plays it');
+    // Run checklist: a press runs the app's checklist; the key keeps the last result (green with the count, red with the failing count) until the next run.
+    await answered('checklist', () => press('checklist'));
+    assert.equal(checklistRuns, 1);
+    st = state({ staff: adminStaff, checklist: { total: 8, failing: 0 } });
+    server.broadcast();
+    await until('the green checklist', () => seen[ctx('checklist')].title === 'Checklist\n8/8 OK');
+    st = state({ staff: adminStaff, checklist: { total: 8, failing: 2 } });
+    server.broadcast();
+    await until('the red checklist', () => seen[ctx('checklist')].title === 'Checklist\n2 failing');
+    st = state({ staff: adminStaff });
+    server.broadcast();
+    await until('the checklist key back to its start', () => seen[ctx('checklist')].title === 'Run\nchecklist');
     await answered('trading', () => press('trading'), 'alert');
     assert.deepEqual(pcRan, [], 'a short press does not pause trading');
     assert.equal(seen[ctx('trading')].title, 'Hold 1 second\nto pause');

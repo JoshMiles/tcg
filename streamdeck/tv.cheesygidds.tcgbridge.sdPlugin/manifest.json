@@ -2,7 +2,7 @@
   "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
   "UUID": "tv.cheesygidds.tcgbridge",
   "Name": "TCG Bridge",
-  "Version": "0.39.0.0",
+  "Version": "0.41.0.0",
   "Author": "CheesyGidds",
   "Description": "Buffs, pause pulls, happy hours, test pulls, show a card and live stats for the stream, run through the TCG Bridge app on the same PC.",
   "Category": "TCG Bridge",
@@ -92,8 +92,9 @@
     {
       "UUID": "tv.cheesygidds.tcgbridge.test-pull",
       "Name": "Test pull",
-      "Tooltip": "Plays a test pull on the overlay. Staff PC only.",
+      "Tooltip": "Plays a test pull on the overlay. Admin staff PC only. While OBS is live, hold it for 1 second.",
       "Icon": "imgs/actions/test-pull",
+      "PropertyInspectorPath": "ui/test-pull.html",
       "Controllers": [
         "Keypad"
       ],
@@ -108,7 +109,7 @@
     {
       "UUID": "tv.cheesygidds.tcgbridge.show-card",
       "Name": "Show a card",
-      "Tooltip": "Shows a card of the viewer named in the key's settings on the overlay. Staff PC only.",
+      "Tooltip": "Shows a card of the viewer named in the key's settings (and the card, if you pick one) on the overlay. Admin staff PC only. While OBS is live, hold it for 1 second.",
       "Icon": "imgs/actions/show-card",
       "PropertyInspectorPath": "ui/show-card.html",
       "Controllers": [
@@ -236,6 +237,40 @@
       "States": [
         {
           "Image": "imgs/actions/preview",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.refresh",
+      "Name": "Refresh overlay",
+      "Tooltip": "Refreshes the overlay browser source in OBS, the same as the Refresh the overlay button and hotkey.",
+      "Icon": "imgs/actions/refresh",
+      "PropertyInspectorPath": "ui/refresh.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/refresh",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.checklist",
+      "Name": "Run checklist",
+      "Tooltip": "Runs the pre-stream checklist. The key turns green (all OK) or red (the number failing) and keeps the result until the next run.",
+      "Icon": "imgs/actions/checklist",
+      "PropertyInspectorPath": "ui/checklist.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/checklist",
           "TitleAlignment": "bottom",
           "FontSize": 12
         }
