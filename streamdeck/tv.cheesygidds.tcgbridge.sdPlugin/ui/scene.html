@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Switch scene</title>
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+<label for="scene">OBS scene</label>
+<select id="scene"><option value="">Waiting for TCG Bridge</option></select>
+<div class="note" id="note">The list comes from the TCG Bridge app, which asks OBS. Open it and switch on the Stream Deck plugin in Settings.</div>
+<script src="pi.js"></script>
+<script>
+const sel = document.getElementById('scene');
+const note = document.getElementById('note');
+function fill() {
+  const keep = typeof settings.scene === 'string' ? settings.scene : '';
+  sel.replaceChildren();
+  const none = document.createElement('option');
+  none.value = '';
+  none.textContent = offer.connected ? 'Pick one' : 'Waiting for TCG Bridge';
+  sel.appendChild(none);
+  const list = offer.scenes.slice();
+  if (keep && !list.includes(keep)) list.unshift(keep);
+  for (const name of list) {
+    const o = document.createElement('option');
+    o.value = name;
+    o.textContent = name;
+    sel.appendChild(o);
+  }
+  sel.value = keep;
+  note.textContent = !offer.connected ? 'The list comes from the TCG Bridge app, which asks OBS. Open it and switch on the Stream Deck plugin in Settings.'
+    : !offer.staff ? 'Staff only: this PC is not a staff PC, so the key shows "Staff only" and does nothing.'
+    : list.length === 0 ? 'OBS has not told TCG Bridge its scenes yet. Open OBS and connect it in TCG Bridge.'
+    : 'Press the key to switch OBS to this scene. It lights up while that scene is on air.';
+}
+onSettings = fill;
+onOffer = fill;
+sel.addEventListener('change', () => save({ scene: sel.value }));
+</script>
+</body>
+</html>

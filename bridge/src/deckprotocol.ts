@@ -24,6 +24,12 @@ export type DeckStatKind = (typeof DECK_STATS)[number];
 /** What the site last said for those; a missing one = not said yet, `goal` null = no pack goal for this stream. */
 export interface DeckStats { queue?: number; packs?: number; goal?: string | null }
 
+/**
+ * What the staff keys show (ROADMAP 61.3); `staff` in the state is null on a PC that is not a staff PC. `can` lists the staff actions this PC's account may use
+ * ('trading', 'scene' and 'preview-url', the names of bridge/src/staffpages.ts): a mod-linked PC has no 'preview-url'. `scenes` are OBS's scene names.
+ */
+export interface DeckStaff { can: string[]; tradingPaused: boolean; scene: string; scenes: string[] }
+
 /** What a key may show, pushed by the app. `ready` = paired with the site; `paused` null = the site has not said yet; `reason` is "scene <name>" for a scene pause. */
 export interface DeckState {
   ready: boolean;
@@ -35,6 +41,8 @@ export interface DeckState {
   buffs: { id: string; name: string }[];
   /** For the Stat keys; an app older than the plugin sends none. */
   stats: DeckStats;
+  /** For the staff keys; null = not a staff PC (an app older than the plugin sends none). */
+  staff: DeckStaff | null;
 }
 
 /** What a key asks the app to do. Each one is run by the same code as the Control tab and the tray. */
@@ -47,7 +55,10 @@ export type DeckRequest =
   | { what: 'test-pull' }
   | { what: 'show-card'; username: string }
   | { what: 'skip' }
-  | { what: 'clear-queue' };
+  | { what: 'clear-queue' }
+  | { what: 'trading'; pause: boolean }
+  | { what: 'scene'; name: string }
+  | { what: 'preview' };
 
 /** `stats` says which stats the keys on the decks show right now (a full list each time, [] = none); the app asks the site for them only then. */
 export type ClientMessage = { t: 'hello'; token: string; protocol: number; version: string } | { t: 'do'; n: number; req: DeckRequest } | { t: 'stats'; want: DeckStatKind[] };
@@ -68,6 +79,9 @@ export function parseRequest(v: unknown): DeckRequest | null {
     case 'test-pull': return { what: 'test-pull' };
     case 'skip': return { what: 'skip' };
     case 'clear-queue': return { what: 'clear-queue' };
+    case 'preview': return { what: 'preview' };
+    case 'trading': return typeof v.pause === 'boolean' ? { what: 'trading', pause: v.pause } : null;
+    case 'scene': return text(v.name, 80) && v.name ? { what: 'scene', name: v.name } : null;
     case 'show-card': return text(v.username, 40) && v.username ? { what: 'show-card', username: v.username } : null;
     case 'happy-start': return num(v.minutes) && num(v.percent) && (v.kind === 'free' || v.kind === 'discount') ? { what: 'happy-start', minutes: v.minutes, kind: v.kind, percent: v.percent } : null;
     default: return null;
@@ -86,7 +100,12 @@ function parseState(v: unknown): DeckState | null {
     if (num(v.stats.packs)) stats.packs = v.stats.packs;
     if (v.stats.goal === null || text(v.stats.goal, 200)) stats.goal = v.stats.goal;
   }
-  return { ready: v.ready, paused: v.paused, reason: v.reason, happy: h === null ? null : { what: (h as { what: string }).what, endsAt: (h as { endsAt: number }).endsAt }, buffs, stats };
+  let staff: DeckStaff | null = null;
+  const s = v.staff;
+  if (isObject(s) && Array.isArray(s.can) && typeof s.tradingPaused === 'boolean' && text(s.scene, 80) && Array.isArray(s.scenes)) {
+    staff = { can: s.can.filter((x): x is string => text(x, 30)).slice(0, 20), tradingPaused: s.tradingPaused, scene: s.scene, scenes: s.scenes.filter((x): x is string => text(x, 80)).slice(0, 200) };
+  }
+  return { ready: v.ready, paused: v.paused, reason: v.reason, happy: h === null ? null : { what: (h as { what: string }).what, endsAt: (h as { endsAt: number }).endsAt }, buffs, stats, staff };
 }
 
 const json = (raw: string): unknown => { try { return JSON.parse(raw); } catch { return null; } };

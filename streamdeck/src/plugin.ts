@@ -36,10 +36,10 @@ const link: BridgeLink = new BridgeLink({
 });
 const keys = new Keys(link);
 
-/** Tells an open Property Inspector what the app offers (the buff list) and whether it is reachable. */
+/** Tells an open Property Inspector what the app offers (the buff list, and on a staff PC the OBS scenes) and whether it is reachable. */
 async function tellInspector(): Promise<void> {
   const s = link.state;
-  try { await streamDeck.ui.sendToPropertyInspector({ connected: !!s, ready: !!s?.ready, buffs: s?.buffs ?? [] }); } catch { /* no Property Inspector is open */ }
+  try { await streamDeck.ui.sendToPropertyInspector({ connected: !!s, ready: !!s?.ready, buffs: s?.buffs ?? [], staff: !!s?.staff, scenes: s?.staff?.scenes ?? [] }); } catch { /* no Property Inspector is open */ }
 }
 
 const kindOf = (uuid: string) => ACTION_KIND[uuid];

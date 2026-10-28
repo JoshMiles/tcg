@@ -1,10 +1,10 @@
-// Shared by the two Property Inspector pages. Stream Deck calls connectElgatoStreamDeckSocket; the plugin answers with {connected, ready, buffs}.
+// Shared by the two Property Inspector pages. Stream Deck calls connectElgatoStreamDeckSocket; the plugin answers with {connected, ready, buffs, staff, scenes}.
 // Settings are saved on every change; the plugin redraws the key from them.
 let ws = null;
 let uuid = '';
 let action = '';
 let settings = {};
-let offer = { connected: false, ready: false, buffs: [] };
+let offer = { connected: false, ready: false, buffs: [], staff: false, scenes: [] };
 let onSettings = () => {};
 let onOffer = () => {};
 

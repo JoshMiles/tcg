@@ -2,7 +2,7 @@
   "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
   "UUID": "tv.cheesygidds.tcgbridge",
   "Name": "TCG Bridge",
-  "Version": "0.36.0.0",
+  "Version": "0.37.0.0",
   "Author": "CheesyGidds",
   "Description": "Buffs, pause pulls, happy hours, test pulls, show a card and live stats for the stream, run through the TCG Bridge app on the same PC.",
   "Category": "TCG Bridge",
@@ -185,6 +185,57 @@
       "States": [
         {
           "Image": "imgs/actions/queue",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.trading",
+      "Name": "Pause trading",
+      "Tooltip": "Staff PC only. Shows whether trading is open or paused; press to open it, hold for 1 second to pause it.",
+      "Icon": "imgs/actions/trading",
+      "PropertyInspectorPath": "ui/trading.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/trading",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.scene",
+      "Name": "Switch scene",
+      "Tooltip": "Staff PC only. Switches OBS to the scene picked in the key's settings.",
+      "Icon": "imgs/actions/scene",
+      "PropertyInspectorPath": "ui/scene.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/scene",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.preview",
+      "Name": "Preview overlay",
+      "Tooltip": "Admin staff PC only. Opens the Preview overlay window in TCG Bridge.",
+      "Icon": "imgs/actions/preview",
+      "PropertyInspectorPath": "ui/preview.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/preview",
           "TitleAlignment": "bottom",
           "FontSize": 12
         }

@@ -2,7 +2,7 @@
 // its own: it draws the state the app pushed and sends the app a request.
 import { DECK_STATS, type DeckRequest, type DeckState, type DeckStatKind } from './protocol';
 
-export type KeyKind = 'buff' | 'last-buff' | 'pause' | 'happy' | 'test-pull' | 'show-card' | 'stat' | 'skip' | 'clear-queue' | 'queue';
+export type KeyKind = 'buff' | 'last-buff' | 'pause' | 'happy' | 'test-pull' | 'show-card' | 'stat' | 'skip' | 'clear-queue' | 'queue' | 'trading' | 'scene' | 'preview';
 
 /** The action UUIDs in manifest.json. */
 export const ACTION_KIND: Record<string, KeyKind> = {
@@ -16,7 +16,24 @@ export const ACTION_KIND: Record<string, KeyKind> = {
   'tv.cheesygidds.tcgbridge.skip': 'skip',
   'tv.cheesygidds.tcgbridge.clear-queue': 'clear-queue',
   'tv.cheesygidds.tcgbridge.queue': 'queue',
+  'tv.cheesygidds.tcgbridge.trading': 'trading',
+  'tv.cheesygidds.tcgbridge.scene': 'scene',
+  'tv.cheesygidds.tcgbridge.preview': 'preview',
 };
+
+/** The staff keys (61.3) and the staff action each needs, the names of bridge/src/staffpages.ts: a mod-linked PC has no 'preview-url'. */
+const STAFF_NEEDS: Partial<Record<KeyKind, string>> = { trading: 'trading', scene: 'scene', preview: 'preview-url' };
+/** The staff-only part of a view: null when the key may be used. The app refuses the request again (bridge/src/deck.ts runStaffPcKey), this is only what the key shows. */
+function staffRefusal(kind: KeyKind, state: DeckState): string | null {
+  const need = STAFF_NEEDS[kind];
+  if (!need) return null;
+  return !state.staff ? 'Staff only' : state.staff.can.includes(need) ? null : 'Admins only';
+}
+/** True when a staff key is shown as refused (so a press does nothing). */
+export const staffRefused = (kind: KeyKind, state: DeckState | null): boolean => !!state && staffRefusal(kind, state) !== null;
+
+/** The scene a Scene key switches to, picked in its settings ('' = none). */
+export const sceneOf = (s: Settings): string => (typeof s.scene === 'string' ? s.scene.trim().slice(0, 80) : '');
 
 export type Settings = Record<string, unknown>;
 /** How long a press must be held to end a running happy hour or to clear the queue. */
@@ -75,6 +92,9 @@ export const GLYPHS: Record<KeyKind | 'play', string> = {
   skip: '<polygon points="28,28 94,72 28,116"/><rect x="104" y="28" width="14" height="88" rx="3"/>',
   'clear-queue': '<rect x="30" y="40" width="84" height="12" rx="4"/><rect x="56" y="26" width="32" height="14" rx="3"/><path d="M42 62h60l-5 56H47z" fill="none" stroke-width="9" stroke-linejoin="round"/>',
   queue: '<rect x="26" y="34" width="92" height="14" rx="4"/><rect x="26" y="65" width="92" height="14" rx="4"/><rect x="26" y="96" width="60" height="14" rx="4"/>',
+  trading: '<polygon points="22,36 88,36 88,20 124,44 88,68 88,52 22,52"/><polygon points="122,92 56,92 56,76 20,100 56,124 56,108 122,108"/>',
+  scene: '<rect x="22" y="34" width="100" height="76" rx="8" fill="none" stroke-width="9"/><polygon points="62,54 62,90 94,72"/>',
+  preview: '<path d="M16 72Q72 14 128 72Q72 130 16 72Z" fill="none" stroke-width="9" stroke-linejoin="round"/><circle cx="72" cy="72" r="16"/>',
 };
 
 /** A key image as an SVG data URI: a dark tile with one glyph, no text (the title is the key's own text). */
@@ -91,6 +111,8 @@ export interface View { title: string; image: string }
 export function view(kind: KeyKind, state: DeckState | null, s: Settings, now: number): View {
   if (!state) return { title: 'App closed', image: icon(kind, 'off') };
   if (!state.ready) return { title: 'Not paired', image: icon(kind, 'off') };
+  const refused = staffRefusal(kind, state);
+  if (refused) return { title: refused, image: icon(kind, 'off') };
   switch (kind) {
     case 'buff': {
       const id = typeof s.buff === 'string' ? s.buff : '';
@@ -118,6 +140,12 @@ export function view(kind: KeyKind, state: DeckState | null, s: Settings, now: n
     case 'skip': return { title: 'Skip\nnext pull', image: icon('skip', 'idle') };
     case 'clear-queue': return { title: 'Clear\nqueue', image: icon('clear-queue', 'idle') };
     case 'queue': { const n = state.stats.queue; return { title: `Waiting\n${n ?? '-'}`, image: icon('queue', n ? 'on' : 'idle') }; }
+    case 'trading': return state.staff?.tradingPaused ? { title: 'Trading\npaused', image: icon('trading', 'warn') } : { title: 'Trading\nopen', image: icon('trading', 'on') };
+    case 'scene': {
+      const name = sceneOf(s);
+      return name ? { title: `Scene\n${name}`, image: icon('scene', state.staff?.scene === name ? 'on' : 'idle') } : { title: 'Pick a scene', image: icon('scene', 'off') };
+    }
+    case 'preview': return { title: 'Preview\noverlay', image: icon('preview', 'idle') };
   }
 }
 
@@ -134,8 +162,8 @@ function statView(stat: DeckStatKind | null, st: DeckState['stats']): View {
   return { title: `${stat === 'queue' ? 'Queue' : 'Packs'}\n${n ?? '-'}`, image: icon('stat', n === undefined ? 'idle' : 'on') };
 }
 
-/** The request a press makes, or null when the key has nothing to ask for (a Buff key with no buff picked). */
-export function requestFor(kind: KeyKind, s: Settings): DeckRequest | null {
+/** The request a press makes, or null when the key has nothing to ask for (a Buff key with no buff picked). A Trading key asks for the opposite of what the state shows. */
+export function requestFor(kind: KeyKind, s: Settings, state: DeckState | null = null): DeckRequest | null {
   switch (kind) {
     case 'buff': return typeof s.buff === 'string' && s.buff ? { what: 'buff', id: s.buff } : null;
     case 'last-buff': return { what: 'last-buff' };
@@ -147,5 +175,8 @@ export function requestFor(kind: KeyKind, s: Settings): DeckRequest | null {
     case 'skip': return { what: 'skip' };
     case 'clear-queue': return { what: 'clear-queue' }; // only sent after a 1 second hold (controller.ts)
     case 'queue': return null; // shows a number; a press does nothing
+    case 'trading': return state?.staff ? { what: 'trading', pause: !state.staff.tradingPaused } : null;
+    case 'scene': { const name = sceneOf(s); return name ? { what: 'scene', name } : null; }
+    case 'preview': return { what: 'preview' };
   }
 }

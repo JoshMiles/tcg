@@ -6,10 +6,10 @@ import { networkInterfaces, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import WebSocket from 'ws';
 import type { ControlAction } from '../src/control';
-import { DeckServer, deckStats, runStaffKey, toAction, toStaff } from '../src/deck';
+import { DeckServer, deckStaff, deckStats, runStaffKey, runStaffPcKey, toAction, toStaff, type StaffPcEnv } from '../src/deck';
 import { statsPlan, noStatMap } from '../src/obsstats';
 import { manifestVersion, installedPluginVersion, pluginOutdated, streamDeckAppFound, type DeckEnv, PLUGIN_UUID } from '../src/deckinstall';
-import { CLOSE_REFUSED, parseClient, parseLinkFile, parseRequest, parseServer, type DeckState } from '../src/deckprotocol';
+import { CLOSE_REFUSED, parseClient, parseLinkFile, parseRequest, parseServer, type DeckStaff, type DeckState } from '../src/deckprotocol';
 import { versionProblems } from './check-version';
 import { Keys, type KeyHandle } from '../../streamdeck/src/controller';
 import { ACTION_KIND, HOLD_MS, SKIP_MS, happyStart, requestFor, view } from '../../streamdeck/src/keys';
@@ -17,7 +17,7 @@ import { BridgeLink, type Socket } from '../../streamdeck/src/link';
 
 const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 const until = async (what: string, ok: () => boolean) => { for (let i = 0; i < 200 && !ok(); i++) await wait(10); assert.ok(ok(), `timed out waiting for ${what}`); };
-const state = (over: Partial<DeckState> = {}): DeckState => ({ ready: true, paused: false, reason: '', happy: null, buffs: [{ id: 'b1', name: 'Speed up' }], stats: {}, ...over });
+const state = (over: Partial<DeckState> = {}): DeckState => ({ ready: true, paused: false, reason: '', happy: null, buffs: [{ id: 'b1', name: 'Speed up' }], stats: {}, staff: null, ...over });
 
 /** A raw client: what it was sent and how it closed (or why it was never let in). */
 function client(url: string, opts: WebSocket.ClientOptions = {}) {
@@ -100,6 +100,7 @@ export async function deckChecks(): Promise<void> {
   assert.deepEqual(withStats?.t === 'state' ? withStats.state.stats : null, { queue: 3, packs: 12, goal: null }, 'the stats are rebuilt field by field');
   const oldApp = parseServer(JSON.stringify({ t: 'state', state: { ready: true, paused: false, reason: '', happy: null, buffs: [] } }));
   assert.deepEqual(oldApp?.t === 'state' ? oldApp.state.stats : null, {}, 'a state from an app without stats still parses');
+  assert.equal(oldApp?.t === 'state' ? oldApp.state.staff : undefined, null, 'and an app without staff keys is not a staff PC');
   assert.deepEqual(toAction({ what: 'skip' }), { action: 'skip' });
   assert.equal(toAction({ what: 'test-pull' }), null, 'a test pull is a staff action, not a control action');
   assert.deepEqual(toStaff({ what: 'test-pull' }), { action: 'test-pull' });
@@ -188,6 +189,81 @@ export async function deckChecks(): Promise<void> {
   assert.match(readFileSync(join(__dirname, '..', 'src', 'main.ts'), 'utf8'), /const STATS_MS = 5000;/, 'the app asks the site for the queue count at most every 5 seconds');
   assert.doesNotMatch(readFileSync(join(__dirname, '..', '..', 'streamdeck', 'src', 'controller.ts'), 'utf8'), /setInterval/, 'the keys poll nothing themselves');
 
+  // ── The 61.3 staff keys: Pause trading, Switch scene, Preview overlay ──
+  const staffOpen: DeckStaff = { can: ['trading', 'scene', 'preview-url'], tradingPaused: false, scene: 'Main', scenes: ['Main', 'Break'] };
+  const adminPc = state({ staff: staffOpen });
+  const modPc = state({ staff: { ...staffOpen, can: ['trading', 'scene'] } });
+  assert.deepEqual(parseRequest({ what: 'trading', pause: true }), { what: 'trading', pause: true });
+  assert.equal(parseRequest({ what: 'trading' }), null, 'a trading request says pause or resume');
+  assert.deepEqual(parseRequest({ what: 'scene', name: 'Break' }), { what: 'scene', name: 'Break' });
+  assert.equal(parseRequest({ what: 'scene', name: '' }), null, 'a scene key names a scene');
+  assert.deepEqual(parseRequest({ what: 'preview' }), { what: 'preview' });
+  const pushed = parseServer(JSON.stringify({ t: 'state', state: adminPc }));
+  assert.deepEqual(pushed?.t === 'state' ? pushed.state.staff : undefined, staffOpen, 'the staff state survives the wire');
+  const junkStaff = parseServer(JSON.stringify({ t: 'state', state: { ...adminPc, staff: { can: 'all' } } }));
+  assert.equal(junkStaff?.t === 'state' ? junkStaff.state.staff : undefined, null, 'a malformed staff state is not a staff PC');
+  for (const r of [{ what: 'trading', pause: true }, { what: 'scene', name: 'Break' }, { what: 'preview' }] as const) assert.equal(toAction(r), null, `${r.what} is a staff key, not a control action`);
+  assert.equal(ACTION_KIND['tv.cheesygidds.tcgbridge.trading'], 'trading');
+  assert.equal(ACTION_KIND['tv.cheesygidds.tcgbridge.scene'], 'scene');
+  assert.equal(ACTION_KIND['tv.cheesygidds.tcgbridge.preview'], 'preview');
+  // What each key shows: the current state on a staff PC, "Staff only" on any other, "Admins only" on a mod-linked PC for the preview.
+  assert.equal(view('trading', adminPc, {}, now).title, 'Trading\nopen');
+  assert.equal(view('trading', state({ staff: { ...staffOpen, tradingPaused: true } }), {}, now).title, 'Trading\npaused');
+  assert.notEqual(view('trading', adminPc, {}, now).image, view('trading', state({ staff: { ...staffOpen, tradingPaused: true } }), {}, now).image, 'open and paused look different');
+  assert.equal(view('scene', adminPc, { scene: 'Break' }, now).title, 'Scene\nBreak');
+  assert.notEqual(view('scene', adminPc, { scene: 'Main' }, now).image, view('scene', adminPc, { scene: 'Break' }, now).image, 'the scene on air is lit');
+  assert.equal(view('scene', adminPc, {}, now).title, 'Pick a scene');
+  assert.equal(view('preview', adminPc, {}, now).title, 'Preview\noverlay');
+  for (const k of ['trading', 'scene', 'preview'] as const) {
+    assert.equal(view(k, state(), { scene: 'Main' }, now).title, 'Staff only', `${k}: a PC that is not a staff PC`);
+    assert.match(view(k, null, {}, now).title, /App closed/);
+    assert.match(view(k, state({ ready: false }), {}, now).title, /Not paired/);
+    for (const line of view(k, adminPc, { scene: 'Main' }, now).title.split('\n')) assert.ok(line.length <= 10, `"${line}" fits a key`);
+  }
+  assert.equal(view('trading', modPc, {}, now).title, 'Trading\nopen', 'a mod may pause trading');
+  assert.equal(view('scene', modPc, { scene: 'Main' }, now).title, 'Scene\nMain', 'and switch scenes');
+  assert.equal(view('preview', modPc, {}, now).title, 'Admins only', 'but the preview address is an admin action');
+  assert.deepEqual(requestFor('trading', {}, adminPc), { what: 'trading', pause: true }, 'an open trading key asks to pause');
+  assert.deepEqual(requestFor('trading', {}, state({ staff: { ...staffOpen, tradingPaused: true } })), { what: 'trading', pause: false }, 'a paused one asks to resume');
+  assert.equal(requestFor('trading', {}, state()), null, 'no staff state, nothing to ask');
+  assert.deepEqual(requestFor('scene', { scene: ' Break ' }), { what: 'scene', name: 'Break' });
+  assert.equal(requestFor('scene', {}), null, 'no scene picked = nothing to ask for');
+  assert.deepEqual(requestFor('preview', {}), { what: 'preview' });
+  // The app side: deckStaff and the refusal in runStaffPcKey (not only the key's display).
+  assert.equal(deckStaff(false, null, false, 'Main', ['Main']), null, 'not a staff PC');
+  assert.deepEqual(deckStaff(true, null, true, 'Main', ['Main', 'Break']), { can: ['trading', 'scene', 'preview-url'], tradingPaused: true, scene: 'Main', scenes: ['Main', 'Break'] }, 'a PC paired with a code may use every action');
+  assert.deepEqual(deckStaff(true, ['trading', 'scene', 'state', 'users'], false, '', [])?.can, ['trading', 'scene'], 'a mod-linked PC: the mod actions only');
+  assert.deepEqual(deckStaff(true, [], false, '', [])?.can, [], 'a signed-in account with no role may do nothing');
+  const pcLog: string[] = [];
+  const pcDid: string[] = [];
+  let pcStaff: DeckStaff | null = null;
+  const pcEnv: StaffPcEnv = {
+    staff: () => pcStaff, log: l => pcLog.push(l),
+    setTrading: async pause => { pcDid.push(`trading ${pause}`); return { ok: true, text: pause ? 'Trading paused' : 'Trading open' }; },
+    scene: async name => { pcDid.push(`scene ${name}`); return { ok: true, text: `Switched to ${name}.` }; },
+    openPreview: () => { pcDid.push('preview'); },
+  };
+  for (const r of [{ what: 'trading', pause: true }, { what: 'scene', name: 'Break' }, { what: 'preview' }] as const) {
+    assert.deepEqual(await runStaffPcKey(pcEnv, r), { ok: false, text: 'Staff tools are off for this PC' }, `${r.what}: refused on a PC that is not a staff PC`);
+  }
+  assert.deepEqual(pcDid, [], 'nothing ran');
+  pcStaff = modPc.staff;
+  assert.deepEqual(await runStaffPcKey(pcEnv, { what: 'preview' }), { ok: false, text: 'This account\'s role cannot do that' }, 'a mod-linked PC is refused the preview');
+  assert.deepEqual(pcDid, [], 'and it did not open');
+  assert.deepEqual(await runStaffPcKey(pcEnv, { what: 'trading', pause: true }), { ok: true, text: 'Trading paused' });
+  assert.deepEqual(await runStaffPcKey(pcEnv, { what: 'scene', name: 'Break' }), { ok: true, text: 'Switched to Break.' });
+  pcStaff = staffOpen;
+  assert.deepEqual(await runStaffPcKey(pcEnv, { what: 'preview' }), { ok: true, text: 'Opened the preview overlay' });
+  assert.deepEqual(pcDid, ['trading true', 'scene Break', 'preview']);
+  assert.deepEqual(await runStaffPcKey({ ...pcEnv, setTrading: async () => { throw new Error('boom'); } }, { what: 'trading', pause: false }), { ok: false, text: 'boom' });
+  assert.ok(pcLog.includes('Staff: preview (Stream Deck key): refused, This account\'s role cannot do that'), 'the log says why');
+  // Test pull and Show a card now honour the role too.
+  const roleRan: Record<string, unknown>[] = [];
+  const roleTools = { run: async (req: Record<string, unknown>) => { roleRan.push(req); return { ok: true, text: 'Queued' }; } };
+  assert.deepEqual(await runStaffKey(roleTools, true, { action: 'test-pull' }, () => undefined, ['trading', 'scene']), { ok: false, text: 'This account\'s role cannot do that' });
+  assert.deepEqual(roleRan, [], 'a mod-linked PC cannot test pull');
+  assert.equal((await runStaffKey(roleTools, true, { action: 'test-pull' }, () => undefined, null)).ok, true, 'a code-paired staff PC can');
+
   // ── Test pull and Show a card are staff actions: refused with a reason, and logged, on a PC that is not a staff PC ──
   const staffLog: string[] = [];
   const staffRan: Record<string, unknown>[] = [];
@@ -208,11 +284,13 @@ export async function deckChecks(): Promise<void> {
   let changes = 0;
   const staffRuns: Record<string, unknown>[] = [];
   let staffOn = false;
+  let liveStaff: DeckStaff | null = null;
   const staffTools = { run: async (req: Record<string, unknown>) => { staffRuns.push(req); return { ok: true, text: 'Queued' }; } };
   const server = new DeckServer({
     file, version: '9.9.9', state: () => current, ports: [0], helloMs: 150, log: l => logs.push(l), onChange: () => { changes++; },
     run: async a => { calls.push(a); return refuse ? { ok: false, text: 'Pulls are not open' } : { ok: true, text: 'Done' }; },
     staff: body => runStaffKey(staffTools, staffOn, body, l => logs.push(l)),
+    staffPc: r => runStaffPcKey({ ...pcEnv, staff: () => liveStaff, log: l => logs.push(l) }, r),
   });
   await server.start();
   try {
@@ -419,6 +497,74 @@ export async function deckChecks(): Promise<void> {
     for (const id of ['k-skip', 'k-clear', 'k-count']) keys.remove(id);
     await until('no stats wanted after the queue keys', () => server.wanted.length === 0);
 
+    // Staff keys (61.3), through the real server. A PC that is not a staff PC: the keys say so, send nothing, and the app refuses a request sent anyway.
+    const sk = { trading: new FakeKey(), scene: new FakeKey(), preview: new FakeKey(), none: new FakeKey() };
+    keys.add('k-trading', 'trading', sk.trading, {});
+    keys.add('k-scene', 'scene', sk.scene, { scene: 'Break' });
+    keys.add('k-preview', 'preview', sk.preview, {});
+    keys.add('k-sceneless', 'scene', sk.none, {});
+    pcDid.length = 0;
+    current = state();
+    server.broadcast();
+    await until('Staff only on the keys', () => sk.trading.title === 'Staff only' && sk.scene.title === 'Staff only' && sk.preview.title === 'Staff only');
+    for (const id of ['k-trading', 'k-scene', 'k-preview']) { await keys.down(id); await keys.up(id); }
+    assert.equal(sk.trading.alerts + sk.scene.alerts + sk.preview.alerts, 3, 'a press on a refused staff key shows the alert');
+    assert.deepEqual(pcDid, [], 'and does nothing');
+    const raw = client(url);
+    raw.ws.on('open', () => raw.ws.send(hello(server.token)));
+    await until('the raw client to be let in', () => raw.got.length > 0);
+    for (const [n, req] of [[1, { what: 'trading', pause: true }], [2, { what: 'scene', name: 'Break' }], [3, { what: 'preview' }]] as const) raw.ws.send(JSON.stringify({ t: 'do', n, req }));
+    await until('three refusals', () => raw.got.filter(g => g.includes('"done"')).length === 3);
+    assert.ok(raw.got.filter(g => g.includes('"done"')).every(g => g.includes('"ok":false') && g.includes('Staff tools are off for this PC')), 'the app refuses a request sent to it from a PC that is not a staff PC');
+    assert.deepEqual(pcDid, [], 'enforced in the app, not only on the key');
+    // A mod-linked PC: trading and scene work, the preview is refused with a clear title and in the app.
+    liveStaff = modPc.staff;
+    current = modPc;
+    server.broadcast();
+    await until('the mod keys', () => sk.trading.title === 'Trading\nopen' && sk.scene.title === 'Scene\nBreak' && sk.preview.title === 'Admins only');
+    assert.equal(sk.none.title, 'Pick a scene');
+    await keys.down('k-preview'); await keys.up('k-preview');
+    assert.equal(sk.preview.alerts, 2);
+    raw.ws.send(JSON.stringify({ t: 'do', n: 4, req: { what: 'preview' } }));
+    await until('the mod preview refusal', () => raw.got.some(g => g.includes('"n":4') && g.includes('"ok":false') && g.includes('role cannot do that')));
+    assert.deepEqual(pcDid, [], 'a mod PC did not open the preview');
+    await keys.down('k-scene');
+    assert.deepEqual(pcDid, ['scene Break'], 'a mod may switch the scene');
+    await keys.down('k-sceneless');
+    assert.equal(sk.none.alerts, 1, 'a scene key with no scene picked shows the alert');
+    assert.equal(pcDid.length, 1);
+    // An admin PC: pausing trading needs a 1 second hold, resuming is one press, the preview opens.
+    liveStaff = staffOpen;
+    current = adminPc;
+    server.broadcast();
+    await until('the admin keys', () => sk.preview.title === 'Preview\noverlay' && sk.scene.image !== '');
+    pcDid.length = 0;
+    const alertsT = sk.trading.alerts;
+    await keys.down('k-trading'); clockNow += 200; await keys.up('k-trading');
+    assert.deepEqual(pcDid, [], 'a short press does not pause trading');
+    assert.equal(sk.trading.title, 'Hold 1 second\nto pause');
+    assert.equal(sk.trading.alerts, alertsT + 1);
+    clockNow += 2100;
+    await keys.down('k-trading'); clockNow += HOLD_MS - 1; await keys.up('k-trading');
+    assert.deepEqual(pcDid, [], 'just under a second does not pause it');
+    clockNow += 2100;
+    await keys.down('k-trading'); clockNow += HOLD_MS; await keys.up('k-trading');
+    assert.deepEqual(pcDid, ['trading true'], 'a hold of a second pauses trading');
+    current = state({ staff: { ...staffOpen, tradingPaused: true } });
+    server.broadcast();
+    await until('the paused trading key', () => sk.trading.title === 'Trading\npaused');
+    await keys.down('k-trading'); clockNow += 100; await keys.up('k-trading');
+    assert.deepEqual(pcDid, ['trading true', 'trading false'], 'one short press resumes it');
+    await keys.down('k-preview');
+    assert.deepEqual(pcDid.slice(2), ['preview']);
+    await keys.down('k-scene');
+    assert.equal(pcDid.at(-1), 'scene Break');
+    assert.ok(logs.includes('Staff: preview (Stream Deck key): refused, This account\'s role cannot do that'), 'the log says why a mod was refused');
+    for (const id of ['k-trading', 'k-scene', 'k-preview', 'k-sceneless']) keys.remove(id);
+    raw.ws.close();
+    current = state();
+    server.broadcast();
+
     // The app closing turns every key back to "App closed", and the plugin finds it again when it returns.
     await server.stop();
     assert.equal(existsSync(file), false, 'stop removes streamdeck.json');
@@ -433,10 +579,10 @@ export async function deckChecks(): Promise<void> {
   assert.ok(changes > 0);
 
   // Every port taken: the app says so.
-  const blocker = new DeckServer({ file: join(tmpdir(), 'tcg-deck-blocker.json'), version: '1', state: () => state(), ports: [0], run: async () => ({ ok: true, text: '' }), staff: async () => ({ ok: true, text: '' }), onChange: () => undefined, log: () => undefined });
+  const blocker = new DeckServer({ file: join(tmpdir(), 'tcg-deck-blocker.json'), version: '1', state: () => state(), ports: [0], run: async () => ({ ok: true, text: '' }), staff: async () => ({ ok: true, text: '' }), staffPc: async () => ({ ok: true, text: '' }), onChange: () => undefined, log: () => undefined });
   await blocker.start();
   try {
-    const busy = new DeckServer({ file: join(tmpdir(), 'tcg-deck-busy.json'), version: '1', state: () => state(), ports: [blocker.listeningPort], run: async () => ({ ok: true, text: '' }), staff: async () => ({ ok: true, text: '' }), onChange: () => undefined, log: () => undefined });
+    const busy = new DeckServer({ file: join(tmpdir(), 'tcg-deck-busy.json'), version: '1', state: () => state(), ports: [blocker.listeningPort], run: async () => ({ ok: true, text: '' }), staff: async () => ({ ok: true, text: '' }), staffPc: async () => ({ ok: true, text: '' }), onChange: () => undefined, log: () => undefined });
     await busy.start();
     assert.match(busy.error, /are used by other programs/);
     assert.equal(existsSync(join(tmpdir(), 'tcg-deck-busy.json')), false, 'no file is written when nothing listens');
