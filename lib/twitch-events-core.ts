@@ -1,6 +1,8 @@
 // Twitch EventSub events forwarded by TCG Bridge, the pure part (ROADMAP 58.2): which events the site takes, how a body is checked and capped, the
 // one line each becomes in the recent list, and the app's connection report. No KV and no site imports; lib/twitch-events.ts holds the KV side.
-// Nothing here awards anything; 58.3 (redemptions) and 58.4 (gifts, cheers, raids) use these shapes.
+// Nothing here awards anything; 58.3 (redemptions) and 58.4 (gifts, cheers, raids) use these shapes. 58.6 adds `channel.chat.message` (a chat command the
+// app found, never recorded in the recent list; lib/twitch-chat.ts runs it).
+import { CHAT_EVENT, cleanChatEvent } from './twitch-chat-core';
 
 export const EVENT_TYPES = [
   'channel.channel_points_custom_reward_redemption.add',
@@ -9,6 +11,7 @@ export const EVENT_TYPES = [
   'channel.raid',
   'stream.online',
   'stream.offline',
+  CHAT_EVENT,
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
@@ -39,6 +42,7 @@ export function cleanTwitchEvent(raw: unknown): CleanEvent | null {
   if (typeof o.messageId !== 'string' || !MESSAGE_ID.test(o.messageId)) return null;
   if (typeof o.type !== 'string' || !(EVENT_TYPES as readonly string[]).includes(o.type)) return null;
   if (!o.event || typeof o.event !== 'object' || Array.isArray(o.event)) return null;
+  if (o.type === CHAT_EVENT && !cleanChatEvent(o.event)) return null; // a chat message: its id, chatter and text length are checked here
   return { messageId: o.messageId, type: o.type as EventType, event: o.event as Record<string, unknown> };
 }
 
@@ -62,6 +66,7 @@ export function eventText(type: EventType, event: Record<string, unknown>): stri
     case 'channel.raid':
       return `${name(event.from_broadcaster_user_login, event.from_broadcaster_user_name)} raided with ${plural(num(event.viewers), 'viewer', 'viewers')}`;
     case 'stream.online': return 'The stream went online';
+    case CHAT_EVENT: return 'A chat command'; // never shown: chat is not recorded
     default: return 'The stream went offline';
   }
 }

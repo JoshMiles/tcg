@@ -8,7 +8,8 @@ import { STAFF_COOKIE } from '@/lib/staff-token';
 import { ACCESS_COOKIE } from '@/lib/access-token';
 import { getStaff } from '@/lib/staff-guard';
 import { roleCan } from '@/lib/staff-core';
-import { channelStateOk, connectChannel } from '@/lib/twitch-channel';
+import { botStateOk, channelStateOk, connectChannel } from '@/lib/twitch-channel';
+import { connectBot } from '@/lib/twitch-bot';
 
 function fail(req: NextRequest, reason: string) {
   const res = NextResponse.redirect(new URL(`/auth/error?reason=${reason}`, req.url));
@@ -30,6 +31,20 @@ async function channelReturn(req: NextRequest, code: string, state: string, cook
   return back(r.ok ? undefined : r.reason === 'scopes' ? 'Twitch did not grant every permission, connect again and allow them all' : 'Twitch would not connect the channel, try again');
 }
 
+/** The OAuth return of "Connect bot account" (58.6): same rules as the channel's, with the `bot` cookie marker; the bot cannot be the channel's own account. */
+async function botReturn(req: NextRequest, code: string, state: string, cookie: string) {
+  const back = (error?: string) => {
+    const res = NextResponse.redirect(new URL(`/admin/mixitup?tab=connection${error ? `&error=${encodeURIComponent(error)}` : ''}`, req.url));
+    res.cookies.delete(OAUTH_COOKIE);
+    return res;
+  };
+  const staff = await getStaff();
+  if (!staff || !roleCan(staff.role, 'admin')) return back('only an admin can connect the bot account');
+  if (!botStateOk(cookie, state, staff.login)) return back('the Twitch sign-in expired, try again');
+  const r = await connectBot(code, staff.login);
+  return back(r.ok ? undefined : r.reason === 'same' ? 'the bot account must be a different account than the channel' : r.reason === 'scopes' ? 'Twitch did not grant every permission, connect again and allow them all' : 'Twitch would not connect the bot account, try again');
+}
+
 const sameString = (a: string, b: string) => {
   const x = Buffer.from(a), y = Buffer.from(b);
   return x.length === y.length && timingSafeEqual(x, y);
@@ -48,9 +63,10 @@ export async function GET(req: NextRequest) {
   const cookie = req.cookies.get(OAUTH_COOKIE)?.value;
   if (!code || !state || !cookie) return fail(req, 'expired');
 
-  let expected: { state?: string; returnTo?: string; channel?: boolean };
+  let expected: { state?: string; returnTo?: string; channel?: boolean; bot?: boolean };
   try { expected = JSON.parse(cookie); } catch { return fail(req, 'expired'); }
   if (expected.channel) return channelReturn(req, code, state, cookie); // "Connect Twitch channel" (58.1): the same redirect address, a different job
+  if (expected.bot) return botReturn(req, code, state, cookie); // "Connect bot account" (58.6): likewise
   if (typeof expected.state !== 'string' || !sameString(expected.state, state)) return fail(req, 'expired');
 
   let profile;

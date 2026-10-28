@@ -5,10 +5,17 @@ import { queuePull } from '@/lib/pull-queue';
 import { answerOnce } from '@/lib/webhook-reply';
 import { runEventReward } from '@/lib/event-rewards';
 import { cleanEventAmount, cleanEventName } from '@/lib/event-rewards-core';
+import { chatFromTwitch } from '@/lib/twitch-chat';
 
 export async function POST(req: NextRequest) {
   const parsed = await parseIncomingWebhook(req);
   if (!parsed.ok) return parsed.response;
+
+  // 58.6: while chat comes through TCG Bridge a chat !pack (no `event`) is ignored, so a leftover Mix It Up command never runs twice or says anything.
+  if (parsed.body.event === undefined) {
+    const fromTwitch = await chatFromTwitch();
+    if (fromTwitch) return fromTwitch;
+  }
 
   // Admin can restrict this to when the stream is live (Settings → OBS Overlay).
   const blocked = await liveGate('pull');

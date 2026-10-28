@@ -11,6 +11,8 @@ import { STEPS, pickStep, stepsDone, type StepId } from '@/lib/mixitup-wizard';
 import { listBridges, readBridge, readObs } from '@/lib/bridge';
 import { bridgeAccount, isStaffPc } from '@/lib/bridge-core';
 import { getWebhookSettings } from '@/lib/webhooks';
+import { twitchHandlesEvent } from '@/lib/twitch-eventsub';
+import { CHAT_EVENT, CHAT_VIA_BRIDGE } from '@/lib/twitch-chat-core';
 import { SITE_URL } from '@/lib/site';
 import { timeAgo } from '@/lib/site-data';
 import { BridgeCard } from '../BridgeCard';
@@ -47,6 +49,7 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
   const [incoming, outgoing, obsCard] = cards;
   const bridgeMode = settings.connection === 'bridge';
   const pack = packSetup(SITE_URL, secret);
+  const viaBridge = await twitchHandlesEvent(CHAT_EVENT);
 
   return (
     <div className="space-y-6">
@@ -77,7 +80,8 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
 
       {step === 'incoming' && (
         <>
-          <Panel title="Make the !pack command" icon="chat" hint="Mix It Up tells the site when someone types !pack. The secret is already made for you and sits in the body below.">
+          {viaBridge && <p role="status" className="rounded-lg border border-emerald-500/30 bg-emerald-950/30 px-4 py-2.5 text-sm text-emerald-300">{CHAT_VIA_BRIDGE} This step is optional.</p>}
+          <Panel title={viaBridge ? 'Make the !pack command (optional)' : 'Make the !pack command'} icon="chat" hint="Mix It Up tells the site when someone types !pack. The secret is already made for you and sits in the body below.">
             <ol className="list-decimal pl-5 space-y-1 text-xs text-gray-400">
               <li>In Mix It Up make a Chat Command <strong>!pack</strong> and add a <strong>Web Request</strong> action: method POST, content type JSON.</li>
               <li>Paste the address and the body below. <code>$allargs</code> is what the viewer typed after !pack (<code>!pack Base</code> opens the Base pack); empty means the usual random pack. <code>requestId</code> is a new number on every run, so a retried request never opens a second pack.</li>
@@ -90,9 +94,9 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
           <p role="status" className="text-sm text-gray-200">
             {incoming.tone === 'ok' ? 'Mix It Up reached the site. This step is done.'
               : incoming.tone === 'warn' ? 'Mix It Up reached the site but the secret did not match. Copy the body above into the command again.'
-              : 'Type !pack in chat now.'}
+              : viaBridge ? 'Optional: chat commands already come through TCG Bridge.' : 'Type !pack in chat now.'}
           </p>
-          {incoming.tone !== 'ok' && <AutoRefresh />}
+          {incoming.tone !== 'ok' && !viaBridge && <AutoRefresh />}
         </>
       )}
 

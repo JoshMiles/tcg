@@ -12,7 +12,7 @@ const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED:
 
 const realFetch = globalThis.fetch;
 let twitchUser = { id: '4242', login: 'SpareAccount' };
-const SCOPES = ['channel:read:redemptions', 'bits:read', 'channel:read:subscriptions'];
+const SCOPES = ['channel:read:redemptions', 'bits:read', 'channel:read:subscriptions', 'user:read:chat', 'user:write:chat', 'channel:bot']; // 58.6 sign-in asks for chat too
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const u = String(input instanceof Request ? input.url : input);
   if (u.startsWith(url)) return realFetch(input, init);

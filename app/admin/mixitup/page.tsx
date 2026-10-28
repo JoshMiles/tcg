@@ -25,7 +25,10 @@ import { channelConnectReady, readChannelStatus } from '@/lib/twitch-channel';
 import { readEventSub, recentTwitchEvents } from '@/lib/twitch-events';
 import { lineText, listeningLine } from '@/lib/twitch-events-core';
 import { fetchRewards, readAwards } from '@/lib/twitch-awards';
-import { testingLine } from '@/lib/twitch-channel-core';
+import { chatScopesOk, testingLine } from '@/lib/twitch-channel-core';
+import { getReplyAs, readBotStatus } from '@/lib/twitch-bot';
+import { twitchHandlesEvent } from '@/lib/twitch-eventsub';
+import { CHAT_EVENT, CHAT_VIA_BRIDGE } from '@/lib/twitch-chat-core';
 import { MixItUpConfig } from './MixItUpConfig';
 import { MixItUpLog } from './MixItUpLog';
 import { StreamDeckTab } from './StreamDeckTab';
@@ -81,7 +84,10 @@ async function twitchView() {
   const [sub, events] = await Promise.all([readEventSub(), recentTwitchEvents(8)]);
   const listening = listeningLine(sub, events[0] ?? null, Date.now(), timeAgo);
   const off = sub && sub.state !== 'connected' ? sub.reason || (sub.state === 'off' ? 'TCG Bridge is not listening' : 'TCG Bridge is reconnecting to Twitch') : '';
+  const [bot, replyAs, viaBridge] = await Promise.all([readBotStatus(), getReplyAs(), twitchHandlesEvent(CHAT_EVENT)]);
   return {
+    chat: chatScopesOk(c.scopes), chatLine: viaBridge ? CHAT_VIA_BRIDGE : null, replyAs,
+    bot: bot ? { login: bot.login, since: timeAgo(bot.connectedAt), by: bot.by } : null,
     login: c.login, scopes: c.scopes, since: timeAgo(c.connectedAt), by: c.by, testing: c.testing, testingLine: testingLine(c.login),
     listening, problem: listening ? '' : off || (sub ? 'TCG Bridge has not reported lately' : 'TCG Bridge has not reported a Twitch connection yet'),
     events: events.map(e => ({ text: lineText(e), ago: timeAgo(e.at) })),
@@ -152,7 +158,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
       {tab === 'paid' && <MixItUpConfig settings={settings} happyHour={await happyHourView(now)} packGoal={await packGoalView()}packs={((await getActiveSeasonWithPacks())?.packs ?? []).filter(p => p.cards.length > 0).map(p => ({ id: p.pack.id, name: p.pack.name, price: p.pack.price }))} />}
       {tab === 'bigpulls' && <PullRules rules={settings.pullRules} commands={bridge.commands} obs={{ scenes: obs?.scenes ?? [], sources: obs?.sources ?? [] }} watchdog={settings.overlayWatchdog} />}
       {tab === 'chat' && <ChatBucks chat={settings.chat} check={await readLedgerCheck()} when={timeAgo} />}
-      {tab === 'commands' &&<CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} pack={packSetup(SITE_URL, (await getWebhookSettings()).incomingSecret)} />}
+      {tab === 'commands' &&<CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} pack={packSetup(SITE_URL, (await getWebhookSettings()).incomingSecret)} viaBridge={await twitchHandlesEvent(CHAT_EVENT)} />}
       {tab === 'streamdeck' && <StreamDeckTab buffs={await getBuffDefs()} url={`${SITE_URL}/api/webhooks/buff`} secret={(await getWebhookSettings()).incomingSecret} />}
       {tab === 'events' && <EventsTab rewards={settings.eventRewards} buffs={await getBuffDefs()} url={`${SITE_URL}/api/webhooks/pull`} secret={(await getWebhookSettings()).incomingSecret} points={await fetchRewards()} awards={await readAwards()} />}
       {tab === 'log' &&<MixItUpLog log={await mergedLog()} filter={pickLogFilter(filter)} now={now} />}
