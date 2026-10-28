@@ -108,7 +108,7 @@ Read the doc that matches what you are changing **before** you change it; each s
 Full rules, including the comment-reading command, in [docs/git-and-prs.md](docs/git-and-prs.md); read it before pushing or merging.
 
 - Branch off an up-to-date `origin/main`; **every push gets a PR**; never push to `main`. One feature per PR, never stacked; never push new work onto a merged PR's branch.
-- **PR bodies follow `.github/pull_request_template.md` exactly** (`## Changelog`, `## Summary`, `## Test plan`); the `PR description` check fails otherwise.
+- **PR bodies follow `.github/pull_request_template.md` exactly** (`## Changelog`, `## Summary`, `## Docs`, `## Test plan`); the `PR description` check fails otherwise.
 - **Before merging, read all three comment lists**: `claude-review` posts bugs as inline comments that `gh pr view` doesn't show.
 
 ## Gotchas
@@ -116,5 +116,6 @@ Full rules, including the comment-reading command, in [docs/git-and-prs.md](docs
 - **IMPORTANT: never write real data from local work.** Develop against the mock KV, never production KV. On the production overlay, never turn off "Don't save" in the test panel or call `drawCard` without `dry`: a saved draw writes a real pull (it once left a stray `tester` user). Saves now need a server ticket, but the panel's Reset buttons always write real data.
 - Before committing: stop dev servers and mock processes, and delete `.env.local` and `.claude/launch.json`.
 - **TCG Bridge version rule:** a PR that changes anything under `bridge/` except `bridge/README.md` must raise the minor of `bridge/package.json` above `main`'s with patch 0 (0.11.0 to 0.12.0) and keep `bridge/package-lock.json`'s two version fields equal; CI fails otherwise, and the merge to `main` builds and publishes the `bridge-v<version>` release by itself (no hand tag).
+- **Docs stay current with code:** `docs/doc-map.json` ties each doc (README, CLAUDE.md, `docs/**`, `bridge/README.md`) to the code it describes, and each `content/wiki/*.md` page lists its code in a `covers:` front matter line. A PR that changes mapped code without updating the doc fails the `PR description` workflow unless the body's `## Docs` section has `No change needed: <doc>: <reason>` for it (details in docs/git-and-prs.md). A new doc must be added to the map.
 - The Claude app's browser pane can't measure frame rate or animation (see docs/local-dev.md). Say plainly in PR descriptions what wasn't checked in real OBS.
 - Left to the user (can't be checked locally): OBS (stream status permission, real frame rate), Discord webhook delivery, Vercel Blob uploads, the Twitch panel inside Twitch.

@@ -2,6 +2,7 @@
 title: When to reverse a trade
 summary: What reversing does, when it works, and when to leave it to an admin.
 order: 61
+covers: app/mod/trades/**, lib/trades.ts
 audience: mods
 ---
 

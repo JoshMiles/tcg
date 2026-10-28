@@ -132,9 +132,9 @@ ok(built.entries.every(e => !leak(e) && ![e.title, ...e.items].join('').includes
 ok(CHANGELOG.filter(e => e.pr !== undefined).every(e => !leak(e)), 'generated entries on disk never mention Claude');
 
 // ---- PR body must follow the template (prBodyProblems) ----
-const body = (cl: string, rest = '## Summary\nWhat changed.\n\n## Test plan\n- [x] verify\n') => `## Changelog\n${cl}\n\n${rest}`;
+const body = (cl: string, rest = '## Summary\nWhat changed.\n\n## Docs\nDocs updated: docs/overlay.md\n\n## Test plan\n- [x] verify\n') => `## Changelog\n${cl}\n\n${rest}`;
 const good = 'Audience: players\nTitle: A title\nTags: new, fixed\n- Players can do a thing.';
-const template = ['## Changelog', '<!-- hint -->', 'Audience: players', 'Title: ', 'Tags: new', '- ', '', '## Summary', '', '', '## Test plan', ''].join('\n');
+const template = ['## Changelog', '<!-- hint -->', 'Audience: players', 'Title: ', 'Tags: new', '- ', '', '## Summary', '', '', '## Docs', '', '## Test plan', ''].join('\n');
 const bad = (b: string, re: RegExp, msg: string) => ok(prBodyProblems(b, '').some(p => re.test(p)), msg);
 ok(prBodyProblems(body(good) + '\n' + ROBOT + ' Generated with a tool', '').length === 0, 'a correct body (with a footer after Test plan) passes');
 ok(prBodyProblems(body('Audience: admin, mod\nTags: improved\n- Text.'), '').length === 0, 'Title is optional');
@@ -142,9 +142,11 @@ ok(prBodyProblems(body('None (internal)'), '').length === 0, 'none passes');
 ok(prBodyProblems(body('none'), 'ROADMAP 1: plan').length === 0, 'none passes for a ROADMAP PR');
 bad(template, /empty "- " bullet/, 'the unfilled template fails on its bare bullet');
 bad(template, /"## Summary" is empty/, 'the unfilled template fails on its empty Summary');
-bad('## Summary\nx\n\n## Changelog\nnone\n\n## Test plan\nx', /Headings must be/, 'wrong heading order fails');
-bad(body(good, '## Summary\nx\n'), /Headings must be/, 'a missing Test plan fails');
-bad(body(good, '## Summary\nx\n\n## Test plan\nx\n\n## Notes\nx'), /Headings must be/, 'an extra ## heading fails');
+bad(template, /"## Docs" is empty/, 'the unfilled template fails on its empty Docs');
+bad('## Summary\nx\n\n## Changelog\nnone\n\n## Docs\nx\n\n## Test plan\nx', /Headings must be/, 'wrong heading order fails');
+bad(body(good, '## Summary\nx\n\n## Docs\nx\n'), /Headings must be/, 'a missing Test plan fails');
+bad(body(good, '## Summary\nx\n\n## Test plan\nx'), /Headings must be/, 'a missing Docs section fails');
+bad(body(good, '## Summary\nx\n\n## Docs\nx\n\n## Test plan\nx\n\n## Notes\nx'), /Headings must be/, 'an extra ## heading fails');
 bad(body('Audience: players\nTags: new\nSome prose.\n- Text.'), /not a bullet/, 'prose in Changelog fails');
 bad(body('Audience: mods and wizards\nTags: new\n- Text.'), /Unknown audience: wizards/, 'unknown audience fails');
 bad(body('Audience: players\nTags: new, big\n- Text.'), /Unknown tag: big/, 'unknown tag fails');
@@ -152,7 +154,11 @@ bad(body('Audience: players\n- Text.'), /Tags:/, 'missing Tags fails');
 bad(body('Audience: players\nTitle:\nTags: new\n- Text.'), /Title:" is empty/, 'an empty Title line fails');
 bad(body('Audience: players\nTags: new\n- Text ' + EM + ' more.'), /em dash/, 'an em dash in a bullet fails');
 bad(body('Audience: players\nTags: new\n- Made with Claude.'), /tool or author/, 'a credit in a bullet fails');
-bad(body(good, '## Summary\n\n## Test plan\nx'), /"## Summary" is empty/, 'an empty Summary fails');
+bad(body(good, '## Summary\n\n## Docs\nx\n\n## Test plan\nx'), /"## Summary" is empty/, 'an empty Summary fails');
+ok(prBodyProblems(body(good, '## Summary\nx\n\n## TCG Bridge\n- A new key.\n\n## Docs\nx\n\n## Test plan\nx'), '').length === 0, 'an optional TCG Bridge section after Summary passes');
+bad(body(good, '## Summary\nx\n\n## Docs\nx\n\n## TCG Bridge\n- A new key.\n\n## Test plan\nx'), /Headings must be/, 'TCG Bridge in the wrong place fails');
+bad(body(good, '## Summary\nx\n\n## TCG Bridge\nSome prose.\n\n## Docs\nx\n\n## Test plan\nx'), /holds only bullets/, 'TCG Bridge with prose fails');
+bad(body(good, '## Summary\nx\n\n## TCG Bridge\n\n## Docs\nx\n\n## Test plan\nx'), /"## TCG Bridge" is empty/, 'an empty TCG Bridge section fails');
 // PR #386 as it was written: Summary first, prose instead of a bullet
 const pr386 = '## Summary\n- Text tool.\n\n## Changelog\nAudience: admin\nTags: new\nThe Overlay Editor has a Text tool: click or drag.\n\n## Test plan\n- [x] npm run verify';
 bad(pr386, /Headings must be/, '#386 fails on heading order');

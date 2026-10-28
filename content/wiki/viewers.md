@@ -2,6 +2,7 @@
 title: Viewers
 summary: Look someone up, restrict them, give a card back, and handle a deletion request.
 order: 10
+covers: app/admin/users/**, app/admin/feedback/**, lib/user-admin.ts
 ---
 
 Viewers are Twitch logins. The admin list is [Users](/admin/users). The same person, with fewer buttons, is on the mod panel at `/mod/users`.

@@ -2,6 +2,7 @@
 title: Trading
 summary: Offers, the board, escrow, and what to do when cards look stuck.
 order: 30
+covers: app/admin/trades/**, lib/trades.ts, lib/trade-core.ts
 ---
 
 Trading is on the public site (`/trade`) and in the Twitch panel's Trades tab. A viewer can offer a direct trade to one person, or list on the board for anyone. Staff tools are on [Trades](/admin/trades). Mods see the same log at `/mod/trades`, without Extend.

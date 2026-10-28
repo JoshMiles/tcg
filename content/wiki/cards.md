@@ -2,6 +2,7 @@
 title: Cards, packs and seasons
 summary: How the set is built, how a pull is chosen, and what a print is.
 order: 20
+covers: app/admin/packs/**, app/admin/seasons/**, app/admin/assets/**, app/admin/serials/**, lib/draw.ts, lib/scoring.ts
 ---
 
 Three levels: a **season** contains **packs**, and a pack contains **cards**. Packs are global. The same pack can sit in more than one season. Cards for a pack live with that pack, not with the season.

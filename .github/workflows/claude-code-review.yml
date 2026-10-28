@@ -38,7 +38,10 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          prompt: |
+            /code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}
+
+            Also check the docs. For every doc the PR changes, and every doc that docs/doc-map.json (or a content/wiki page's "covers:" front matter line) ties to the files the PR changes, read the doc and check that its statements still match the diff. Flag anything the diff makes wrong: a renamed setting, a removed button, a changed default, a moved file. A doc the PR body's "## Docs" section skips with "No change needed" whose text the diff contradicts is a finding. Post these as inline comments like any other finding.
           claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment"'
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options

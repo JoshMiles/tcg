@@ -2,6 +2,7 @@
 title: Environments
 summary: Production, previews, local mock data, backups, and which secrets matter.
 order: 70
+covers: lib/sandbox.ts, lib/db.ts, lib/backup.ts, app/admin/settings/PreviewDataPanel.tsx, app/admin/settings/BackupsPanel.tsx
 ---
 
 ## Three places data can live
