@@ -29,14 +29,40 @@ function renderObs(obs, saved) {
     $('obs-password').placeholder = saved.hasPassword ? '(saved, type to replace)' : '';
   }
   $('obs-forget').hidden = !(saved && saved.hasPassword);
-  const on = !!(obs && obs.enabled);
-  const up = on && obs.connected;
-  setDot('obs-dot', up ? 'ok' : on ? '' : 'off');
-  $('obs-state').textContent = !on ? 'Off. Open "OBS connection" below to switch it on.' : up ? (obs.streaming ? 'Connected, and the stream is live' : 'Connected') : `Not connected${obs && obs.error ? ` (${obs.error})` : ''}`;
+  const up = !!(obs && obs.enabled && obs.connected);
   $('obs-scene').textContent = up && obs.scene ? obs.scene : '-';
-  $('obs-stream').textContent = up ? (obs.streaming === null ? '-' : obs.streaming ? 'Live' : 'Not streaming') : '-';
+  $('obs-stream').textContent = up ? (obs.streaming === null ? '-' : obs.streaming ? `Live for ${liveText(state.liveSince)}` : 'Not streaming') : '-';
   $('obs-overlay').textContent = up ? overlayText(obs.overlay, obs.scene) : '-';
 }
+const liveText = since => { const m = since ? Math.floor((Date.now() - since) / 60000) : 0; return m < 1 ? 'less than a minute' : m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`; };
+
+// The Connections page (59.6): a list on the left and one connection's detail on the right. The app sends the rows (src/connections.ts): dot tone,
+// the one-line state, the header sentence and the fix steps. Every jump (status pill Fix, Home chip, Overlay's link) selects a connection through goTo.
+const DOT_TONE = { ok: 'ok', warn: 'warn', bad: '', off: 'off' };
+let selectedConn = 'account';
+const fixKeys = {};
+function renderConnections() {
+  for (const r of state.connections || []) {
+    const row = document.querySelector(`.conn-row[data-conn="${r.id}"]`);
+    row.firstElementChild.className = 'dot' + (DOT_TONE[r.tone] ? ' ' + DOT_TONE[r.tone] : '');
+    row.querySelector('small').textContent = r.line;
+    if (r.id === selectedConn) row.setAttribute('aria-current', 'true'); else row.removeAttribute('aria-current');
+    $('detail-' + r.id).hidden = r.id !== selectedConn;
+    setDot(r.id + '-dot', DOT_TONE[r.tone]);
+    $(r.id + '-title').textContent = r.sentence;
+    const fix = $(r.id + '-fix');
+    fix.hidden = r.fix.steps.length === 0;
+    const key = JSON.stringify(r.fix.steps);
+    if (fixKeys[r.id] === key) continue;
+    fixKeys[r.id] = key;
+    fix.querySelector('ol').replaceChildren(...r.fix.steps.map(text => { const li = document.createElement('li'); li.textContent = text; return li; }));
+  }
+}
+function selectConn(id) {
+  selectedConn = id;
+  if (state) renderConnections();
+}
+for (const row of document.querySelectorAll('.conn-row')) row.addEventListener('click', () => selectConn(row.dataset.conn));
 
 // The pre-stream checklist (57.1): one line per check, a dot for green, red or grey.
 const CHECK_DOT = { ok: 'ok', bad: '', muted: 'off' };
@@ -140,7 +166,7 @@ function renderChips() {
   $('chip-deck').hidden = !(d && d.installed);
   if (d && d.installed) setChip('chip-deck', d.connected && d.on ? 'ok' : d.on ? 'warn' : 'off', d.connected && d.on ? 'Connected' : d.on ? 'Not connected' : 'Off');
 }
-for (const [chip, card] of [['chip-site', 'card-site'], ['chip-mix', 'card-mix'], ['chip-obs', 'card-obs'], ['chip-deck', 'card-deck']]) $(chip).addEventListener('click', () => goToCard(card));
+for (const [chip, conn] of [['chip-site', 'account'], ['chip-mix', 'mix'], ['chip-obs', 'obs'], ['chip-deck', 'deck']]) $(chip).addEventListener('click', () => goTo('conn-' + conn));
 
 const HOTKEYS = ['refresh', 'pause', 'lastBuff'];
 let hotkeysFilled = false;
@@ -148,8 +174,7 @@ let buttonsKey = '';
 
 function renderControl() {
   const c = state.control;
-  for (const id of ['control-unpaired', 'buttons-unpaired']) $(id).hidden = state.paired;
-  for (const id of ['control', 'buttons-wrap']) $(id).hidden = !state.paired || !c;
+  for (const id of ['control', 'buttons-wrap']) $(id).hidden = !c;
   if (!c) return;
   setDot('pulls-dot', c.paused === null ? 'off' : c.paused ? 'warn' : 'ok');
   $('pulls-state').textContent = c.paused === null ? 'Not known yet' : c.paused ? 'Paused' : 'Open';
@@ -258,9 +283,19 @@ function goToCard(id) {
   card.focus({ preventScroll: true });
 }
 
+/** Where a status pill Fix, a Home chip or a link goes: 'conn-<id>' opens the Connections page on that connection, 'connect' is the Connect screen's code field, anything else is a card id. */
+function goTo(id) {
+  if (id === 'connect') { $('code').focus(); return; }
+  const conn = (state && state.connections || []).find(r => 'conn-' + r.id === id);
+  if (!conn) { goToCard(id); return; }
+  showTab('connections');
+  selectConn(conn.id);
+  $(conn.id + '-title').focus();
+}
+
 async function fixItem(item, button) {
   if (item.fix === 'restart') { window.bridge.restartToUpdate(); return; }
-  if (item.fix === 'goto') { setPop(false); goToCard(item.go); return; }
+  if (item.fix === 'goto') { setPop(false); goTo(item.go); return; }
   button.disabled = true;
   $('status-result').className = 'result';
   $('status-result').textContent = 'Working...';
@@ -337,7 +372,7 @@ function renderScenePause() {
   $('scene-pause-on').checked = sp.on;
   const names = [...new Set([...sp.obsScenes, ...sp.scenes])];
   $('scene-pause-empty').hidden = names.length > 0;
-  $('scene-pause-empty').textContent = 'No scenes yet. Connect TCG Bridge to OBS (Connections page) and they appear here.';
+  $('scene-pause-empty').textContent = 'No scenes yet. Connect TCG Bridge to OBS (Connections page, OBS) and they appear here.';
   const key = JSON.stringify([names, sp.scenes, sp.obsScenes]);
   if (key === scenePauseKey) return;
   scenePauseKey = key;
@@ -367,7 +402,7 @@ function renderObsStats() {
   const os = state.obsStats;
   if (!os) return;
   $('obs-stats-empty').hidden = os.texts.length > 0;
-  $('obs-stats-empty').textContent = 'No text sources yet. Connect TCG Bridge to OBS (Connections page) and add a text source to a scene, and they appear here.';
+  $('obs-stats-empty').textContent = 'No text sources yet. Connect TCG Bridge to OBS (Connections page, OBS) and add a text source to a scene, and they appear here.';
   const key = JSON.stringify([os.texts, os.map]);
   if (key === obsStatsKey) return;
   obsStatsKey = key;
@@ -395,9 +430,8 @@ function renderObsStats() {
 function renderDeck() {
   const d = state.deck;
   if (!d) return;
-  const up = d.on && !d.error && d.connected;
-  setDot('deck-dot', up ? 'ok' : d.on && !d.error ? 'warn' : d.error ? '' : 'off');
-  $('deck-state').textContent = d.error ? d.error : !d.on ? 'Off. Switch it on below.' : up ? 'Plugin connected' : d.installed ? 'Not connected. Open the Stream Deck app.' : 'Not connected. The plugin is not installed yet.';
+  $('deck-app').textContent = d.found ? 'Found' : 'Not found';
+  $('deck-plugin').textContent = d.installed ? `Installed (${d.installed})` : 'Not installed';
   $('deck-on').checked = d.on;
   $('deck-error').textContent = d.error;
   $('deck-offer').hidden = !d.offer;
@@ -423,10 +457,9 @@ function render() {
       about.append(link, tail);
     }
   }
-  $('pairing').hidden = state.paired;
+  $('connect').hidden = state.paired; // the first-run Connect screen takes the whole window until this PC is paired
+  $('main-body').hidden = !state.paired;
   $('status').hidden = !state.paired;
-  $('unpair').hidden = !state.paired;
-  $('account-text').textContent = state.paired ? `Paired with ${state.site} as ${state.pairedAs}.` : 'Not paired yet. Pair on the Home page.';
   $('autostart').checked = state.startWithWindows;
   $('update').textContent = state.update || 'No update waiting.';
   $('restart-update').hidden = !state.updateVersion;
@@ -459,24 +492,20 @@ function render() {
     return;
   }
   const site = svc ? svc.site : 'connecting';
-  setDot('site-dot', site === 'connected' ? 'ok' : site === 'connecting' ? 'warn' : '');
   $('site-url').textContent = state.site;
   $('paired-as').textContent = state.pairedAs;
   $('last-poll').textContent = svc && svc.lastPollAt ? ago(svc.lastPollAt) : 'not yet';
-  $('site-state').textContent = SITE_TEXT[site] + (svc && svc.siteError && site !== 'revoked' ? ` (${svc.siteError})` : '');
+  $('account-text').textContent = `Paired with ${state.site} as ${state.pairedAs}. ${SITE_TEXT[site]}${svc && svc.siteError && site !== 'revoked' ? ` (${svc.siteError})` : ''}.`;
   const found = !!(svc && svc.mix.found);
-  setDot('mix-dot', found ? 'ok' : '');
-  $('mix-state').textContent = found ? 'Connected, Developer API is on' : 'Not answering (Mix It Up is closed, or its Developer API is off)';
   $('mix-version').textContent = found ? svc.mix.version : '-';
   $('mix-currency').textContent = svc && svc.currency ? svc.currency : 'The site chooses it; shown after the first job';
-  $('mix-help').hidden = found;
-  $('mix-start').hidden = found;
   $('mix-path').textContent = state.mixItUp.path;
   if (!nameFilled && svc && svc.channel) { // the channel name from the site, once; later renders must not overwrite what is being typed
     nameFilled = true;
     if (!$('test-name').value) $('test-name').value = svc.channel.toLowerCase();
   }
   renderObs(svc && svc.obs, state.obsSettings);
+  renderConnections();
   renderChecklist(state.checklist);
   renderCommands(state.commandsMissing);
   renderChips();
@@ -513,7 +542,23 @@ async function saveObs(password) {
 }
 $('obs-form').addEventListener('submit', e => { e.preventDefault(); void saveObs($('obs-password').value || undefined); });
 $('obs-forget').addEventListener('click', () => { void saveObs(''); });
-$('unpair').addEventListener('click', () => window.bridge.unpair());
+// Unpair asks twice (the site's ArmedButton way): the first press arms it for 4 seconds, the second unpairs.
+let unpairTimer = 0;
+function disarmUnpair() {
+  clearTimeout(unpairTimer);
+  unpairTimer = 0;
+  $('unpair-label').textContent = 'Unpair';
+  $('unpair-result').textContent = '';
+}
+$('unpair').addEventListener('click', () => {
+  if (unpairTimer) { disarmUnpair(); window.bridge.unpair(); return; }
+  $('unpair-label').textContent = 'Sure? Unpair';
+  $('unpair-result').textContent = 'Press Unpair again within 4 seconds to forget the pairing.';
+  unpairTimer = setTimeout(disarmUnpair, 4000);
+});
+$('unpair').addEventListener('blur', disarmUnpair);
+$('get-code').addEventListener('click', () => { void window.bridge.openPairPage($('site').value); });
+for (const [button, go] of [['go-obs', 'conn-obs'], ['go-overlay', null], ['go-buttons', null]]) $(button).addEventListener('click', () => (go ? goTo(go) : showTab(button === 'go-overlay' ? 'overlay' : 'buttons')));
 $('autostart').addEventListener('change', e => window.bridge.setStartWithWindows(e.target.checked));
 
 $('alerts').addEventListener('change', e => window.bridge.setAlerts(e.target.checked));
@@ -561,6 +606,18 @@ $('checklist-run').addEventListener('click', async () => {
   $('checklist-run').disabled = false;
   if (state) renderChecklist(state.checklist);
 });
+$('conns-run').addEventListener('click', async () => {
+  $('conns-run').disabled = true;
+  $('conns-run-result').className = 'result';
+  $('conns-run-result').textContent = 'Checking...';
+  try { await window.bridge.runChecklist(); } catch { /* the state comes back through onState */ }
+  $('conns-run').disabled = false;
+  const c = state && state.checklist;
+  $('conns-run-result').textContent = c ? c.text : '';
+  $('conns-run-result').className = 'result ' + (c && c.done ? 'ok' : 'fail');
+});
+action('mix-again', 'mix-again-result', () => window.bridge.testMixItUp($('test-name').value));
+action('obs-again', 'obs-again-result', () => window.bridge.testObs());
 action('mix-start', 'mix-result', () => window.bridge.startMixItUp());
 action('mix-choose', 'mix-result', () => window.bridge.chooseMixItUp());
 action('obs-choose', 'obs-choose-result', () => window.bridge.chooseObsExe());

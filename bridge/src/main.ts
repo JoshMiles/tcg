@@ -28,12 +28,13 @@ import { MIN_SIZE, placeWindow } from './winstate';
 import { cleanScenePause, ScenePause } from './scenepause';
 import { eventsAfter, mergeEvents, type EventLine } from './events';
 import { acceptStatMap, statsPlan, STAT_IDS, STAT_LABELS, TextWriter, wantedTexts, type StatFacts } from './obsstats';
-import { FileSettingsStore, defaults, type Settings } from './settings';
+import { DEFAULT_SITE, FileSettingsStore, defaults, type Settings } from './settings';
 import { cleanSite, pair, SiteClient, Unauthorized, type QueueRow } from './site';
 import { Startup, type StartupEvent, type StartupStep } from './startup';
 import { clearReleaseCache, loadReleases, releaseBlocks, RELEASES_API, RELEASES_URL, releasesBetween, type Note } from './releases';
 import { checkText, releaseUrl, updatedTo, updateText, type UpdateStage } from './update';
 import { attentionItems } from './status';
+import { connectionRows } from './connections';
 import { FEED_KEEP, keepPull, mergeFeed, pullEntry, readySummary, streamNumbers, type PullEntry } from './home';
 
 // Development only: `npm start -- --demo-startup [--shots=<folder>]` walks the start-up window through its states and then shows the
@@ -119,7 +120,7 @@ const buttons = (): { label: string; url: string }[] => {
   ];
 };
 /** What the Status and Settings tabs show about the Stream Deck plugin (57.13). */
-function deckInfo(): object {
+function deckInfo() {
   if (Date.now() - deckFactsAt >= 5000) {
     deckFactsAt = Date.now();
     const env = realEnv();
@@ -131,9 +132,21 @@ function deckInfo(): object {
   };
 }
 const deckState = (): DeckState => ({ ready: !!client, paused, reason: pauseReason, happy, buffs, stats: deckStats(statFacts) });
+/** The Connections page's list and fix steps (59.6; src/connections.ts). */
+function connectionsView() {
+  const s = service?.state;
+  const d = deckInfo();
+  return connectionRows({
+    paired: !!settings.token, pairedAs: settings.pairedAs, site: s?.site ?? null, siteError: s?.siteError ?? '',
+    mixFound: !!s?.mix.found, obsEnabled: settings.obsEnabled, obsConnected: !!s?.obs.connected, obsStreaming: s?.obs.streaming ?? null, obsError: s?.obs.error ?? '',
+    deckInstalled: !!d.installed, deckOn: d.on, deckConnected: d.connected, deckError: d.error,
+  });
+}
 const pluginFile = (): string => (app.isPackaged ? join(process.resourcesPath, PLUGIN_FILE) : join(__dirname, '..', '..', 'streamdeck', 'dist', PLUGIN_FILE));
 const appState = (): object => demoState ?? ({
   deck: deckInfo(),
+  connections: connectionsView(),
+  liveSince: wasLive ? streamSince : 0, // when OBS went live (as this app saw it), for the OBS detail's "Live for"
   startNote,
   paired: !!settings.token,
   site: settings.site,
@@ -911,6 +924,8 @@ function setupIpc(): void {
   ipcMain.handle('restart-to-update', () => { if (update.stage === 'available') restartToUpdate(); });
   ipcMain.handle('open-release', () => shell.openExternal(releaseUrl(app.getVersion())));
   ipcMain.handle('open-releases', () => shell.openExternal(RELEASES_URL));
+  // The Connect screen's "Where do I get a code?": the site's Mix It Up admin page (the address typed in the field when it is a good one, else the saved one).
+  ipcMain.handle('open-pair-page', (_e, siteRaw: string) => shell.openExternal(`${cleanSite(String(siteRaw)) ?? cleanSite(settings.site) ?? DEFAULT_SITE}/admin/mixitup`));
   ipcMain.handle('clear-release-cache', async () => {
     try { await clearReleaseCache(app.getPath('userData')); return { ok: true, text: 'Cleared' }; } catch (e) { return { ok: false, text: e instanceof Error ? e.message : String(e) }; }
   });

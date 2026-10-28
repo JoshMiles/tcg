@@ -204,4 +204,33 @@ td.fail { color: var(--bad); }
 .feed-card .empty { flex: 1; }
 [data-panel="feed"] .feed-list { max-height: 60vh; }
 
+/* The Connect screen (59.6): the whole window until this PC is paired. */
+.connect { display: grid; place-items: center; min-height: 0; overflow: auto; padding: 24px; }
+.connect-box { width: min(420px, 100%); display: grid; gap: 12px; justify-items: start; }
+.connect-box img { border-radius: 16px; }
+.connect-box h1 { font-size: 26px; }
+.connect-box form { display: grid; gap: 12px; width: 100%; }
+.connect-what { margin: 0; color: var(--soft); }
+.connect-box .bad-text, .connect-box .small, .connect-box p { margin: 0; }
+
+/* Connections (59.6): a list on the left, the picked connection on the right. */
+.conns-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.page-title { font-size: 22px; }
+.conns-cols { display: grid; grid-template-columns: 300px 1fr; gap: 14px; align-items: start; }
+@media (max-width: 900px) { .conns-cols { grid-template-columns: 1fr; } }
+.conn-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.conn-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+.conn-row:hover { background: var(--line); }
+.conn-row[aria-current="true"] { border-color: var(--primary); background: var(--line); }
+.conn-text { display: grid; min-width: 0; }
+.conn-text small { color: var(--soft); font-size: 12px; overflow-wrap: anywhere; }
+.detail-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.detail-head h2 { font-size: 17px; font-weight: 600; flex: 1; min-width: 0; }
+.detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.conn-pane h3 { font-size: 13px; font-weight: 700; color: var(--soft); margin: 16px 0 6px; }
+.fix { padding: 10px 14px; border: 1px solid var(--warn); border-radius: var(--radius-field); background: rgba(251, 191, 36, .08); margin-bottom: 12px; }
+.fix h3 { margin-top: 0; }
+.fix ol { margin: 0 0 8px; padding-left: 20px; }
+.uses { margin-top: 12px; }
+
 @media (prefers-reduced-motion: reduce) { .switch, .switch::after { transition: none; } }

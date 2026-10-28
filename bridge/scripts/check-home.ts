@@ -72,8 +72,9 @@ export function homeChecks(): void {
   assert.ok(!/id="rail-feed"[^>]*hidden/.test(html) && !/data-tab="feed"[^>]*hidden/.test(html), 'Feed and history is in the sidebar for everyone');
   assert.ok(/<section[^>]*id="card-activity"[^>]*hidden/.test(html), 'the Activity part starts hidden (staff PCs only)');
   const js = readFileSync(join(__dirname, '..', 'renderer', 'renderer.js'), 'utf8');
-  for (const go of ['card-site', 'card-mix', 'card-obs', 'card-deck', 'card-happy-custom']) assert.ok(js.includes(`'${go}'`), `${go} is a jump target in renderer.js`);
-  for (const go of ['card-site', 'card-mix', 'card-obs', 'card-deck']) assert.equal(pageOf(go), 'connections', `${go} is on Connections`);
+  assert.ok(js.includes("'card-happy-custom'"), 'card-happy-custom is a jump target in renderer.js');
+  for (const c of ['site', 'mix', 'obs', 'deck']) assert.ok(js.includes(`'chip-${c}'`), `the ${c} chip is wired in renderer.js`);
+  for (const c of ['account', 'mix', 'obs', 'deck']) assert.equal(pageOf(`detail-${c}`), 'connections', `the ${c} connection is on Connections`);
   assert.ok(/class="feed-list"[^>]*aria-label="[^"]+"/.test(html) || /aria-label="[^"]+"[^>]*class="feed-list"/.test(html), 'the feed is a list with an accessible name');
   assert.ok(/aria-pressed="(true|false)"/.test(html), 'filter chips are buttons with aria-pressed');
 }
