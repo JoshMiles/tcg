@@ -92,6 +92,18 @@
           <div id="status" hidden>
             <section class="card">
               <div class="card-head">
+                <span class="badge"><svg class="i"><use href="#i-flask-conical"/></svg></span>
+                <div class="card-title"><h2>Pre-stream checklist</h2><p class="line"><span id="checklist-dot" class="dot off"></span><span id="checklist-state">Not run yet</span></p></div>
+              </div>
+              <ul id="checklist-lines" class="checklist"></ul>
+              <div class="row tools">
+                <button type="button" id="checklist-run" class="btn"><svg class="i"><use href="#i-flask-conical"/></svg>Checklist</button>
+              </div>
+              <p class="note muted">Looks at everything at once and changes nothing: no chat message is sent and nobody is charged.</p>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
                 <span class="badge"><svg class="i"><use href="#i-globe"/></svg></span>
                 <div class="card-title"><h2>Site</h2><p class="line"><span id="site-dot" class="dot"></span><span id="site-state"></span></p></div>
               </div>

@@ -41,7 +41,7 @@ export async function sendTestChat(mix: MixItUpClient): Promise<TestResult> {
   }
 }
 
-function overlayText(o: OverlayCheck, scene: string): string {
+export function overlayText(o: OverlayCheck, scene: string): string {
   if (!o.found) return 'The overlay browser source is not in OBS.';
   if (!o.inProgram) return `${o.sourceName} exists but is not in the current scene.`;
   if (!o.visible) return `${o.sourceName} is in ${scene} but hidden.`;

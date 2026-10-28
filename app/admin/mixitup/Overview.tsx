@@ -7,6 +7,7 @@ import { LogRows } from './MixItUpLog';
 import type { RecentTestRow } from '@/lib/mixitup-test';
 import { OverviewActions } from './OverviewActions';
 import { TestPulls } from './TestPulls';
+import { ranAgo, type ChecklistResult } from '@/lib/bridge-checklist-core';
 import { UPTIME_LABEL, UPTIME_PARTS, segments, type UptimeStream } from '@/lib/bridge-uptime-core';
 
 export const CHIP_STYLE = {
@@ -69,9 +70,9 @@ function UptimeStrip({ s, now }: { s: UptimeStream; now: number }) {
 }
 
 /** Mix It Up → Overview: three status cards, this stream's numbers, quick actions and the last five log rows. */
-export function Overview({ cards, numbers, recent, setup, setupLabel, streamExtra, paused, pauseChat, obsPaired, login, now, testViewers, paidOn, sandbox, tests, uptime }: {
+export function Overview({ cards, numbers, recent, setup, setupLabel, streamExtra, paused, pauseChat, obsPaired, login, now, testViewers, paidOn, sandbox, tests, uptime, checklist }: {
   cards: StatusCard[]; numbers: StreamNumbers; recent: MixItUpLogEntry[]; setup: boolean; setupLabel: string; streamExtra: number; paused: boolean; pauseChat: boolean; obsPaired: boolean; login: string; now: number;
-  testViewers: string[]; paidOn: boolean; sandbox: boolean; tests: RecentTestRow[]; uptime: UptimeStream[];
+  testViewers: string[]; paidOn: boolean; sandbox: boolean; tests: RecentTestRow[]; uptime: UptimeStream[]; checklist: ChecklistResult | null;
 }) {
   const more = numbers.partial ? 'at least' : undefined;
   return (
@@ -97,6 +98,26 @@ export function Overview({ cards, numbers, recent, setup, setupLabel, streamExtr
         <p className="text-[11px] text-gray-500">
           The logs keep only their last 20 lines each{numbers.partial ? ', and one is full, so a busy stream can be higher than shown' : ''}. &ldquo;Added back&rdquo; counts every add call, so refunds of pulls that were not saved and Bonus Brie Bucks payouts are together.
         </p>
+      </Panel>
+
+      <Panel title="Pre-stream checklist" icon="checkCircle" hint="Press Checklist in TCG Bridge (Status tab or tray menu) to run it. It only looks; it changes nothing.">
+        {checklist ? (
+          <div className="space-y-2">
+            <p className={`text-sm font-semibold ${checklist.ready ? 'text-green-300' : 'text-red-300'}`}>
+              {checklist.ready ? 'Ready to stream' : `${checklist.lines.filter(l => l.tone === 'bad').length} thing(s) to fix`}
+              <span className="ml-2 text-xs font-normal text-gray-500">{ranAgo(checklist.at, now)}</span>
+            </p>
+            <ul className="space-y-1 text-sm" aria-label="Checklist results">
+              {checklist.lines.map(l => (
+                <li key={l.label} className="flex flex-wrap items-baseline gap-x-2">
+                  <span className={`badge badge-sm gap-1 shrink-0 ${CHIP_STYLE[l.tone].badge}`}><Icon name={CHIP_STYLE[l.tone].icon} />{l.tone === 'ok' ? 'OK' : l.tone === 'bad' ? 'Fix' : 'Info'}</span>
+                  <span className="font-semibold text-gray-200">{l.label}</span>
+                  <span className={`min-w-0 wrap-break-word ${ROW_TEXT[l.tone]}`}>{l.text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : <p className="text-sm text-gray-400">The checklist has not been run yet.</p>}
       </Panel>
 
       <Panel title="Quick actions" icon="zap" hint="Each one shows its answer right here.">

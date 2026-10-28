@@ -32,6 +32,7 @@ import { ChatBucks } from './ChatBucks';
 import { readLedgerCheck } from '@/lib/bridge-chat';
 import { listPullBlocks } from '@/lib/pull-block';
 import { readUptime } from '@/lib/bridge-uptime';
+import { readChecklist } from '@/lib/bridge-checklist';
 import { recentTests } from '@/lib/mixitup-test';
 import { inSandbox } from '@/lib/db';
 
@@ -83,7 +84,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
       recent: [...log, ...cmdLog].sort((a, b) => b.at - a.at).slice(0, 5),
       streamExtra: streamBuffAmount(await getStreamBuff(), await currentStreamKey()),
       paused: await isPullsPaused(), pauseChat: await pauseChatOn(),
-      testViewers: settings.testViewers, paidOn: settings.enabled, sandbox: await inSandbox(), tests: await recentTests(), uptime: await readUptime(),
+      testViewers: settings.testViewers, paidOn: settings.enabled, sandbox: await inSandbox(), tests: await recentTests(), uptime: await readUptime(), checklist: await readChecklist(),
     };
   };
   return (

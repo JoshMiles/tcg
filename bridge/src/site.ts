@@ -1,4 +1,5 @@
 // The TCG site's bridge API (app/api/bridge/*). The only address this file ever fetches is the paired site.
+import type { SiteFacts } from './checklist';
 export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command' | 'pull-event' | 'backup' | 'ledger' | 'summary';
 /** `pull-event` (ROADMAP 55.8): `phase` 'start' shows `source` for `holdMs`; 'reveal' says `text` in chat, switches to `scene` for `secs` and/or saves a clip. `backup` (55.10): `phase` is 'start' or 'end'. */
 export interface BridgeJob { id: string; kind: string; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; delayMs?: number; phase?: string; source?: string; holdMs?: number; scene?: string; secs?: number; clip?: boolean; feed?: unknown; summary?: unknown; notice?: unknown; at?: number }
@@ -100,6 +101,22 @@ export class SiteClient {
   async ledger(entries: unknown[]): Promise<void> {
     const r = await this.call('/api/bridge/ledger', { entries }, AbortSignal.timeout(20_000));
     if (r.status !== 200) throw new SiteError(r.status, `ledger: the site answered ${r.status}`);
+  }
+
+  /** What the pre-stream checklist needs from the site (ROADMAP 57.1): season, openable packs, queue, pause, happy hour. Read only. */
+  async checklistFacts(): Promise<SiteFacts> {
+    const res = await fetch(this.base + '/api/bridge/checklist', { headers: { authorization: `Bearer ${this.token}` }, signal: AbortSignal.timeout(5_000) });
+    if (res.status === 401) throw new Unauthorized();
+    if (res.status !== 200) throw new SiteError(res.status, `The site answered ${res.status}`);
+    const j = (await res.json().catch(() => ({}))) as Partial<SiteFacts>;
+    const hh = j.happyHour;
+    return {
+      season: j.season && typeof j.season.name === 'string' ? { name: j.season.name } : null,
+      openablePacks: Number(j.openablePacks) || 0,
+      queueLength: Number(j.queueLength) || 0,
+      paused: j.paused === true,
+      happyHour: hh && typeof hh.what === 'string' && typeof hh.endsAt === 'number' ? { what: hh.what, endsAt: hh.endsAt } : null,
+    };
   }
 
   /** The overlay queue, the next pull first. */

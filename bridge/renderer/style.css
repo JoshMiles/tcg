@@ -84,6 +84,9 @@ input[type="text"], input[type="password"], input[type="number"] { padding: 8px 
 .btn:disabled { opacity: .55; cursor: default; }
 button.link { padding: 0; border: 0; background: none; color: var(--fg); font: inherit; text-decoration: underline; cursor: pointer; }
 .links { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.checklist { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.checklist li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.checklist li span:last-child { color: var(--soft); overflow-wrap: anywhere; }
 .result { margin: 8px 0 0; min-height: 1.4em; overflow-wrap: anywhere; color: var(--soft); }
 .result:empty { min-height: 0; margin: 0; }
 .result.ok { color: var(--ok); }

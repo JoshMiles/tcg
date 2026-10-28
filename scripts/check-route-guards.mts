@@ -91,6 +91,7 @@ const R: Record<string, Kind[] | { public: string }> = {
   'app/api/overlay/heartbeat/route.ts': ['overlay'],
   'app/api/bridge/action/route.ts': ['bridge'],
   'app/api/bridge/queue/route.ts': ['bridge'],
+  'app/api/bridge/checklist/route.ts': ['bridge'],
   'app/api/bridge/hello/route.ts': ['bridge'],
   'app/api/bridge/pair/route.ts': ['bridge'],
   'app/api/bridge/ledger/route.ts': ['bridge'],
