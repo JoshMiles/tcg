@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Goal
-Track 55 is done except 55.5 (#603, waits for Josh). This file goes once the items under Left are handed over.
+Track 56 (TCG Bridge versions, releases, dashboard card, README): one agent per item, Opus reviews and merges.
 
 ## Done
 - Track 45 (#480 to #483), 34.8 (#484, panel 0.0.2 submitted, under Twitch review).
@@ -10,8 +10,8 @@ Track 55 is done except 55.5 (#603, waits for Josh). This file goes once the ite
 - Track 47 ROADMAP cleanup committed locally on `roadmap-47-cleanup` (a5b91340): done items archived, 47.4 in Track 53, 47.8 rewritten to PR 2 to 4, new 47.10 (security L-2) and 47.11 (trial readouts).
 
 ## Left
-- 55.4a to 55.4h merged (#605 to #612), archived.
-- Josh to test in real Mix It Up: one event of each kind from the Events tab (single gift, mass gift, bits, raid, redeem); a `!pack <name>`; and a 55.5 file import (#603).
+- Track 55 done (#579 to #614), archived. Follow-up: event command downloads (55.5 x 55.4g) not yet planned as an item.
+- Josh to test in real Mix It Up: one event of each kind from the Events tab (single gift, mass gift, bits, raid, redeem); a `!pack <name>`;.
 - Old worktrees from the Track 55 run under .claude/worktrees/agent-* (one holds the open 55.5 branch): clean once #603 merges.
 - Waiting: 43.3 and Track 53 (panel review), 47.11 (Josh, from 2026-11-02), 40.2f (field data, about 2026-11-09), 35.1 (Josh), 50.3 trial readout (from 2026-11-24).
 - Flaky checks: check-achievements and check-recent-arrivals; verify sometimes fails one check on a first run and passes on a rerun.
@@ -68,3 +68,4 @@ Track 55 is done except 55.5 (#603, waits for Josh). This file goes once the ite
 - 2026-10-27: 55.4 built (#605 to #612). Opus fixes on review: the in-flight total never counts below this pull's price (#606); the queue cap form regex lost its backslash (#609). Briefs now say to edit code with the Edit tool, not shell.
 - 2026-10-28: Josh: a plain `!pack` rolls a random pack from the season (same weights) before the reservation and charges that pack's price (#614).
 - 2026-10-28: Josh: event reward packs keep going through while pulls are paused or the viewer is blocked, like Stream Deck free packs (for now).
+- 2026-10-28: Josh: merge 55.5 (#603) without the test import. Every PR touching bridge/ bumps the bridge minor; releases publish on merge; the About tab shows the commit; the dashboard shows the latest bridge; README rewrite (Track 56).
