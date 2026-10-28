@@ -30,7 +30,7 @@ import { acceptStatMap, siteStats, STAT_IDS, STAT_LABELS, TextWriter, wantedText
 import { FileSettingsStore, defaults, type Settings } from './settings';
 import { cleanSite, pair, SiteClient, Unauthorized, type QueueRow } from './site';
 import { Startup, type StartupEvent, type StartupStep } from './startup';
-import { loadReleases, parseNotes, RELEASES_API, RELEASES_URL, releasesBetween, type Note } from './releases';
+import { clearReleaseCache, loadReleases, releaseBlocks, RELEASES_API, RELEASES_URL, releasesBetween, type Note } from './releases';
 import { checkText, releaseUrl, updatedTo, updateText, type UpdateStage } from './update';
 
 // Development only: `npm start -- --demo-startup [--shots=<folder>]` walks the start-up window through its states and then shows the
@@ -864,15 +864,18 @@ function setupIpc(): void {
   ipcMain.handle('restart-to-update', () => { if (update.stage === 'available') restartToUpdate(); });
   ipcMain.handle('open-release', () => shell.openExternal(releaseUrl(app.getVersion())));
   ipcMain.handle('open-releases', () => shell.openExternal(RELEASES_URL));
+  ipcMain.handle('clear-release-cache', async () => {
+    try { await clearReleaseCache(app.getPath('userData')); return { ok: true, text: 'Cleared' }; } catch (e) { return { ok: false, text: e instanceof Error ? e.message : String(e) }; }
+  });
   ipcMain.handle('whats-new', async (): Promise<{ ok: boolean; notes: Note[] }> => { // the notes since the version last seen, newest first; never throws
     if (!whatsNewFrom) return { ok: true, notes: [] };
     try {
-      const all = await loadReleases(app.getPath('userData'), Date.now(), async () => {
+      const all = await loadReleases(app.getPath('userData'), Date.now(), app.getVersion(), async () => {
         const res = await fetch(RELEASES_API, { headers: { accept: 'application/vnd.github+json', 'user-agent': 'tcg-bridge' }, signal: AbortSignal.timeout(10_000) });
         if (!res.ok) throw new Error(`GitHub answered ${res.status}`);
         return res.json();
       });
-      return { ok: true, notes: releasesBetween(all, whatsNewFrom, app.getVersion()).map(r => ({ version: r.version, blocks: parseNotes(r.body) })) };
+      return { ok: true, notes: releasesBetween(all, whatsNewFrom, app.getVersion()).map(r => ({ version: r.version, blocks: releaseBlocks(r.body) })) };
     } catch (e) {
       log(`Could not load the release notes: ${e instanceof Error ? e.message : String(e)}`);
       return { ok: false, notes: [] };

@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('bridge', {
   openBackups: (): Result => ipcRenderer.invoke('open-backups'),
   copyDiagnostics: (): Result => ipcRenderer.invoke('copy-diagnostics'),
   checkUpdate: (): Result => ipcRenderer.invoke('check-update'),
+  clearReleaseCache: (): Result => ipcRenderer.invoke('clear-release-cache'),
   setPause: (on: boolean): Result => ipcRenderer.invoke('pause', !!on),
   copyButton: (i: number): Result => ipcRenderer.invoke('copy-button', Number(i)),
   setHotkeys: (map: Record<string, string>): Promise<Record<string, string>> => ipcRenderer.invoke('set-hotkeys', map),

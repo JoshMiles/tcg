@@ -98,6 +98,19 @@ export function docsProblems({ entries, ignore = [], files, changed, body }) {
   return problems;
 }
 
+/** A PR that changes TCG Bridge (anything under bridge/ except its README, or streamdeck/) needs a "## TCG Bridge" section with at least one bullet: it becomes the app's What's new. */
+export function bridgeNotesProblems({ changed, body }) {
+  if (!changed.some(f => (f.startsWith('bridge/') && f !== 'bridge/README.md') || f.startsWith('streamdeck/'))) return [];
+  let text = String(body ?? '').replace(/^﻿/, '');
+  for (let prev = null; prev !== text;) { prev = text; text = text.replace(/<!--[\s\S]*?-->/g, ''); }
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex(l => /^##\s+TCG Bridge\s*$/i.test(l.trim()));
+  const section = start < 0 ? [] : lines.slice(start + 1);
+  const end = section.findIndex(l => /^#{1,6}\s/.test(l.trim()));
+  if ((end < 0 ? section : section.slice(0, end)).some(l => /^[-*] +\S/.test(l.trim()))) return [];
+  return ['This PR changes TCG Bridge (bridge/ or streamdeck/), so the PR description needs a "## TCG Bridge" section between "## Summary" and "## Docs" with at least one bullet written for the streamer: what changed in the app. It becomes the app\'s What\'s new for this version. Example:\n    ## TCG Bridge\n    - What\'s new now shows only what changed in the app, written for you.'];
+}
+
 /** The map file plus every wiki page's covers: line, ready for docsProblems. */
 function load(files, read) {
   const map = JSON.parse(read('docs/doc-map.json'));
@@ -123,7 +136,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   }
   const files = git('ls-files');
   const { entries, ignore } = load(files, f => readFileSync(f, 'utf8'));
-  const problems = docsProblems({ entries, ignore, files, changed: git('diff', '--name-only', `${base}...HEAD`), body });
+  const changed = git('diff', '--name-only', `${base}...HEAD`);
+  const problems = [...docsProblems({ entries, ignore, files, changed, body }), ...bridgeNotesProblems({ changed, body })];
   if (problems.length) {
     console.error('Docs check failed (see docs/git-and-prs.md):');
     for (const p of problems) console.error(p.startsWith(' ') ? p : '- ' + p);
