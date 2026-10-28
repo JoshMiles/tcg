@@ -13,6 +13,7 @@ window.tools.onSummary(s => {
 });
 $('copy').addEventListener('click', async () => {
   const r = await window.tools.copySummary();
+  $('result').className = r.ok ? 'result ok' : 'result fail';
   $('result').textContent = r.text;
 });
 window.tools.ready();

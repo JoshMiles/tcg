@@ -5,7 +5,7 @@ const frame = $('frame'), stage = $('stage'), msg = $('msg');
 let canvas = { width: 1920, height: 1080 };
 let force = false;
 
-const say = (text, bad) => { msg.textContent = text || ''; msg.classList.toggle('bad', !!bad); };
+const say = (text, bad) => { msg.textContent = text || ''; msg.className = bad ? 'result fail' : 'result'; };
 
 function fit() {
   const r = stage.getBoundingClientRect();

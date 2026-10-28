@@ -7,7 +7,7 @@ import type { FeedItem } from './feed';
 import type { JobEntry } from './service';
 
 /** One pull the app was told about (the live feed's item, with the time it arrived). */
-export interface PullEntry { at: number; viewer: string; card: string; rarity: string; stars: number; variant: string }
+export interface PullEntry { at: number; viewer: string; card: string; rarity: string; stars: number; variant: string; serial?: number; image?: string }
 export const PULLS_KEEP = 500;
 export const FEED_KEEP = 100;
 
@@ -21,11 +21,14 @@ export const FEED_FILTERS: { id: FeedFilter; label: string; kind: FeedKind | nul
   { id: 'jobs', label: 'Jobs', kind: 'job' },
 ];
 
-/** One row of the feed. `badge` is P pull, E event, J job, or ! when it was refused or failed; `tone` colours the tag. */
-export interface FeedRow { at: number; time: string; kind: FeedKind; badge: 'P' | 'E' | 'J' | '!'; viewer: string; text: string; tag: string; tone: 'ok' | 'rare' | 'bad' }
+/** What the pull feed window shows of a pull beyond the line (59.8): the card's own parts, its edition and its image (already a trusted address or empty). */
+export interface PullFacts { card: string; rarity: string; variant: string; serial: number; image: string }
+
+/** One row of the feed. `badge` is P pull, E event, J job, or ! when it was refused or failed; `tone` colours the tag. `pull` is set on a pull row only. */
+export interface FeedRow { at: number; time: string; kind: FeedKind; badge: 'P' | 'E' | 'J' | '!'; viewer: string; text: string; tag: string; tone: 'ok' | 'rare' | 'bad'; pull?: PullFacts }
 
 /** A pull from the live feed, kept for the dashboard. */
-export const pullEntry = (item: FeedItem, at: number): PullEntry => ({ at, viewer: item.viewer, card: item.card, rarity: item.rarity, stars: item.stars, variant: item.variant });
+export const pullEntry = (item: FeedItem, at: number): PullEntry => ({ at, viewer: item.viewer, card: item.card, rarity: item.rarity, stars: item.stars, variant: item.variant, serial: item.serial, image: item.image });
 
 /** The new pull in front of the ones held (newest first), kept to the newest 500. */
 export const keepPull = (held: readonly PullEntry[], p: PullEntry): PullEntry[] => [p, ...held].slice(0, PULLS_KEEP);
@@ -37,6 +40,7 @@ const pullRow = (p: PullEntry): FeedRow => ({
   at: p.at, time: clock(p.at), kind: 'pull', badge: 'P', viewer: p.viewer || '-',
   text: p.variant && p.variant !== 'Regular' ? `${p.card} (${p.variant})` : p.card,
   tag: p.rarity || `${p.stars} star${p.stars === 1 ? '' : 's'}`, tone: p.stars >= BIG_STARS ? 'rare' : 'ok',
+  pull: { card: p.card, rarity: p.rarity, variant: p.variant, serial: p.serial ?? 0, image: p.image ?? '' },
 });
 
 const eventRow = (e: EventLine): FeedRow => ({

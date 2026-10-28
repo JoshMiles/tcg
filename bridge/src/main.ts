@@ -35,7 +35,7 @@ import { clearReleaseCache, loadReleases, releaseBlocks, RELEASES_API, RELEASES_
 import { checkText, releaseUrl, updatedTo, updateText, type UpdateStage } from './update';
 import { attentionItems } from './status';
 import { connectionRows } from './connections';
-import { FEED_KEEP, keepPull, mergeFeed, pullEntry, readySummary, streamNumbers, type PullEntry } from './home';
+import { FEED_FILTERS, FEED_KEEP, filterFeed, keepPull, mergeFeed, pullEntry, readySummary, streamNumbers, type FeedFilter, type PullEntry } from './home';
 
 // Development only: `npm start -- --demo-startup [--shots=<folder>]` walks the start-up window through its states and then shows the
 // window with made-up data (and saves PNGs of each when a folder is given). Ignored in the installed app.
@@ -88,6 +88,8 @@ let eventsAt = 0; // when the site was last asked for them
 const EVENTS_OPEN_MS = 5000; // while the window or the feed window is open
 const EVENTS_IDLE_MS = 30_000; // otherwise
 let pulls: PullEntry[] = []; // the pulls the site told this app about (55.11 feed), newest first: the Home feed and "This stream" numbers
+let feedFilter: FeedFilter = 'all'; // the filter chip picked in the pull feed window (59.8); the window asks, this process filters with src/home.ts
+let feedSent = ''; // the rows the feed window was last sent, so an unchanged list is not sent again
 let streamSince = Date.now(); // "this stream" counts from here: the app starting, then OBS going live
 let wasLive = false;
 let buffs: { id: string; name: string }[] = []; // the buffs switched on for the Stream Deck
@@ -208,6 +210,7 @@ function push(): void {
   tray?.setImage(trayIcon(level));
   tray?.setToolTip(trayTip(level));
   if (win && !win.isDestroyed()) win.webContents.send('state', appState());
+  sendFeedRows(false);
   tickAlerts();
   deck?.broadcast();
   scenePause?.update(settings.scenePause, !!service?.state.obs.connected, service?.state.obs.scene ?? '');
@@ -218,6 +221,16 @@ function push(): void {
     settings = { ...settings, token: '' };
     void store.save(settings);
   }
+}
+
+/** The pull feed window's list (59.8): the Home feed's rows (pulls, event rewards, jobs) cut by the window's own filter chip. Sent when they change, or at once with `force`. */
+function sendFeedRows(force: boolean): void {
+  if (!feedWin || feedWin.isDestroyed()) return;
+  const rows = filterFeed(mergeFeed(pulls, eventLines, service?.state.jobs ?? [], FEED_KEEP), feedFilter);
+  const key = JSON.stringify([feedFilter, rows]);
+  if (!force && key === feedSent) return;
+  feedSent = key;
+  feedWin.webContents.send('feed-rows', { filter: feedFilter, rows });
 }
 
 /** One button, hotkey, switch or queue action: the site does it, the answer comes back in words. */
@@ -312,8 +325,7 @@ async function loadEvents(): Promise<void> {
     const r = await client?.action({ action: 'events', after: eventsAfter(eventLines) });
     if (!r?.events?.length) return;
     eventLines = mergeEvents(eventLines, r.events);
-    push();
-    if (feedWin && !feedWin.isDestroyed()) feedWin.webContents.send('feed-events', eventLines);
+    push(); // the feed window gets the new rows from here
   } catch { /* asked again in a few seconds */ }
 }
 
@@ -841,7 +853,12 @@ function setupIpc(): void {
   // ── Streamer tools (55.11): the feed window, the summary, starting OBS ──
   ipcMain.on('tools-ready', e => { // a tool window finished loading: give the summary window what it shows
     if (summaryWin && e.sender === summaryWin.webContents) sendSummary();
-    if (feedWin && e.sender === feedWin.webContents) feedWin.webContents.send('feed-events', eventLines);
+    if (feedWin && e.sender === feedWin.webContents) sendFeedRows(true);
+  });
+  ipcMain.on('feed-filter', (e, id: unknown) => { // a chip pressed in the pull feed window; any other value is ignored
+    if (!feedWin || e.sender !== feedWin.webContents || !FEED_FILTERS.some(f => f.id === id)) return;
+    feedFilter = id as FeedFilter;
+    sendFeedRows(true);
   });
   ipcMain.handle('copy-summary', () => {
     if (!lastSummary) return { ok: false, text: 'No summary yet' };
@@ -967,6 +984,7 @@ if (!app.requestSingleInstanceLock()) {
     if (DEMO) void (require('./demo') as typeof import('./demo')).runDemo({
       shots: process.argv.find(a => a.startsWith('--shots='))?.slice(8) ?? '',
       version: app.getVersion(), feed, sendSplash, getSplash: () => splash, getWindow: () => win, setState: s => { demoState = s; push(); },
+      openTool: (file, width, height) => toolWindow(file, { width, height, title: 'TCG Bridge' }), // a tool window the demo fills itself; not the feed, summary or preview the app tracks
       finish: () => { quitting = true; app.quit(); },
     });
     else setupUpdates();
