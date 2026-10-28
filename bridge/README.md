@@ -2,6 +2,8 @@
 
 A small Windows app for the stream PC. Mix It Up's Developer API only listens on that PC (`http://localhost:8911`), so the TCG site, which runs in the cloud, cannot reach it. TCG Bridge sits in the tray, asks the site for jobs (balance, take or give currency, chat viewers, a chat line), runs them against Mix It Up and posts the answers back. Site side and job details: [docs/admin/mixitup.md](../docs/admin/mixitup.md).
 
+The current version is 0.12.0 (`package.json` is the source of truth, and the app's About tab shows the one that is running). The feature sections below say which version added each part. The app has its own semver, separate from the site's `<major>.<PR number>`; see "Version rule" and "Releases" under Develop.
+
 ## Install and pair
 
 1. On the site open Admin > Mix It Up and press **Download TCG Bridge** (or take the newest `bridge-v*` release from [GitHub releases](https://github.com/JoshMiles/tcg/releases?q=bridge-v&expanded=true)). Run `TCG-Bridge-Setup-<version>.exe`.
@@ -46,7 +48,7 @@ The overlay is the browser source whose address is `<paired site>/overlay.html?.
 - **Staff notices and shortcuts (0.11.0).** On a PC with staff tools on, the site sends Windows notifications: Needs attention (a Discord channel switched off, a failed backup, data health), New reports and feedback, Paid pull refusals (at most one a minute for each reason, never for not enough Brie Bucks) and Deploys (a new build is live, with its changelog lines). Each kind has its own switch under Settings, Staff notices (all on once staff tools are on). Clicking a notice opens its page in your browser; the app opens a link only when it is on the paired site's own address. A notice sent while the app is closed or offline is dropped, not shown later. The tray has Admin links (Dashboard, Mix It Up, Overlay Editor, Users); the Staff tab has Back up now (the same backup as Admin Settings, audited) and a Quick search for a viewer, card or pack that opens its admin page; the Activity tab shows recent pulls, grants and trades while it is open.
 - **Log.** One file a day in the app's logs folder (**Open log folder**), kept 7 days: connects, drops, jobs (kind, result, time) and errors. It never holds the pairing token, the OBS password, the pair code or the overlay key. **Copy diagnostics** copies the versions, the statuses and the last 20 jobs as text, redacted the same way, for a bug report.
 - **Mix It Up commands (0.4.0).** The app lists your enabled Mix It Up commands to the site (on start, every 5 minutes and when Mix It Up comes back) so a rule on the Mix It Up page can pick one, and it runs a command for a big pull only if it is in that list. The command gets the viewer, card, rarity and version as arguments.
-- **Updates.** The About tab shows the version and the commit it was built from (0.12.0), and a **Check for updates** button. After an update the Status tab says "Updated to x.y.z" once, with a link to the release notes.
+- **Updates.** The About tab shows the version and the commit it was built from (0.12.0), and a **Check for updates** button. After an update the Status tab says "Updated to x.y.z" once, with a link to the release notes. The site's admin dashboard (staff who can see the Mix It Up page) shows the newest release next to the connected app's version and commit, and says "Out of date" when they differ; the app sends its version and short commit with its `hello` for that (ROADMAP 56.2).
 
 ## Develop
 
