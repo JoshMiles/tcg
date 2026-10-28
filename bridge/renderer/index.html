@@ -42,6 +42,15 @@
       <span class="tb-title">TCG Bridge</span>
       <span id="version" class="tb-version"></span>
       <span class="tb-spacer"></span>
+      <!-- One status summary (59.3): "All good" or "N things need you"; the list opens under it. -->
+      <div class="tb-status">
+        <button id="status-pill" type="button" class="status-pill" aria-haspopup="true" aria-expanded="false" aria-controls="status-pop"><span id="status-dot" class="dot ok"></span><span id="status-text">All good</span></button>
+        <div id="status-pop" class="status-pop" role="region" aria-label="What needs you" hidden>
+          <p id="status-empty" class="status-empty">Nothing needs you right now.</p>
+          <ul id="status-items" class="status-items"></ul>
+          <p id="status-result" class="result" role="status"></p>
+        </div>
+      </div>
       <button id="win-min" type="button" class="tb-btn" aria-label="Minimise" title="Minimise"><svg class="i"><use href="#i-minus"/></svg></button>
       <button id="win-close" type="button" class="tb-btn tb-close" aria-label="Close to tray" title="Close to tray (quit from the tray menu)"><svg class="i"><use href="#i-x"/></svg></button>
     </header>
@@ -59,29 +68,11 @@
       </nav>
 
       <main class="content">
-        <p id="updated" class="banner good" hidden>
-          <svg class="i"><use href="#i-circle-check"/></svg>
-          <span>Updated to <span id="updated-version"></span>.</span>
-          <button id="updated-link" type="button" class="link">See what changed</button>
-          <button id="updated-dismiss" type="button" class="link">Dismiss</button>
-        </p>
-        <p id="start-note" class="banner warn" hidden>
-          <svg class="i"><use href="#i-triangle-alert"/></svg>
-          <span id="start-note-text"></span>
-          <button id="start-note-dismiss" type="button" class="link">Dismiss</button>
-        </p>
-        <p id="update-banner" class="banner info" hidden>
-          <svg class="i"><use href="#i-download"/></svg>
-          <span id="update-banner-text"></span>
-          <button id="update-banner-restart" type="button" class="btn plain">Restart to update</button>
-        </p>
-
         <!-- Status -->
         <section data-panel="status">
           <section id="pairing" class="card" hidden>
             <div class="card-head">
-              <span class="badge"><svg class="i"><use href="#i-key-round"/></svg></span>
-              <div class="card-title"><h2>Pair with the site</h2><p id="pair-note" class="line">On the site, open Admin > Mix It Up > Paid pulls and press "Pair TCG Bridge". Type the code it shows here.</p></div>
+              <h2>Pair with the site</h2><p id="pair-note" class="line">On the site, open Admin > Mix It Up > Paid pulls and press "Pair TCG Bridge". Type the code it shows here.</p>
             </div>
             <form id="pair-form">
               <label>Site address <input id="site" type="text" spellcheck="false" autocomplete="off"></label>
@@ -94,8 +85,7 @@
           <div id="status" hidden>
             <section class="card">
               <div class="card-head">
-                <span class="badge"><svg class="i"><use href="#i-flask-conical"/></svg></span>
-                <div class="card-title"><h2>Pre-stream checklist</h2><p class="line"><span id="checklist-dot" class="dot off"></span><span id="checklist-state">Not run yet</span></p></div>
+                <h2>Pre-stream checklist</h2><p class="line"><span id="checklist-dot" class="dot off"></span><span id="checklist-state">Not run yet</span></p>
               </div>
               <ul id="checklist-lines" class="checklist"></ul>
               <div class="row tools">
@@ -106,33 +96,29 @@
 
             <section class="card">
               <div class="card-head">
-                <span class="badge"><svg class="i"><use href="#i-bell"/></svg></span>
-                <div class="card-title"><h2>Events</h2><p class="line">The last 30 event rewards, newest first</p></div>
+                <h2>Events</h2><p class="line">The last 30 event rewards, newest first</p>
               </div>
-              <p id="events-empty" class="note muted">No events yet this session</p>
+              <p id="events-empty" class="empty">No events yet this session</p>
               <ul id="events-lines" class="checklist events-list"></ul>
             </section>
 
             <section class="card">
               <div class="card-head">
-                <span class="badge"><svg class="i"><use href="#i-message-square"/></svg></span>
-                <div class="card-title"><h2>Mix It Up commands</h2><p class="line"><span id="commands-dot" class="dot off"></span><span id="commands-state">Not checked yet</span></p></div>
+                <h2>Mix It Up commands</h2><p class="line"><span id="commands-dot" class="dot off"></span><span id="commands-state">Not checked yet</span></p>
               </div>
               <p id="commands-names" class="note muted" hidden></p>
-              <p class="note muted">Compares the commands the site expects with the ones switched on in Mix It Up, by name. A missing command and a switched-off one look the same. Nothing in Mix It Up is changed.</p>
+              <details class="more how"><summary>How?</summary><p class="small">Compares the commands the site expects with the ones switched on in Mix It Up, by name. A missing command and a switched-off one look the same. Nothing in Mix It Up is changed.</p></details>
             </section>
 
             <section class="card">
               <div class="card-head">
-                <span class="badge"><svg class="i"><use href="#i-keyboard"/></svg></span>
-                <div class="card-title"><h2>Stream Deck</h2><p class="line"><span id="deck-dot" class="dot off"></span><span id="deck-state"></span></p></div>
+                <h2>Stream Deck</h2><p class="line"><span id="deck-dot" class="dot off"></span><span id="deck-state"></span></p>
               </div>
             </section>
 
-            <section class="card">
+            <section id="card-site" class="card">
               <div class="card-head">
-                <span class="badge"><svg class="i"><use href="#i-globe"/></svg></span>
-                <div class="card-title"><h2>Site</h2><p class="line"><span id="site-dot" class="dot"></span><span id="site-state"></span></p></div>
+                <h2>Site</h2><p class="line"><span id="site-dot" class="dot"></span><span id="site-state"></span></p>
               </div>
               <dl>
                 <dt>Address</dt><dd id="site-url"></dd>
@@ -141,10 +127,9 @@
               </dl>
             </section>
 
-            <section class="card">
+            <section id="card-mix" class="card">
               <div class="card-head">
-                <span class="badge"><svg class="i"><use href="#i-sliders-horizontal"/></svg></span>
-                <div class="card-title"><h2>Mix It Up</h2><p class="line"><span id="mix-dot" class="dot"></span><span id="mix-state"></span></p></div>
+                <h2>Mix It Up</h2><p class="line"><span id="mix-dot" class="dot"></span><span id="mix-state"></span></p>
               </div>
               <dl>
                 <dt>Version</dt><dd id="mix-version"></dd>
@@ -158,20 +143,17 @@
                 <button type="button" id="mix-start" class="btn" hidden><svg class="i"><use href="#i-play"/></svg>Start Mix It Up</button>
                 <button type="button" id="mix-choose" class="btn plain"><svg class="i"><use href="#i-folder-open"/></svg>Choose MixItUp.exe...</button>
               </div>
-              <p id="mix-start-result" class="result" role="status"></p>
               <div class="row tools">
                 <input id="test-name" type="text" placeholder="Twitch name" aria-label="Twitch name to read the balance of" spellcheck="false" autocomplete="off" maxlength="25">
                 <button type="button" id="test-mix" class="btn plain"><svg class="i"><use href="#i-flask-conical"/></svg>Test Mix It Up</button>
                 <button type="button" id="test-chat" class="btn plain"><svg class="i"><use href="#i-message-square"/></svg>Send test chat message</button>
               </div>
-              <p id="test-mix-result" class="result" role="status"></p>
-              <p id="test-chat-result" class="result" role="status"></p>
+              <p id="mix-result" class="result" role="status"></p>
             </section>
 
-            <section class="card">
+            <section id="card-obs" class="card">
               <div class="card-head">
-                <span class="badge"><svg class="i"><use href="#i-video"/></svg></span>
-                <div class="card-title"><h2>OBS</h2><p class="line"><span id="obs-dot" class="dot"></span><span id="obs-state"></span></p></div>
+                <h2>OBS</h2><p class="line"><span id="obs-dot" class="dot"></span><span id="obs-state"></span></p>
               </div>
               <dl>
                 <dt>Scene</dt><dd id="obs-scene"></dd>
@@ -203,7 +185,7 @@
 
             <section class="card wide">
               <h2 class="plain-title">Last jobs</h2>
-              <p id="no-jobs" class="muted">Nothing yet. Jobs appear here when the site asks Mix It Up for something.</p>
+              <p id="no-jobs" class="empty">Nothing yet. Jobs appear here when the site asks Mix It Up for something.</p>
               <table id="jobs" hidden>
                 <thead><tr><th>Time</th><th>Job</th><th>Viewer</th><th>Result</th></tr></thead>
                 <tbody></tbody>
@@ -214,7 +196,7 @@
 
         <!-- Control from the PC -->
         <section data-panel="control" hidden>
-          <p id="control-unpaired" class="muted" hidden>Pair TCG Bridge first (Status page).</p>
+          <p id="control-unpaired" class="empty" hidden>Pair TCG Bridge first (Status page).</p>
           <div id="control" hidden>
             <section class="card">
               <h2 class="plain-title">Pause pulls</h2>
@@ -237,12 +219,12 @@
             </section>
             <section class="card" id="preview-card" hidden>
               <h2 class="plain-title">Preview overlay</h2>
-              <p class="muted small">Opens the overlay in a window at your OBS canvas size, with Test pull and Show a card. It only watches: it never takes a real pull from OBS. Test pull and Show a card also play on the live overlay.</p>
               <div class="row"><button type="button" id="preview-open" class="btn">Open the preview</button></div>
+              <details class="more how"><summary>How?</summary><p class="small">Opens the overlay in a window at your OBS canvas size, with Test pull and Show a card. It only watches: it never takes a real pull from OBS. Test pull and Show a card also play on the live overlay.</p></details>
             </section>
             <section class="card">
               <h2 class="plain-title">Stream Deck buttons</h2>
-              <p class="muted small">In the Stream Deck app add a "Website" action, paste the address, and tick "GET request in background". The address has a secret key in it: do not share it. Only this PC can use it.</p>
+              <details class="more how"><summary>How?</summary><p class="small">In the Stream Deck app add a "Website" action, paste the address, and tick "GET request in background". The address has a secret key in it: do not share it. Only this PC can use it.</p></details>
               <p id="control-error" class="bad-text" role="alert"></p>
               <table id="control-buttons"><tbody></tbody></table>
               <p id="control-copy-result" class="result" role="status"></p>
@@ -263,7 +245,7 @@
             <section class="card">
               <details id="queue-box" class="more">
                 <summary>Pull queue</summary>
-                <p id="queue-empty" class="muted">Nothing waiting.</p>
+                <p id="queue-empty" class="empty">Nothing waiting.</p>
                 <table id="queue" hidden>
                   <thead><tr><th>Who</th><th>Pack</th><th>Waiting</th></tr></thead>
                   <tbody></tbody>
@@ -356,7 +338,8 @@
         <section data-panel="activity" hidden>
           <section class="card">
             <h2 class="plain-title">Recent activity</h2>
-            <p class="muted small">Pulls, grants and trades, newest first. Notices only reach this app while it is running: one sent while it was closed or offline is dropped, and is not shown later.</p>
+            <details class="more how"><summary>How?</summary><p class="small">Pulls, grants and trades, newest first. Notices only reach this app while it is running: one sent while it was closed or offline is dropped, and is not shown later.</p></details>
+            <p id="activity-empty" class="empty" hidden>Nothing yet.</p>
             <ul id="activity-list" class="links"></ul>
             <p id="activity-result" class="result" role="status"></p>
           </section>
@@ -380,11 +363,11 @@
             </div>
             <p id="deck-install-result" class="result" role="status"></p>
             <p id="deck-error" class="bad-text" role="alert"></p>
-            <p class="muted small">Needs the Elgato Stream Deck app. The plugin adds Buff, Last buff again, Pause pulls and Happy hour keys; the Mix It Up Stream Deck commands and the Website buttons on the Control tab keep working.</p>
+            <details class="more how"><summary>How?</summary><p class="small">Needs the Elgato Stream Deck app. The plugin adds Buff, Last buff again, Pause pulls and Happy hour keys; the Mix It Up Stream Deck commands and the Website buttons on the Control tab keep working.</p></details>
           </section>
           <section class="card" id="notice-card" hidden>
             <h2 class="plain-title">Staff notices</h2>
-            <p class="muted small">Windows notifications from the site while this PC has staff tools on. Clicking one opens its page in your browser. A notice sent while this app is offline is dropped.</p>
+            <details class="more how"><summary>How?</summary><p class="small">Windows notifications from the site while this PC has staff tools on. Clicking one opens its page in your browser. A notice sent while this app is offline is dropped.</p></details>
             <label class="switch-row"><span><b>Needs attention</b><small>A Discord channel switched off, a failed backup, data health.</small></span><input id="notice-attention" class="switch" type="checkbox"></label>
             <label class="switch-row"><span><b>New reports and feedback</b><small>A viewer sends a report or feedback.</small></span><input id="notice-feedback" class="switch" type="checkbox"></label>
             <label class="switch-row"><span><b>Paid pull refusals</b><small>At most one a minute for each reason; never for not enough Brie Bucks.</small></span><input id="notice-refusal" class="switch" type="checkbox"></label>
@@ -412,16 +395,16 @@
           <section class="card">
             <h2 class="plain-title">Pause pulls on scenes</h2>
             <label class="switch-row"><span><b>Pause pulls while a chosen scene is on air</b><small>Packs are paused through the same switch as the Control tab. Switching to any other scene opens them again, but only if a scene paused them: a pause you set by hand stays until you lift it.</small></span><input id="scene-pause-on" class="switch" type="checkbox"></label>
-            <p id="scene-pause-empty" class="muted small" hidden></p>
+            <p id="scene-pause-empty" class="empty" hidden></p>
             <ul id="scene-pause-list" class="links"></ul>
           </section>
           <section class="card">
             <h2 class="plain-title">Live stats in OBS</h2>
-            <p class="muted small">Pick an OBS text source (GDI+ or FreeType text) for each stat you want on screen. TCG Bridge writes only the text, at most once a second and only when it changes. A stat set to "Not shown" never touches a source, so its text stays as it is. Needs OBS connected on the Status page.</p>
-            <p id="obs-stats-empty" class="muted small" hidden></p>
+            <details class="more how"><summary>How?</summary><p class="small">Pick an OBS text source (GDI+ or FreeType text) for each stat you want on screen. TCG Bridge writes only the text, at most once a second and only when it changes. A stat set to "Not shown" never touches a source, so its text stays as it is. Needs OBS connected on the Status page.</p></details>
+            <p id="obs-stats-empty" class="empty" hidden></p>
             <ul id="obs-stats-list" class="links"></ul>
           </section>
-          <section class="card">
+          <section id="card-unpair" class="card">
             <h2 class="plain-title">Pairing</h2>
             <p id="account-text" class="muted"></p>
             <div class="row tools"><button id="unpair" type="button" class="btn plain" hidden><svg class="i"><use href="#i-unlink"/></svg>Unpair</button></div>
@@ -430,7 +413,7 @@
             <h2 class="plain-title">Brie Bucks backups</h2>
             <div class="row tools"><button type="button" id="open-backups" class="btn plain"><svg class="i"><use href="#i-folder-open"/></svg>Open backups</button></div>
             <p id="backup-result" class="result" role="status"></p>
-            <p class="muted small">When the site asks (a switch on its Mix It Up page, off by default), TCG Bridge saves every viewer's Brie Bucks as a CSV here at the start and end of a stream, and keeps the newest 30.</p>
+            <details class="more how"><summary>How?</summary><p class="small">When the site asks (a switch on its Mix It Up page, off by default), TCG Bridge saves every viewer's Brie Bucks as a CSV here at the start and end of a stream, and keeps the newest 30.</p></details>
           </section>
           <section class="card">
             <h2 class="plain-title">Help</h2>
@@ -450,8 +433,8 @@
             <div class="row tools"><button id="whatsnew-refresh" type="button" class="btn plain"><svg class="i"><use href="#i-refresh-cw"/></svg>Refresh</button></div>
             <p id="whatsnew-status" class="muted" role="status"></p>
             <div id="whatsnew-notes"></div>
-            <p id="whatsnew-empty" class="muted" hidden>Release notes for this version are not published yet. <button id="whatsnew-all-empty" type="button" class="link">All releases</button></p>
-            <p id="whatsnew-fail" class="muted" hidden>Could not load the release notes. <button id="whatsnew-all" type="button" class="link">See all releases on GitHub</button></p>
+            <p id="whatsnew-empty" class="empty" hidden>Release notes for this version are not published yet. <button id="whatsnew-all-empty" type="button" class="link">All releases</button></p>
+            <p id="whatsnew-fail" class="empty" hidden>Could not load the release notes. <button id="whatsnew-all" type="button" class="link">See all releases on GitHub</button></p>
           </section>
         </section>
         <section data-panel="about" hidden>
@@ -478,6 +461,12 @@
         </section>
       </main>
     </div>
+  </div>
+  <!-- "Updated to x" shows once, a few seconds, bottom right. -->
+  <div id="toast" class="toast" role="status" hidden>
+    <svg class="i"><use href="#i-circle-check"/></svg>
+    <span>Updated to <span id="toast-version"></span>.</span>
+    <button id="toast-link" type="button" class="btn plain">See what changed</button>
   </div>
   <script src="renderer.js"></script>
 </body>
