@@ -190,7 +190,7 @@ function tickHappy(): void {
 function push(): void {
   const live = service?.state.obs.streaming === true;
   if (live && !wasLive) streamSince = Date.now(); // OBS went live: the "This stream" numbers start again
-  wasLive = live;
+  if (live !== wasLive) { wasLive = live; reportFeed(); } // pulls keep arriving while live with the window in the tray, so the numbers stay whole
   const level = service?.state.tray ?? 'offline';
   tray?.setImage(trayIcon(level));
   tray?.setToolTip(trayTip(level));
@@ -387,9 +387,9 @@ async function startMixWithBridge(): Promise<void> {
   log(r.ok ? 'Started Mix It Up with TCG Bridge' : `Could not start Mix It Up: ${r.error}`);
 }
 
-/** Tells the site whether the feed window or the main window is open: it queues a pull's details for this app only while one is (55.11, 59.5). */
+/** Tells the site whether the feed window or the main window is open, or OBS is live: it queues a pull's details for this app only then (55.11, 59.5). */
 function reportFeed(): void {
-  void client?.report({ type: 'feed', on: !!feedWin || !!win?.isVisible() }).catch(() => undefined);
+  void client?.report({ type: 'feed', on: !!feedWin || !!win?.isVisible() || wasLive }).catch(() => undefined);
 }
 
 /** A small second window with the same lock-down as the others. It loads only its own file. */
