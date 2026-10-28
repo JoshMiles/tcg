@@ -13,6 +13,7 @@ import { getStreamBuff } from '@/lib/pull-limit';
 import { streamBuffAmount } from '@/lib/pull-limit-core';
 import { getCommandLog, getCommands, getCommandStats } from '@/lib/commands';
 import { getWebhookSettings } from '@/lib/webhooks';
+import { packSetup } from '@/lib/mixitup-setup';
 import { CHANNEL_LOGIN, SITE_URL } from '@/lib/site';
 import { listBridges, readBridge, readObs } from '@/lib/bridge';
 import { readWatchdogAt } from '@/lib/overlay-watchdog';
@@ -117,7 +118,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
       {tab === 'paid' && <MixItUpConfig settings={settings} happyHour={await happyHourView(now)} packs={((await getActiveSeasonWithPacks())?.packs ?? []).filter(p => p.cards.length > 0).map(p => ({ id: p.pack.id, name: p.pack.name, price: p.pack.price }))} />}
       {tab === 'bigpulls' && <PullRules rules={settings.pullRules} commands={bridge.commands} obs={{ scenes: obs?.scenes ?? [], sources: obs?.sources ?? [] }} watchdog={settings.overlayWatchdog} />}
       {tab === 'chat' && <ChatBucks chat={settings.chat} check={await readLedgerCheck()} when={timeAgo} />}
-      {tab === 'commands' &&<CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} />}
+      {tab === 'commands' &&<CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} pack={packSetup(SITE_URL, (await getWebhookSettings()).incomingSecret)} />}
       {tab === 'streamdeck' && <StreamDeckTab buffs={await getBuffDefs()} url={`${SITE_URL}/api/webhooks/buff`} secret={(await getWebhookSettings()).incomingSecret} />}
       {tab === 'events' && <EventsTab rewards={settings.eventRewards} buffs={await getBuffDefs()} url={`${SITE_URL}/api/webhooks/pull`} secret={(await getWebhookSettings()).incomingSecret} />}
       {tab === 'log' &&<MixItUpLog log={await mergedLog()} filter={pickLogFilter(filter)} now={now} />}

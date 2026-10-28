@@ -179,6 +179,19 @@ export function cleanCommands(raw: unknown): { ok: true; commands: ChatCommand[]
   return { ok: true, commands: out };
 }
 
+/** Chat commands that are built in (set up in Mix It Up, not the builder), so a custom command must not use these words. */
+export const BUILT_IN_COMMANDS = ['pack'];
+
+/** A message when a command name or alias is a built-in command, else null. Checked when the builder saves (not in cleanCommands, so an older saved list still loads). */
+export function builtInClash(raw: unknown): string | null {
+  for (const r of (Array.isArray(raw) ? raw : []) as Record<string, unknown>[]) {
+    const aliases = Array.isArray(r?.aliases) ? r.aliases : String(r?.aliases ?? '').split(/[,\s]+/);
+    const hit = [r?.name, ...aliases].map(word).find(w => BUILT_IN_COMMANDS.includes(w));
+    if (hit) return `"!${hit}" is a built-in command (it opens a pack) and cannot be used for a custom command.`;
+  }
+  return null;
+}
+
 /** Flattens the variables next to ok/message, so Mix It Up's "JSON to special identifiers" can read each one. */
 export function flatReply(ok: boolean, message: string, vars: Record<string, string>): Record<string, unknown> {
   const reserved = new Set(['ok', 'message', 'vars']);

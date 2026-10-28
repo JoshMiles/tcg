@@ -6,7 +6,7 @@ import { PageHeader, Panel, selectClass } from '../../components/ui';
 import { getMixItUpSettings } from '@/lib/mixitup';
 import { readMixItUpHealth } from '@/lib/mixitup-health';
 import { statusCards } from '@/lib/mixitup-page';
-import { incomingSetup, REQUEST_ID } from '@/lib/mixitup-setup';
+import { incomingSetup, packSetup } from '@/lib/mixitup-setup';
 import { STEPS, pickStep, stepsDone, type StepId } from '@/lib/mixitup-wizard';
 import { listBridges, readBridge, readObs } from '@/lib/bridge';
 import { getWebhookSettings } from '@/lib/webhooks';
@@ -45,8 +45,7 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
   const go = (i: number) => `/admin/mixitup/setup?step=${STEPS[i].id}`;
   const [incoming, outgoing, obsCard] = cards;
   const bridgeMode = settings.connection === 'bridge';
-  const packFields = { username: '$username', pack: '$allargs', requestId: REQUEST_ID };
-  const pack = incomingSetup(`${SITE_URL}/api/webhooks/pull`, secret, packFields);
+  const pack = packSetup(SITE_URL, secret);
 
   return (
     <div className="space-y-6">
@@ -84,7 +83,7 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
               <li>In the Web Request action set the response to <strong>JSON to special identifiers</strong> and map <code>message</code> to <code>reply</code>, then add a <strong>Chat Message</strong> that says <code>$reply</code> (<code>left</code> and <code>balance</code> can be mapped the same way when known).</li>
             </ol>
             <p className={help}>Or skip the steps: download the finished command and import it in Mix It Up.</p>
-            <CopyCard title="!pack" url={pack.url} body={pack.body} download={{ kind: 'chat', name: 'pack', path: 'pull', fields: packFields, reply: ['message', 'left', 'balance'] }} />
+            <CopyCard title="!pack" url={pack.url} body={pack.body} download={pack.preset} />
           </Panel>
           <Card card={incoming} />
           <p role="status" className="text-sm text-gray-200">
