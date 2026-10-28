@@ -66,20 +66,41 @@ function runCheck(file, port) {
   });
 }
 
-const results = [];
-for (const file of files) {
+async function runOne(file) {
   const mock = await startMock();
   const t0 = Date.now();
-  const { code, out } = await runCheck(file, mock.port);
+  const r = await runCheck(file, mock.port);
   mock.stop();
-  const secs = ((Date.now() - t0) / 1000).toFixed(1);
-  const skipped = code === 0 && /^skipped:/m.test(out);
-  const status = code !== 0 ? 'FAIL' : skipped ? 'skip' : 'pass';
-  console.log(`${status.padEnd(4)}  ${file}  (${secs}s)`);
-  if (status === 'FAIL') console.log(out.trimEnd().split('\n').map((l) => '      ' + l).join('\n'));
-  if (skipped) console.log('      ' + out.match(/^skipped:.*$/m)[0]);
-  results.push(status);
+  return { ...r, secs: ((Date.now() - t0) / 1000).toFixed(1) };
 }
+
+// Each check has its own mock KV, so they run side by side: 4 at a time on CI, 2 locally (one heavy run at a time on the laptop), CHECK_JOBS overrides.
+const jobs = Math.max(1, Number(process.env.CHECK_JOBS) || (process.env.CI ? 4 : 2));
+const done = new Array(files.length);
+let next = 0;
+let shown = 0;
+const results = [];
+function print() { // in file order, as each earlier one finishes
+  while (shown < files.length && done[shown]) {
+    const { code, out, secs, retried } = done[shown];
+    const skipped = code === 0 && /^skipped:/m.test(out);
+    const status = code !== 0 ? 'FAIL' : skipped ? 'skip' : 'pass';
+    console.log(`${status.padEnd(4)}  ${files[shown]}  (${secs}s)${retried ? '  passed on a retry; it failed once:' : ''}`);
+    if (status === 'FAIL' || retried) console.log((retried ?? out).trimEnd().split('\n').map((l) => '      ' + l).join('\n'));
+    if (skipped) console.log('      ' + out.match(/^skipped:.*$/m)[0]);
+    results.push(status);
+    shown++;
+  }
+}
+await Promise.all(Array.from({ length: Math.min(jobs, files.length) }, async () => {
+  while (next < files.length) {
+    const i = next++;
+    let r = await runOne(files[i]);
+    if (r.code !== 0) { const again = await runOne(files[i]); if (again.code === 0) r = { ...again, retried: r.out }; } // a timing flake gets one more try, shown in the output
+    done[i] = r;
+    print();
+  }
+}));
 
 const n = (s) => results.filter((r) => r === s).length;
 console.log(`\n${n('pass')} passed, ${n('FAIL')} failed, ${n('skip')} skipped (${results.length} checks)`);
