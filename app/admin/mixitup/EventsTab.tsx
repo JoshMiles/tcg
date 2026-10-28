@@ -59,6 +59,16 @@ export function EventsTab({ rewards, buffs, url, secret }: { rewards: EventRewar
           })}
           <p className={help}>A buff reward applies once per event, to the viewer, with the same rules as a Stream Deck button (a buff already active or too many buffs is refused). Only buffs with the Stream Deck switch on that go to one viewer are listed; switch it on in the <Link href="/admin/buffs" className="link">Buff Editor</Link>.</p>
         </Panel>
+        <Panel title="Raid shout-out" icon="gift" hint="When a big enough raid arrives, the raider's best card shows on the overlay as &quot;Raid from (name)&quot; and chat gets one line. It runs from the Raid event command below. Nothing shows for a private profile or a raider with no cards, and each raider gets one shout-out per stream. Off until you switch it on.">
+          <label className="flex items-center gap-2 text-sm text-white font-semibold">
+            <input type="checkbox" name="ev_shout_on" defaultChecked={rewards.raidShoutout.on} className="toggle toggle-sm toggle-primary" />
+            Raid shout-out
+          </label>
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend"><label htmlFor="ev-shout-min">Smallest raid that gets one (viewers)</label></legend>
+            <input id="ev-shout-min" name="ev_shout_min" type="number" min={1} step={1} defaultValue={rewards.raidShoutout.minViewers} className={fieldClass} />
+          </fieldset>
+        </Panel>
         <PendingButton type="submit" className="btn btn-primary btn-sm self-start">Save event rewards</PendingButton>
       </form>
       <section className="space-y-3">

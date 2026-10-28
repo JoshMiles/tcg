@@ -114,5 +114,54 @@ ok(r.ignored === true && r.reason === 'buff_unavailable' && r.message === '' && 
 r = await send({ event: 'redeem', username: 'buff_3' });
 ok(r.ignored === true && r.reason === 'buff_unavailable', 'a community buff is not a reward');
 
+// ── Raid shout-out (57.6) ──
+ok(!ev.normalizeEventRewards(undefined).raidShoutout.on && ev.normalizeEventRewards(undefined).raidShoutout.minViewers === 5, 'shout-out: off by default, minimum 5');
+ok(ev.normalizeEventRewards({ raidShoutout: { on: true, minViewers: 'x' } }).raidShoutout.minViewers === 5, 'shout-out: a junk minimum falls back to the default');
+ok(ev.normalizeEventRewards({ raidShoutout: { on: true, minViewers: 25 } }).raidShoutout.minViewers === 25, 'shout-out: a good minimum is kept');
+ok(ev.cleanEventRewardsInput(k => (k === 'ev_shout_min' ? '0' : undefined)).ok === false, 'shout-out: a minimum of 0 is refused in words');
+const cleaned = ev.cleanEventRewardsInput(k => (({ ev_shout_on: 'on', ev_shout_min: '30' }) as Record<string, string>)[k]);
+ok(cleaned.ok && cleaned.rewards.raidShoutout.on && cleaned.rewards.raidShoutout.minViewers === 30, 'shout-out: the form saves the switch and the minimum');
+
+const { saveUserSettings } = await import('../lib/user-settings-store');
+const { encodeEntry } = await import('../lib/variants');
+const season = (await kvLib.listSeasons())[0];
+await kvLib.setActiveSeason(season.id);
+const card = (await kvLib.getPackCards('pack1'))[0];
+await kvLib.saveCollection(season.collectionName, { rd_a: [encodeEntry(card.number, 'regular')], rd_priv: [encodeEntry(card.number, 'regular')], rd_err: [encodeEntry(card.number, 'regular')] });
+await saveUserSettings('rd_priv', { privateProfile: true });
+const shows = async () => (await kv.lrange<{ username: string; type: string; caption?: string }>('webhooks:queue', 0, -1)).filter(q => q.type === 'card');
+const said = async () => (await kv.lrange<{ kind: string; text: string }>('bridge:jobs', 0, -1)).filter(j => j.kind === 'say');
+const raid = (username: string, amount: number) => send({ event: 'raid', username, amount });
+
+await set({ raid: on({ every: 10 }) });
+await raid('rd_a', 50);
+ok((await shows()).length === 0, 'shout-out: off shows nothing');
+await set({ raid: on({ every: 10 }), raidShoutout: { on: true, minViewers: 10 } });
+await raid('rd_a', 9);
+ok((await shows()).length === 0 && (await said()).length === 0, 'shout-out: a raid under the minimum shows nothing');
+await raid('rd_priv', 50);
+ok((await shows()).length === 0, 'shout-out: a private profile shows nothing');
+await raid('rd_nobody', 50);
+ok((await shows()).length === 0 && (await said()).length === 0, 'shout-out: a raider with no cards shows nothing');
+const b4 = await queued();
+r = await raid('rd_a', 12);
+const sh = await shows();
+ok(r.message === 'rd_a got a pack for a raid of 12!' && (await queued()) === b4 + 2, `shout-out: the raid pack is still given: ${r.message}`);
+ok(sh.length === 1 && sh[0].username === 'rd_a' && sh[0].caption === 'Raid from rd_a', 'shout-out: the best card is queued with "Raid from <name>"');
+const chat = await said();
+ok(chat.length === 1 && chat[0].text.startsWith('Welcome, raiders! rd_a brought 12 viewers. Their best card: '), `shout-out: one chat line: ${chat[0]?.text}`);
+await raid('rd_a', 40);
+ok((await shows()).length === 1 && (await said()).length === 1, 'shout-out: the second raid from the same raider this stream shows nothing');
+
+// A shout-out that fails (the once-per-stream key cannot be written) leaves the raid reward intact.
+const realFetch = globalThis.fetch;
+globalThis.fetch = ((input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) =>
+  String(init?.body ?? '').includes('raidshout') ? Promise.reject(new Error('kv down')) : realFetch(input, init)) as typeof fetch;
+const q2 = await queued();
+const silence = console.error; console.error = () => {};
+r = await raid('rd_err', 12);
+console.error = silence; globalThis.fetch = realFetch;
+ok(r.ok && r.message === 'rd_err got a pack for a raid of 12!' && (await queued()) === q2 + 1 && (await shows()).length === 1, `shout-out: an error leaves the raid reward intact: ${r.message}`);
+
 console.log('check-event-rewards: ok');
 process.exit(0);
