@@ -31,6 +31,16 @@ export async function noteDeploy(info: Pick<BuildInfo, 'version' | 'commitFull'>
   }
 }
 
+/** A channel points award failed (58.3): staff are told to refund the redemption by hand, at most once a minute (an atomic key with expiry). */
+export async function noteAwardFailed(viewer: string, reward: string, why: string): Promise<boolean> {
+  try {
+    if (!(await kv.set('bridge:award-failed', 1, { nx: true, ex: 60 }))) return false;
+    return await sendNotice({ kind: 'attention', title: `Refund ${viewer}'s ${reward || 'reward'} by hand`, text: why.slice(0, 200), href: '/admin/mixitup?tab=events' });
+  } catch {
+    return false;
+  }
+}
+
 /** A paid pull was refused. "Not enough Brie Bucks" is routine and skipped; each other reason notifies at most once a minute (an atomic key with expiry). */
 export async function noteRefusal(reason: string, username: string): Promise<boolean> {
   try {

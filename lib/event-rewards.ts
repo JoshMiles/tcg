@@ -7,6 +7,7 @@ import { getMixItUpSettings } from './mixitup';
 import { queuePull } from './pull-queue';
 import { phrase, refusal } from './streamdeck';
 import { raidShoutout } from './raid-shoutout';
+import { twitchHandlesRedemptions } from './twitch-awards';
 import { cleanEventAmount, cleanEventName, eventCause, eventPacks, packsReason } from './event-rewards-core';
 
 export interface EventAnswer { status: number; body: Record<string, unknown> }
@@ -33,6 +34,9 @@ async function rewardFor(username: string, body: Record<string, unknown>): Promi
 
   const cfg = (await getMixItUpSettings()).eventRewards[event];
   if (!cfg.on) return ignored('event_off');
+  // 58.3 decision 3: with the live channel connected and an award on some reward, Twitch's own redemption event handles redeems; nothing counts twice.
+  // The reason shows on the Mix It Up log; the message stays empty so the command says nothing in chat.
+  if (event === 'redeem' && (await twitchHandlesRedemptions())) return ignored('twitch_handles_redeem');
   const cause = eventCause(event, amount);
 
   if (cfg.reward === 'buff') {

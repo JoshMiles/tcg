@@ -11,6 +11,7 @@ import { getMixItUpSettings, saveMixItUpSettings } from '@/lib/mixitup';
 import { runBalanceTest, runSendTest } from './test-calls';
 import { cleanEventRewardsInput, EVENT_NAMES } from '@/lib/event-rewards-core';
 import { getBuffDefs } from '@/lib/buffs';
+import { saveRewardAwards } from '@/lib/twitch-awards';
 
 const back = (tab: string, kind: 'saved' | 'error' | 'note', text: string): never => redirect(`/admin/mixitup?tab=${tab}&${kind}=${encodeURIComponent(text)}`);
 
@@ -96,6 +97,15 @@ export async function saveEventRewardsAction(formData: FormData): Promise<void> 
   await recordAudit('everyone', 'Event rewards saved', EVENT_NAMES.map(n => `${n} ${r.rewards[n].on ? 'on' : 'off'}`).join(', ') + `, raid shout-out ${r.rewards.raidShoutout.on ? `on from ${r.rewards.raidShoutout.minViewers}` : 'off'}`);
   revalidatePath('/admin/mixitup');
   return back('events', 'note', 'Event rewards saved.');
+}
+
+/** Saves the Channel points section of the Events tab (ROADMAP 58.3): the award for each reward the form listed. Admin only; every field is checked in saveRewardAwards. */
+export async function saveRewardAwardsAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const get = (k: string) => { const v = formData.get(k); return typeof v === 'string' ? v : undefined; };
+  const r = await saveRewardAwards(get, formData.getAll('reward').filter((v): v is string => typeof v === 'string'));
+  if (r.ok) revalidatePath('/admin/mixitup');
+  return back('events', r.ok ? 'note' : 'error', r.message);
 }
 
 /** Removes one saved rule. Other edits on the form are not saved. */

@@ -24,7 +24,7 @@
     { "doc": "docs/admin/assets.md", "code": ["lib/asset*.ts", "lib/assets.ts", "lib/card-image.ts", "lib/card-upload.ts", "lib/art-import.ts", "app/admin/assets/**", "app/admin/asset-actions.ts"] },
     { "doc": "docs/admin/discord.md", "code": ["lib/discord*.ts", "lib/stream-recap.ts", "lib/weekly-digest*.ts", "app/admin/settings/DiscordConfig.tsx"] },
     { "doc": "docs/admin/feedback.md", "code": ["lib/feedback*.ts", "lib/account-deletion.ts", "app/admin/feedback/**", "app/admin/feedback-actions.ts"] },
-    { "doc": "docs/admin/mixitup.md", "code": ["lib/mixitup*.ts", "app/admin/mixitup/**", "app/api/admin/mixitup/**", "app/api/webhooks/**", "lib/twitch-channel*.ts", "app/api/bridge/twitch-token/**", "scripts/fixtures/mixitup-chat-command.miucommand"] },
+    { "doc": "docs/admin/mixitup.md", "code": ["lib/mixitup*.ts", "app/admin/mixitup/**", "app/api/admin/mixitup/**", "app/api/webhooks/**", "lib/twitch-channel*.ts", "lib/twitch-events*.ts", "lib/twitch-awards*.ts", "app/api/bridge/twitch-token/**", "app/api/bridge/twitch-event/**", "scripts/fixtures/mixitup-chat-command.miucommand"] },
     { "doc": "docs/admin/packs-and-seasons.md", "code": ["lib/pack-*.ts", "lib/draft-validation.ts", "lib/season-*.ts", "lib/card-held.ts", "app/admin/packs/**", "app/admin/seasons/**", "app/admin/pack-actions.ts", "app/admin/season-actions.ts", "app/admin/draft-actions.ts", "app/admin/still-actions.ts"] },
     { "doc": "docs/admin/routes.md", "code": ["lib/admin-nav.ts", "app/admin/layout.tsx", "app/admin/settings/page.tsx"] },
     { "doc": "docs/admin/users.md", "code": ["lib/user-admin.ts", "lib/users-*.ts", "lib/audit.ts", "lib/restriction.ts", "lib/account-restore.ts", "lib/avatars.ts", "app/admin/users/**", "app/admin/users-actions.ts"] },

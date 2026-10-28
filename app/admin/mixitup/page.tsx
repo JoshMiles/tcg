@@ -23,7 +23,8 @@ import { CommandsPanel } from './CommandsPanel';
 import { ConnectionTab } from './ConnectionTab';
 import { channelConnectReady, readChannelStatus } from '@/lib/twitch-channel';
 import { readEventSub, recentTwitchEvents } from '@/lib/twitch-events';
-import { listeningLine } from '@/lib/twitch-events-core';
+import { lineText, listeningLine } from '@/lib/twitch-events-core';
+import { fetchRewards, readAwards } from '@/lib/twitch-awards';
 import { testingLine } from '@/lib/twitch-channel-core';
 import { MixItUpConfig } from './MixItUpConfig';
 import { MixItUpLog } from './MixItUpLog';
@@ -59,7 +60,7 @@ const TABS: (PageTab & { hint: string })[] = [
   { id: 'chat', label: 'Chat and Brie Bucks', icon: 'database', hint: 'Chat posts when the stream starts and ends, the Brie Bucks backup and the check of charges' },
   { id: 'commands', label: 'Commands', icon: 'chat', hint: 'Chat commands such as !showoff and !stats: one webhook, replies built from variables' },
   { id: 'streamdeck', label: 'Stream Deck', icon: 'gamepad', hint: 'Buttons that apply a buff, give extra pulls or a free pack: one Mix It Up command each' },
-  { id: 'events', label: 'Events', icon: 'gift', hint: 'Free packs or a buff for gifted subs, bits, raids and channel point redeems' },
+  { id: 'events', label: 'Events', icon: 'gift', hint: 'Free packs or a buff for gifted subs, bits, raids and channel point redeems, and awards for the channel\'s own channel points rewards' },
   { id: 'log', label: 'Log', icon: 'list', hint: 'The last requests to and refusals for Mix It Up' },
 ];
 
@@ -83,7 +84,7 @@ async function twitchView() {
   return {
     login: c.login, scopes: c.scopes, since: timeAgo(c.connectedAt), by: c.by, testing: c.testing, testingLine: testingLine(c.login),
     listening, problem: listening ? '' : off || (sub ? 'TCG Bridge has not reported lately' : 'TCG Bridge has not reported a Twitch connection yet'),
-    events: events.map(e => ({ text: e.text, ago: timeAgo(e.at) })),
+    events: events.map(e => ({ text: lineText(e), ago: timeAgo(e.at) })),
   };
 }
 
@@ -153,7 +154,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
       {tab === 'chat' && <ChatBucks chat={settings.chat} check={await readLedgerCheck()} when={timeAgo} />}
       {tab === 'commands' &&<CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} pack={packSetup(SITE_URL, (await getWebhookSettings()).incomingSecret)} />}
       {tab === 'streamdeck' && <StreamDeckTab buffs={await getBuffDefs()} url={`${SITE_URL}/api/webhooks/buff`} secret={(await getWebhookSettings()).incomingSecret} />}
-      {tab === 'events' && <EventsTab rewards={settings.eventRewards} buffs={await getBuffDefs()} url={`${SITE_URL}/api/webhooks/pull`} secret={(await getWebhookSettings()).incomingSecret} />}
+      {tab === 'events' && <EventsTab rewards={settings.eventRewards} buffs={await getBuffDefs()} url={`${SITE_URL}/api/webhooks/pull`} secret={(await getWebhookSettings()).incomingSecret} points={await fetchRewards()} awards={await readAwards()} />}
       {tab === 'log' &&<MixItUpLog log={await mergedLog()} filter={pickLogFilter(filter)} now={now} />}
     </div>
   );
