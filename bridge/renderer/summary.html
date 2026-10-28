@@ -2,25 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'">
   <title>Stream summary</title>
   <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="tools.css">
 </head>
 <body>
-  <main class="summary">
-    <h1>Stream summary</h1>
-    <p id="totals"></p>
-    <h2>Big pulls</h2>
-    <ul id="big"></ul>
-    <h2>Top pullers</h2>
-    <ol id="top"></ol>
-    <p id="bucks"></p>
-    <div class="row">
-      <button type="button" id="copy">Copy for Discord</button>
-      <span id="result" role="status"></span>
-    </div>
-  </main>
+  <div class="app">
+    <header class="titlebar">
+      <img class="tb-icon" src="icon.png" alt="" width="20" height="20">
+      <h1 class="tb-title">Stream summary</h1>
+      <span class="tb-version">TCG Bridge</span>
+    </header>
+    <main class="content tool-content">
+      <section class="card">
+        <h2 class="plain-title">Totals</h2>
+        <p id="totals" class="line"></p>
+        <p id="bucks" class="line"></p>
+      </section>
+      <section class="card">
+        <h2 class="plain-title">Big pulls</h2>
+        <ul id="big" class="summary-list"></ul>
+      </section>
+      <section class="card">
+        <h2 class="plain-title">Top pullers</h2>
+        <ol id="top" class="summary-list"></ol>
+      </section>
+      <div class="summary-actions">
+        <button type="button" id="copy" class="btn">Copy for Discord</button>
+        <span id="result" class="result" role="status"></span>
+      </div>
+    </main>
+  </div>
   <script src="summary.js"></script>
 </body>
 </html>

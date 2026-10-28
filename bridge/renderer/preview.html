@@ -2,23 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; frame-src https: http://localhost:* http://127.0.0.1:*; font-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; frame-src https: http://localhost:* http://127.0.0.1:*; font-src 'self'">
   <title>Preview overlay</title>
   <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="tools.css">
 </head>
-<body class="preview">
-  <div class="bar">
-    <button id="test-pull" type="button">Test pull</button>
-    <button id="force" type="button" hidden>Queue it anyway</button>
-    <input id="viewer" type="text" list="viewers" placeholder="Viewer name" maxlength="40" autocomplete="off" aria-label="Viewer name">
-    <datalist id="viewers"></datalist>
-    <button id="show-card" type="button">Show a card</button>
-    <button id="reload" type="button">Reload</button>
-    <span id="size" class="muted"></span>
+<body>
+  <div class="app">
+    <header class="titlebar">
+      <img class="tb-icon" src="icon.png" alt="" width="20" height="20">
+      <h1 class="tb-title">Preview overlay</h1>
+      <span class="tb-version">TCG Bridge</span>
+    </header>
+    <main class="content tool-content">
+      <div class="row">
+        <button id="test-pull" type="button" class="btn">Test pull</button>
+        <button id="force" type="button" class="btn plain" hidden>Queue it anyway</button>
+        <input id="viewer" type="text" list="viewers" placeholder="Viewer name" maxlength="40" autocomplete="off" aria-label="Viewer name">
+        <datalist id="viewers"></datalist>
+        <button id="show-card" type="button" class="btn plain">Show a card</button>
+        <button id="reload" type="button" class="btn plain">Reload</button>
+        <span id="size" class="muted"></span>
+      </div>
+      <p id="msg" class="result" role="status"></p>
+      <div id="stage" class="stage"><iframe id="frame" title="Overlay preview" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe></div>
+    </main>
   </div>
-  <p id="msg" class="muted" role="status" aria-live="polite"></p>
-  <div id="stage" class="stage"><iframe id="frame" title="Overlay preview" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe></div>
   <script src="preview.js"></script>
 </body>
 </html>

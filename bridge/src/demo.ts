@@ -9,7 +9,7 @@ import { connectionRows } from './connections';
 import { clock, type EventLine } from './events';
 import type { ChecklistLine } from './checklist';
 import { viewerFacts } from './staffpages';
-import { FEED_KEEP, mergeFeed, readySummary, streamNumbers, type PullEntry } from './home';
+import { FEED_KEEP, filterFeed, mergeFeed, readySummary, streamNumbers, type PullEntry } from './home';
 
 export interface DemoContext {
   shots: string;
@@ -19,6 +19,7 @@ export interface DemoContext {
   getSplash: () => BrowserWindow | null;
   getWindow: () => BrowserWindow | null;
   setState: (s: object | null) => void;
+  openTool: (file: 'feed.html' | 'summary.html' | 'preview.html', width: number, height: number) => BrowserWindow;
   finish: () => void;
 }
 
@@ -65,7 +66,7 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
     job(900, 'add', 'cheesehead', true, 'Gave 100 Brie Bucks'),
   ];
   // A busy stream for the Home dashboard (59.5): pulls, event rewards and jobs mixed, a queue, a happy hour running.
-  const pull = (ago: number, viewer: string, card: string, rarity: string, stars: number, variant = 'Regular'): PullEntry => ({ at: now - ago * 1000, viewer, card, rarity, stars, variant });
+  const pull = (ago: number, viewer: string, card: string, rarity: string, stars: number, variant = 'Regular'): PullEntry => ({ at: now - ago * 1000, viewer, card, rarity, stars, variant, serial: 100 + ago, image: 'icon.png' }); // the app icon stands in for the card art
   const pulls = [
     pull(8, 'brie_fan', 'Gouda Goat', 'Legendary', 5, 'Holo'), pull(30, 'cheesehead', 'Brie Bear', 'Common', 1), pull(55, 'newviewer', 'Cheddar Chick', 'Rare', 3),
     pull(95, 'brie_fan', 'Swiss Sloth', 'Epic', 4), pull(140, 'curdnerd', 'Gouda Goat', 'Common', 1), pull(210, 'cheesehead', 'Feta Fox', 'Uncommon', 2),
@@ -155,5 +156,41 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
   await tab('home');
   await wait(500);
   await capture(ctx, w, 'main-16-sidebar-folded');
+
+  // The tool windows (59.8), in the main window's style: the pull feed with all rows and with the Pulls chip pressed, the end of stream summary, the overlay preview.
+  const tool = async (file: 'feed.html' | 'summary.html' | 'preview.html', width: number, height: number): Promise<BrowserWindow> => {
+    const t = ctx.openTool(file, width, height);
+    await wait(1500); // loaded and shown
+    return t;
+  };
+  const feedWin = await tool('feed.html', 380, 640);
+  const feedRows = (filter: 'all' | 'pulls') => feedWin.webContents.send('feed-rows', { filter, rows: filterFeed(home.feed, filter) });
+  feedRows('all');
+  await wait(400);
+  await capture(ctx, feedWin, 'tool-1-pull-feed');
+  feedRows('pulls');
+  await feedWin.webContents.executeJavaScript(`document.querySelector('[data-filter="pulls"]').focus()`); // the focus ring shows in the shot
+  await wait(400);
+  await capture(ctx, feedWin, 'tool-1b-pull-feed-pulls-only');
+  if (!ctx.shots) await wait(2500);
+  feedWin.close();
+
+  const summaryWin = await tool('summary.html', 460, 600);
+  summaryWin.webContents.send('summary-data', {
+    packs: 64, partial: false, pullers: 17, taken: 3200, refunded: 150,
+    bigPulls: [{ cardName: 'Gouda Goat', rarity: 'Legendary', variant: 'Holo', serial: 7, username: 'brie_fan' }, { cardName: 'Swiss Sloth', rarity: 'Epic', variant: 'Regular', serial: 112, username: 'cheesehead' }],
+    topPullers: [{ username: 'brie_fan', packs: 9 }, { username: 'cheesehead', packs: 7 }, { username: 'curdnerd', packs: 5 }],
+  });
+  await wait(400);
+  await capture(ctx, summaryWin, 'tool-2-stream-summary');
+  if (!ctx.shots) await wait(2500);
+  summaryWin.close();
+
+  const previewWin = await tool('preview.html', 1000, 680);
+  await previewWin.webContents.executeJavaScript(`say('Test pull queued for the live overlay.')`); // the window is not the app's tracked preview, so it has no site to ask: set the line a real one shows
+  await wait(400);
+  await capture(ctx, previewWin, 'tool-3-preview-overlay');
+  if (!ctx.shots) await wait(2500);
+  previewWin.close();
   if (ctx.shots) ctx.finish();
 }

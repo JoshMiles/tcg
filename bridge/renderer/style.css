@@ -19,10 +19,12 @@ body {
 .i { width: 1.15em; height: 1.15em; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.2em; }
 h1, h2 { font-family: var(--display); letter-spacing: .01em; margin: 0; }
 .muted { color: var(--muted); }
+/* Clipped, not hidden: still read by a screen reader (the page's h1, the folded sidebar's labels). */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; padding: 0; }
 .small { font-size: 12px; margin: 10px 0 0; }
 .bad-text { color: var(--bad); min-height: 1.4em; margin: 6px 0 0; }
 
-/* Layout: title bar on top, rail on the left, scrolling content */
+/* Layout: title bar on top, the sidebar (.rail) on the left, scrolling content */
 .app { display: grid; grid-template-rows: 40px 1fr; height: 100vh; }
 .titlebar { display: flex; align-items: center; gap: 8px; padding-left: 12px; background: var(--bg-deep); border-bottom: 1px solid var(--line); -webkit-app-region: drag; user-select: none; }
 .tb-icon { border-radius: 6px; }
@@ -52,17 +54,18 @@ h1, h2 { font-family: var(--display); letter-spacing: .01em; margin: 0; }
   .body { grid-template-columns: 56px 1fr; }
   .rail { padding: 14px 6px; align-items: center; }
   .rail-group { justify-items: center; }
-  .rail-head, .rail-label, .rail-foot-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; padding: 0; }
+  .rail-head, .rail-label, .rail-foot-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; padding: 0; } /* the same clip as .sr-only */
   .rail-btn { justify-content: center; padding: 9px; }
   .rail-foot { padding: 10px 0 0; justify-content: center; }
 }
-/* A wide window (ROADMAP 59.2, from about 1220 px: the default 1280 is wide enough): the cards in a .cols box flow into two columns; a card with .wide (a table) spans both. */
+/* A wide window (ROADMAP 59.2, from about 1220 px: the default 1280 is wide enough): the cards in a .cols box flow into two columns. */
 @container (min-width: 960px) {
   .cols { column-count: 2; column-gap: 14px; }
   .cols > .card { break-inside: avoid; }
-  .card.wide { column-span: all; }
 }
-button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* Focus ring (59.8): every control that can take the keyboard focus shows one. Controls that sit flush in a scrolling box or against the window edge draw it inside, where it is not clipped. */
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.rail-btn:focus-visible, .conn-row:focus-visible, .tb-btn:focus-visible, .feed-list:focus-visible { outline-offset: -2px; }
 
 /* Card kit (ROADMAP 59.3). Every tab uses the same parts:
    - Header: a plain title (h2.plain-title, or .card-head with an h2 and a .line status under it). No icon badges.
@@ -126,7 +129,6 @@ button.link { padding: 0; border: 0; background: none; color: var(--fg); font: i
 .checklist { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .checklist li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .checklist li span:last-child { color: var(--soft); overflow-wrap: anywhere; }
-.events-list { max-height: 280px; overflow-y: auto; }
 .result { margin: 8px 0 0; min-height: 1.4em; overflow-wrap: anywhere; color: var(--soft); }
 .result:empty { min-height: 0; margin: 0; }
 .result.ok { color: var(--ok); }
@@ -153,7 +155,6 @@ td:first-child { color: var(--muted); font-variant-numeric: tabular-nums; white-
 tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover td { background: rgba(31, 40, 72, .5); }
 td.fail { color: var(--bad); }
-.pill { display: inline-block; padding: 0 8px; border-radius: 999px; background: var(--line); color: var(--soft); font-size: 12px; font-weight: 700; }
 
 /* Home dashboard (ROADMAP 59.5): fits 1280 x 800 without scrolling. The window's height is split, the feed list is what gives (it scrolls inside its card). */
 .home { display: flex; flex-direction: column; gap: 10px; height: calc(100vh - 40px - 48px); min-height: 520px; }
@@ -215,7 +216,7 @@ td.fail { color: var(--bad); }
 
 /* Connections (59.6): a list on the left, the picked connection on the right. */
 .conns-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-.page-title { font-size: 22px; }
+.page-title { margin: 0; font: 600 22px var(--display); letter-spacing: .01em; }
 .conns-cols { display: grid; grid-template-columns: 300px 1fr; gap: 14px; align-items: start; }
 @media (max-width: 900px) { .conns-cols { grid-template-columns: 1fr; } }
 .conn-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }

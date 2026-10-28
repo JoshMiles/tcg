@@ -97,33 +97,12 @@ function renderCommands(missing) {
 const FILTER_KIND = { all: null, pulls: 'pull', events: 'event', jobs: 'job' }; // the same table as FEED_FILTERS in src/home.ts
 const HOME_ROWS = 9; // what fits the dashboard at 1280 x 800
 const feedFilter = { home: 'all', history: 'all' };
-const BADGE_TITLE = { P: 'Pull', E: 'Event reward', J: 'Mix It Up job', '!': 'Refused or failed' };
 function renderFeed(which) {
   const rows = ((state.home && state.home.feed) || []).filter(r => !FILTER_KIND[feedFilter[which]] || r.kind === FILTER_KIND[feedFilter[which]]).slice(0, which === 'home' ? HOME_ROWS : 100);
   const list = document.querySelector(`.feed-list[data-feed="${which}"]`);
   document.querySelector(`.feed-empty[data-feed="${which}"]`).hidden = rows.length > 0;
   list.hidden = rows.length === 0;
-  list.replaceChildren(...rows.map(r => {
-    const li = document.createElement('li');
-    li.className = 'feed-row ' + r.tone;
-    const when = document.createElement('span');
-    when.className = 'feed-time';
-    when.textContent = r.time;
-    const badge = document.createElement('span');
-    badge.className = 'feed-badge';
-    badge.textContent = r.badge;
-    badge.title = BADGE_TITLE[r.badge];
-    const who = document.createElement('b');
-    who.textContent = r.viewer;
-    const text = document.createElement('span');
-    text.className = 'feed-text';
-    text.textContent = r.text;
-    const tag = document.createElement('span');
-    tag.className = 'feed-tag';
-    tag.textContent = r.tag;
-    li.append(when, badge, who, text, tag);
-    return li;
-  }));
+  list.replaceChildren(...rows.map(feedRow)); // feedrow.js
 }
 for (const group of document.querySelectorAll('.filters')) {
   group.addEventListener('click', e => {
@@ -256,7 +235,8 @@ async function loadWhatsNew() {
   }));
 }
 
-function renderBanners() {
+/** What's new card, status pill and "Updated to" toast. */
+function renderStatus() {
   $('whatsnew-card').hidden = !state.whatsNew;
   if (state.whatsNew && state.whatsNew.open && !whatsNewOpened) { whatsNewOpened = true; goToCard('whatsnew-card'); }
   renderPill();
@@ -473,7 +453,7 @@ function render() {
   $('summary-on').checked = state.tools.summary;
   $('obs-autostart').checked = state.tools.startObs;
   $('obs-path').textContent = state.tools.obsPath;
-  renderBanners();
+  renderStatus();
   renderFeed('history');
   renderControl();
   renderDeck();
@@ -516,7 +496,7 @@ function render() {
 // The sidebar (59.4): one page at a time. A page is a button with data-tab and a section with the same data-panel.
 function showTab(name) {
   for (const b of document.querySelectorAll('.rail-btn')) {
-    if (b.dataset.tab === name) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    if (b.dataset.tab === name) { b.setAttribute('aria-current', 'page'); $('page-title').textContent = b.querySelector('.rail-label').textContent; } else b.removeAttribute('aria-current');
   }
   for (const p of document.querySelectorAll('[data-panel]')) p.hidden = p.dataset.panel !== name;
   if (name === 'about' && state && state.whatsNew) void loadWhatsNew();

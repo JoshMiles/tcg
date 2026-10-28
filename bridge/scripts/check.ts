@@ -33,6 +33,7 @@ import { winStateChecks } from './check-winstate';
 import { statusChecks } from './check-status';
 import { homeChecks } from './check-home';
 import { staffPagesChecks } from './check-staffpages';
+import { a11yChecks } from './check-a11y';
 import { BridgeService } from '../src/service';
 import { cleanStaffAction, StaffTools } from '../src/staff';
 import { cleanCanvas, previewAddress, previewFrameAllowed } from '../src/preview';
@@ -1097,6 +1098,7 @@ async function main() {
   statusChecks();
   homeChecks();
   staffPagesChecks();
+  a11yChecks();
 
   miSrv.server.close();
   siSrv.server.close();

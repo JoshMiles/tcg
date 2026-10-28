@@ -1,32 +1,30 @@
-/* The pull feed and summary windows: the same dark look as the main window. */
-:root { color-scheme: dark; --bg: #0a0f21; --line: #1f2848; --fg: #e6eafb; --muted: #8190bf; --primary: #ffcb05; }
-* { box-sizing: border-box; }
-body { margin: 0; padding: 12px; color: var(--fg); background: var(--bg); font: 14px/1.4 "Nunito", "Segoe UI", system-ui, sans-serif; }
-h1 { margin: 0 0 8px; font: 600 20px "Fredoka", ui-rounded, system-ui, sans-serif; }
-h2 { margin: 16px 0 4px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-ul, ol { margin: 0; padding-left: 20px; }
-.empty { color: var(--muted); text-align: center; margin-top: 30vh; }
-.feed { list-style: none; padding: 0; display: grid; gap: 8px; }
-.pull { display: flex; gap: 10px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 10px; }
-.pull img { border-radius: 4px; object-fit: cover; flex: none; }
-.pull div { display: grid; min-width: 0; }
-.pull b, .pull span, .pull small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pull small { color: var(--muted); }
-.pull.stars-4, .pull.stars-5 { border-color: var(--primary); }
-.muted { color: var(--muted); margin: 4px 0; }
-.event { display: grid; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; }
-.event b, .event small { overflow-wrap: anywhere; }
-.event small { color: var(--muted); }
-.event.ignored small { color: #ff8a8a; }
-.row { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
-button { padding: 8px 14px; color: #0a0f21; background: var(--primary); border: 0; border-radius: 8px; font: 700 14px inherit; cursor: pointer; }
-/* Preview overlay window (57.10): the controls on top, the overlay page scaled to fit below. */
-body.preview { display: flex; flex-direction: column; height: 100vh; }
-.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.bar input { padding: 7px 10px; color: var(--fg); background: #121936; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
-.bad { color: #ff8a8a; }
-.stage { position: relative; flex: 1; min-height: 0; margin-top: 8px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: #000; }
+/* The tool windows (ROADMAP 59.8): the pull feed, the stream summary and the preview overlay. Each page links fonts.css and style.css first, so the colours, fonts,
+   header bar (.titlebar), cards, buttons, chips, feed rows and empty states are the main window's own, not a copy. This file holds only what these windows add. */
+.tool-content { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px; }
+.tool-content .card { margin-bottom: 0; }
+.tool-content .result { margin-top: 0; }
+.tool-content .empty { margin-top: 0; }
+
+/* Pull feed: a column of rows; a pull row shows the card's image, an event or job row is the Home feed's row in a narrow layout. */
+.tool-feed { flex: 1; min-height: 0; margin: 0; display: grid; align-content: start; gap: 6px; }
+.tool-feed .feed-row, .pull-row { border: 1px solid var(--line); border-radius: var(--radius-field); background: var(--card); padding: 6px 10px; }
+.tool-feed .feed-row { grid-template-columns: 24px minmax(0, 1fr) auto; grid-template-areas: "badge who time" "badge text tag"; gap: 0 8px; }
+.tool-feed .feed-badge { grid-area: badge; align-self: start; margin-top: 2px; }
+.tool-feed .feed-row b { grid-area: who; }
+.tool-feed .feed-time { grid-area: time; }
+.tool-feed .feed-text { grid-area: text; white-space: normal; overflow-wrap: anywhere; }
+.tool-feed .feed-tag { grid-area: tag; justify-self: end; align-self: start; }
+.tool-feed .feed-row.rare, .pull-row.rare { border-color: var(--primary); }
+.pull-row { display: flex; align-items: center; gap: 10px; }
+.pull-row img { flex: none; border-radius: 4px; object-fit: cover; }
+.pull-body { display: grid; min-width: 0; }
+.pull-body b, .pull-body span, .pull-body small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pull-body small { color: var(--muted); }
+
+/* Stream summary */
+.summary-list { margin: 0; padding-left: 20px; display: grid; gap: 4px; overflow-wrap: anywhere; }
+.summary-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+
+/* Preview overlay: the controls on top, the overlay page scaled to fit below. */
+.stage { position: relative; flex: 1; min-height: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-field); background: #000; }
 .stage iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: top left; background: transparent; }
-button[hidden] { display: none; }
-button:disabled { opacity: .6; cursor: default; }
-button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }

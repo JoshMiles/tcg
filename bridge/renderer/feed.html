@@ -2,17 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src https: http://localhost:* http://127.0.0.1:*; font-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https: http://localhost:* http://127.0.0.1:*; font-src 'self'">
   <title>TCG pull feed</title>
   <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="tools.css">
 </head>
 <body>
-  <p id="empty" class="empty">Waiting for the next pull...</p>
-  <ul id="list" class="feed" aria-live="polite"></ul>
-  <h2>Event rewards</h2>
-  <p id="events-empty" class="muted">No events yet this session</p>
-  <ul id="events" class="feed"></ul>
+  <div class="app">
+    <header class="titlebar">
+      <img class="tb-icon" src="icon.png" alt="" width="20" height="20">
+      <h1 class="tb-title">Pull feed</h1>
+      <span class="tb-version">TCG Bridge</span>
+    </header>
+    <main class="content tool-content">
+      <!-- The same filters as the Home feed (src/home.ts FEED_FILTERS); the app does the filtering and sends the rows. -->
+      <div class="chips filters" role="group" aria-label="Filter the feed">
+        <button type="button" class="chip" data-filter="all" aria-pressed="true">All</button>
+        <button type="button" class="chip" data-filter="pulls" aria-pressed="false">Pulls</button>
+        <button type="button" class="chip" data-filter="events" aria-pressed="false">Events</button>
+        <button type="button" class="chip" data-filter="jobs" aria-pressed="false">Jobs</button>
+      </div>
+      <p id="empty" class="empty">Waiting for the next pull...</p>
+      <ul id="list" class="feed-list tool-feed" aria-label="Feed, newest first" hidden></ul>
+      <p id="announce" class="sr-only" role="status"></p>
+    </main>
+  </div>
+  <script src="feedrow.js"></script>
   <script src="feed.js"></script>
 </body>
 </html>

@@ -1,8 +1,12 @@
-// The live pull feed window (ROADMAP 55.11). Each message is already cleaned by the app: the image is a trusted address or empty.
+// The live pull feed window (ROADMAP 55.11, 59.8). The app sends the rows (src/home.ts mergeFeed: pulls, event rewards and Mix It Up jobs, newest first), already cut by
+// the chosen filter chip (src/home.ts filterFeed), and a message per pull for the chime. Text is set with textContent; a card image is already a trusted address or empty.
 const list = document.getElementById('list');
 const empty = document.getElementById('empty');
-const MAX = 40;
+const announce = document.getElementById('announce');
+const chips = document.querySelector('.filters');
+const EMPTY = { all: 'Waiting for the next pull...', pulls: 'No pulls yet.', events: 'No event rewards yet this session.', jobs: 'No Mix It Up jobs yet.' };
 let ctx = null;
+let filter = 'all';
 
 /** A short chime; higher and longer for a rarer card. Web Audio, so no sound file is shipped. */
 function chime(stars, volume) {
@@ -25,52 +29,57 @@ function chime(stars, volume) {
   } catch { /* no audio device: the feed still shows */ }
 }
 
-function row(item) {
+/** A pull row: the card's image, its name, who pulled it and its rarity, variant and edition. */
+function pullRow(r) {
+  const p = r.pull;
   const li = document.createElement('li');
-  li.className = 'pull stars-' + item.stars;
-  if (item.image) {
+  li.className = 'pull-row ' + r.tone;
+  if (p.image) {
     const img = document.createElement('img');
-    img.src = item.image;
+    img.src = p.image;
     img.alt = '';
     img.width = 44;
     img.height = 62;
     li.appendChild(img);
   }
   const body = document.createElement('div');
+  body.className = 'pull-body';
   const title = document.createElement('b');
-  title.textContent = item.card;
+  title.textContent = p.card;
   const who = document.createElement('span');
-  who.textContent = item.viewer + ' pulled it';
+  who.textContent = r.viewer + ' pulled it';
   const meta = document.createElement('small');
-  meta.textContent = [item.rarity, item.variant && item.variant !== 'Regular' ? item.variant : '', item.serial ? 'edition #' + item.serial : ''].filter(Boolean).join(', ');
+  meta.textContent = [p.rarity, p.variant && p.variant !== 'Regular' ? p.variant : '', p.serial ? 'edition #' + p.serial : ''].filter(Boolean).join(', ');
   body.append(title, who, meta);
   li.appendChild(body);
   return li;
 }
 
-// The event rewards (57.7): the app sends the whole list (newest first) whenever it changes; all text, set with textContent.
-const events = document.getElementById('events');
-const eventsEmpty = document.getElementById('events-empty');
-window.tools.onEvents(lines => {
-  const rows = Array.isArray(lines) ? lines : [];
-  eventsEmpty.hidden = rows.length > 0;
-  events.replaceChildren(...rows.map(e => {
-    const li = document.createElement('li');
-    li.className = 'event' + (e.ok ? '' : ' ignored');
-    const head = document.createElement('b');
-    head.textContent = [e.time, e.event, e.viewer, e.amount !== '-' ? e.amount : ''].filter(Boolean).join('  ');
-    const result = document.createElement('small');
-    result.textContent = e.result;
-    li.append(head, result);
-    return li;
-  }));
+function setPressed(id) {
+  filter = id;
+  for (const b of chips.querySelectorAll('[data-filter]')) b.setAttribute('aria-pressed', String(b.dataset.filter === id));
+}
+
+chips.addEventListener('click', e => {
+  const b = e.target.closest('[data-filter]');
+  if (!b) return;
+  setPressed(b.dataset.filter);
+  window.tools.setFilter(b.dataset.filter);
 });
 
+window.tools.onRows(msg => {
+  if (!msg || !Array.isArray(msg.rows)) return;
+  if (typeof msg.filter === 'string') setPressed(msg.filter);
+  empty.textContent = EMPTY[filter] || EMPTY.all;
+  empty.hidden = msg.rows.length > 0;
+  list.hidden = msg.rows.length === 0;
+  list.replaceChildren(...msg.rows.map(r => (r.kind === 'pull' && r.pull ? pullRow(r) : feedRow(r)))); // feedrow.js
+});
+
+// The chime and a spoken line for the pull that just arrived (the list itself is not a live region, since it is rebuilt on every change).
 window.tools.onFeed(msg => {
   if (!msg || !msg.item) return;
-  empty.hidden = true;
-  list.prepend(row(msg.item));
-  while (list.children.length > MAX) list.lastChild.remove();
+  announce.textContent = `${msg.item.viewer} pulled ${msg.item.card}`;
   if (msg.play) chime(msg.item.stars, msg.volume);
 });
 window.tools.ready();
