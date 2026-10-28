@@ -5,7 +5,7 @@ import { rateLimit } from '@/lib/rate-limit';
 import { chatCommandList } from '@/lib/twitch-chat';
 
 // The chat commands the site runs (ROADMAP 58.6), for TCG Bridge's chat subscription: `{ commands: ['!pack', '!showoff', ...], chat }`, every word with its "!" and
-// lowercased (`!pack`, `!showoff`, and each switched-on Commands tab command with its aliases). The app forwards only messages whose first word is one of
+// lowercased (`!pack`, `!showoff`, and each switched-on Chat commands card command with its aliases). The app forwards only messages whose first word is one of
 // these. `chat` is false until the channel is connected with the chat permissions. Admin PCs only, like twitch-token; 30 calls a minute per PC.
 export async function POST(req: Request) {
   const g = await bridgeStaffGuard(req);

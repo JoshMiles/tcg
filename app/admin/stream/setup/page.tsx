@@ -73,7 +73,7 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
           <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
             <li>Mix It Up running on the stream PC.</li>
             <li>For paid pulls and Brie Bucks: <strong>TCG Bridge</strong>, a small app on the same PC. The site reaches Mix It Up through it, so you need no public address. (Direct public https addresses still exist under Advanced on the Connection tab.)</li>
-            <li>For the Stream Deck: the Mix It Up plugin from the Elgato store, and Mix It Up&rsquo;s Developer API service switched on. The buttons are on the <Link href="/admin/stream?tab=streamdeck" className="link">Stream Deck tab</Link>.</li>
+            <li>For the Stream Deck: the Mix It Up plugin from the Elgato store, and Mix It Up&rsquo;s Developer API service switched on. The buttons are on the <Link href="/admin/stream?section=viewers&card=streamdeck" className="link">Stream Deck buffs card</Link>.</li>
           </ul>
         </Panel>
       )}
@@ -160,7 +160,7 @@ export default async function MixItUpSetupPage({ searchParams }: { searchParams:
             <CopyCard key={event} title={title} {...incomingSetup(`${SITE_URL}/api/webhooks/stream`, secret, { event })}
               download={{ kind: 'event', name: title, path: 'stream', fields: { event }, event }} />
           ))}
-          <p className={help}>{done.events ? 'The site has heard from the stream events.' : 'Nothing has come in from these yet.'} Stream Deck buttons are on the <Link href="/admin/stream?tab=streamdeck" className="link">Stream Deck tab</Link>.</p>
+          <p className={help}>{done.events ? 'The site has heard from the stream events.' : 'Nothing has come in from these yet.'} Stream Deck buttons are on the <Link href="/admin/stream?section=viewers&card=streamdeck" className="link">Stream Deck buffs card</Link>.</p>
         </Panel>
       )}
 

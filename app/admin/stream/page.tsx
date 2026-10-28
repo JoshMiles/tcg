@@ -15,13 +15,13 @@ import { getStreamBuff } from '@/lib/pull-limit';
 import { streamBuffAmount } from '@/lib/pull-limit-core';
 import { getCommandLog, getCommands, getCommandStats } from '@/lib/commands';
 import { getWebhookSettings } from '@/lib/webhooks';
-import { packSetup } from '@/lib/mixitup-setup';
 import { CHANNEL_LOGIN, SITE_URL } from '@/lib/site';
 import { listBridges, readBridge, readObs } from '@/lib/bridge';
 import { bridgeAccount, isStaffPc } from '@/lib/bridge-core';
 import { readWatchdogAt } from '@/lib/overlay-watchdog';
 import { isPullsPaused, pauseChatOn, pauseReason } from '@/lib/pull-pause';
 import { CommandsPanel } from './CommandsPanel';
+import { ChannelPoints } from './ChannelPoints';
 import { ConnectionTab } from './ConnectionTab';
 import { channelConnectReady, readChannelStatus } from '@/lib/twitch-channel';
 import { readEventSub, recentTwitchEvents } from '@/lib/twitch-events';
@@ -32,10 +32,15 @@ import { getReplyAs, readBotStatus } from '@/lib/twitch-bot';
 import { twitchHandlesEvent } from '@/lib/twitch-eventsub';
 import { CHAT_EVENT, CHAT_VIA_BRIDGE } from '@/lib/twitch-chat-core';
 import { awardsPaused } from '@/lib/twitch-awards';
-import { MixItUpConfig } from './MixItUpConfig';
 import { MixItUpLog } from './MixItUpLog';
-import { StreamDeckTab } from './StreamDeckTab';
-import { EventsTab } from './EventsTab';
+import { CommandsHelper } from './CommandsHelper';
+import { CardFrame } from './CardFrame';
+import { EventsCard, PacksCard, PaidCard, ShoutoutCard, StartEndCard, StreamDeckCard } from './ViewerCards';
+import { BrieBucksSafetyPanel, LedgerCheckPanel, WatchdogPanel } from './SafetyPanels';
+import { CARDS, cardHref, cardSummaries } from '@/lib/viewers-cards';
+import { helperGroups } from '@/lib/viewers-helper';
+import { describeBuffDef } from '@/lib/buffs-core';
+import { Chip } from '../components/ui';
 import { getBuffDefs } from '@/lib/buffs';
 import { readCommandCheck } from '@/lib/mixitup-command-check';
 import { errorDays, readErrors } from '@/lib/bridge-errors';
@@ -47,7 +52,6 @@ import { Live } from './Live';
 import { TestActions } from './OverviewActions';
 import { TestPulls } from './TestPulls';
 import { PullRules } from './PullRules';
-import { ChatBucks } from './ChatBucks';
 import { readLedgerCheck } from '@/lib/bridge-chat';
 import { listPullBlocks } from '@/lib/pull-block';
 import { readUptime } from '@/lib/bridge-uptime';
@@ -87,20 +91,11 @@ async function happyHourView(now: number) {
 
 const SECTION_HINT: Record<string, string> = {
   live: 'Run the stream: pause pulls, extra pulls, who is waiting and what just happened',
-  viewers: 'What viewers get: paid pulls, big pulls, chat and Brie Bucks, commands, Stream Deck and event rewards',
+  viewers: 'What viewers get: one card for each thing a viewer can earn or do, with a summary of how it is set',
   connections: 'TCG Bridge, the currency viewers pay with and how the site reaches Mix It Up',
   test: 'Try a pull, a balance check or a chat message before you go live',
   history: 'The log of every request and how the bridge held up on past streams',
 };
-const TAB_HINT: Record<string, string> = {
-  paid: 'Viewers pay Brie Bucks for packs: prices, limits and messages',
-  bigpulls: 'Run a Mix It Up command when a big card is pulled',
-  chat: 'Chat posts when the stream starts and ends, the Brie Bucks backup and the check of charges',
-  commands: 'Chat commands such as !showoff and !stats: one webhook, replies built from variables',
-  streamdeck: 'Buttons that apply a buff, give extra pulls or a free pack: one Mix It Up command each',
-  events: "Free packs or a buff for gifted subs, bits, raids and channel point redeems, and awards for the channel's own channel points rewards",
-};
-
 /** The community pack goal (57.5) for its box, and the community buffs it can give. */
 async function packGoalView() {
   const [cur, defs] = await Promise.all([readPackGoal(), getBuffDefs()]);
@@ -110,10 +105,10 @@ async function packGoalView() {
   return { buffs, running: cur ? { label: cur.goal.label, target: cur.goal.target, count: cur.count, reward, by: cur.goal.by } : null };
 }
 
-export default async function StreamPage({ searchParams }: { searchParams: Promise<{ section?: string; tab?: string; feed?: string; saved?: string; error?: string; note?: string; filter?: string }> }) {
+export default async function StreamPage({ searchParams }: { searchParams: Promise<{ section?: string; tab?: string; card?: string; feed?: string; saved?: string; error?: string; note?: string; filter?: string }> }) {
   await staffPage('admin');
-  const { section: sectionParam, tab: tabParam, feed, saved, error, note, filter } = await searchParams;
-  const { section, tab } = resolveStream(sectionParam, tabParam);
+  const { section: sectionParam, tab: tabParam, card: cardParam, feed, saved, error, note, filter } = await searchParams;
+  const { section, tab, card } = resolveStream(sectionParam, tabParam, cardParam);
   const settings = await getMixItUpSettings();
   const bridge = await readBridge();
   const health = await readMixItUpHealth();
@@ -146,6 +141,7 @@ export default async function StreamPage({ searchParams }: { searchParams: Promi
     const uptime = await readUptime();
     return (
       <div className="space-y-6">
+        <LedgerCheckPanel check={await readLedgerCheck()} when={timeAgo} />
         <MixItUpLog log={[...(await getMixItUpLog()), ...(await getCommandLog())].sort((a, b) => b.at - a.at)} filter={pickLogFilter(filter)} now={now} />
         {uptime.length > 0 && (
           <Panel title="Uptime" icon="activity" hint="TCG Bridge, Mix It Up and OBS during each of the last streams. Grey is a time nobody reported.">
@@ -155,9 +151,57 @@ export default async function StreamPage({ searchParams }: { searchParams: Promi
       </div>
     );
   };
+  const viewers = async () => {
+    const [defs, season, commands, points, awards, hook, viaBridge] = await Promise.all([getBuffDefs(), getActiveSeasonWithPacks(), getCommands(), fetchRewards(), readAwards(), getWebhookSettings(), twitchHandlesEvent(CHAT_EVENT)]);
+    const packs = (season?.packs ?? []).filter(p => p.cards.length > 0).map(p => ({ id: p.pack.id, name: p.pack.name, price: p.pack.price }));
+    const deck = defs.filter(b => b.streamDeck);
+    const summaries = cardSummaries({
+      settings, packCount: packs.length, commands, deckBuffs: deck.map(b => b.name),
+      rewardIds: points.ok ? points.rewards.map(r => r.id) : [], awardIds: Object.keys(awards),
+    });
+    const open = card && CARDS.find(c => c.id === card);
+    return (
+      <div className="space-y-6">
+        <CommandsHelper address={`${SITE_URL}/api/webhooks`} secret={hook.incomingSecret}
+          groups={helperGroups({ commands, deckBuffs: deck.map(b => ({ id: b.id, name: b.name, community: b.scope === 'community', note: describeBuffDef(b) })) })} />
+        {!open ? (
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="What viewers get">
+            {CARDS.map(c => (
+              <li key={c.id}>
+                <Link href={cardHref(c.id)} className="card rounded-2xl p-5 h-full block space-y-2 hover:border-yellow-500/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400">
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-white flex items-center gap-2"><Icon name={c.icon} className="text-yellow-400" />{c.label}</span>
+                    <Chip tone={summaries[c.id].on ? 'green' : 'gray'}>{summaries[c.id].on ? 'On' : 'Off'}</Chip>
+                  </span>
+                  <span className="block text-sm text-gray-300">{summaries[c.id].text}</span>
+                  <span className="block text-xs font-semibold text-yellow-400">Edit</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <>
+            {card === 'paid' && <PaidCard settings={settings} />}
+            {card === 'packs' && <PacksCard settings={settings} packs={packs} />}
+            {card === 'events' && <EventsCard rewards={settings.eventRewards} buffs={defs} />}
+            {card === 'shoutout' && <ShoutoutCard rewards={settings.eventRewards} />}
+            {card === 'points' && <ChannelPoints list={points} awards={awards} buffs={defs} paused={await awardsPaused()} />}
+            {card === 'startend' && <StartEndCard chat={settings.chat} />}
+            {card === 'bigpulls' && <PullRules rules={settings.pullRules} commands={bridge.commands} obs={{ scenes: obs?.scenes ?? [], sources: obs?.sources ?? [] }} />}
+            {card === 'commands' && (
+              <CardFrame id="commands" how={<p>One webhook answers every command; the reply is built from the variables you add. Download a command from the Mix It Up commands box above and import it in Mix It Up (the saved command, not unsaved edits).</p>}>
+                <CommandsPanel initial={commands} stats={await getCommandStats()} viaBridge={viaBridge} />
+              </CardFrame>
+            )}
+            {card === 'streamdeck' && <StreamDeckCard buffs={defs} />}
+          </>
+        )}
+      </div>
+    );
+  };
   return (
     <div className="space-y-6">
-      <PageHeader title="Stream" subtitle={(tab && TAB_HINT[tab]) || SECTION_HINT[section]} />
+      <PageHeader title="Stream" subtitle={SECTION_HINT[section]} />
       <StatusStrip strip={strip} />
       <PageTabs tabs={SECTIONS} active={section} base="/admin/stream" param="section" label="Stream sections" />
       {subs && <PageTabs tabs={subs} active={tab!} base="/admin/stream" keep={{ section }} label={`${SECTIONS.find(x => x.id === section)!.label} pages`} />}
@@ -176,6 +220,7 @@ export default async function StreamPage({ searchParams }: { searchParams: Promi
           <div className="grid gap-4 lg:grid-cols-3">{cards.map(c => <Card key={c.id} card={c} />)}</div>
           <Link href="/admin/stream/setup" className="btn btn-primary btn-sm"><Icon name="wrench" />{setupLabel}</Link>
           <ConnectionTab settings={settings} bridge={bridge} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never', staff: isStaffPc(b), account: bridgeAccount(b), by: b.by ?? '' }))} commandCheck={await readCommandCheck(await getBuffDefs())} errors={{ rows: (await readErrors()).map(e => ({ ...e, ago: timeAgo(e.at) })), days: await errorDays() }} twitch={await twitchView()} twitchReady={channelConnectReady()} />
+          {tab === 'connection' && <div className="grid gap-6 lg:grid-cols-2"><WatchdogPanel on={settings.overlayWatchdog} /><BrieBucksSafetyPanel chat={settings.chat} /></div>}
         </div>
       )}
       {section === 'test' && (
@@ -190,12 +235,7 @@ export default async function StreamPage({ searchParams }: { searchParams: Promi
         </div>
       )}
       {section === 'history' && await history()}
-      {tab === 'paid' && <MixItUpConfig settings={settings} happyHour={await happyHourView(now)} packGoal={await packGoalView()} packs={((await getActiveSeasonWithPacks())?.packs ?? []).filter(p => p.cards.length > 0).map(p => ({ id: p.pack.id, name: p.pack.name, price: p.pack.price }))} />}
-      {tab === 'bigpulls' && <PullRules rules={settings.pullRules} commands={bridge.commands} obs={{ scenes: obs?.scenes ?? [], sources: obs?.sources ?? [] }} watchdog={settings.overlayWatchdog} />}
-      {tab === 'chat' && <ChatBucks chat={settings.chat} check={await readLedgerCheck()} when={timeAgo} />}
-      {tab === 'commands' && <CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} pack={packSetup(SITE_URL, (await getWebhookSettings()).incomingSecret)} viaBridge={await twitchHandlesEvent(CHAT_EVENT)} />}
-      {tab === 'streamdeck' && <StreamDeckTab buffs={await getBuffDefs()} url={`${SITE_URL}/api/webhooks/buff`} secret={(await getWebhookSettings()).incomingSecret} />}
-      {tab === 'events' && <EventsTab rewards={settings.eventRewards} buffs={await getBuffDefs()} url={`${SITE_URL}/api/webhooks/pull`} secret={(await getWebhookSettings()).incomingSecret} points={await fetchRewards()} awards={await readAwards()} />}
+      {section === 'viewers' && await viewers()}
     </div>
   );
 }

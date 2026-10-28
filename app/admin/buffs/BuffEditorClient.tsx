@@ -464,7 +464,7 @@ export function BuffEditorClient({
           {form.type !== 'grant-achievement' && (
             <label className="flex items-start gap-2 text-sm text-gray-300 cursor-pointer">
               <input type="checkbox" className="checkbox checkbox-sm mt-0.5" checked={form.streamDeck} onChange={e => setForm(f => ({ ...f, streamDeck: e.target.checked }))} />
-              <span>Stream Deck: let a Mix It Up button apply this buff (Mix It Up page, Stream Deck tab). Off, the buff answers nothing.</span>
+              <span>Stream Deck: let a Mix It Up button apply this buff (Stream page, What viewers get, Stream Deck buffs). Off, the buff answers nothing.</span>
             </label>
           )}
 

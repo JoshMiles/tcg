@@ -16,19 +16,21 @@ for (const t of OLD_TABS) {
   ok(Object.hasOwn(s.OLD_TAB_SECTION, t), `old tab ${t} has a section`);
   const r = s.resolveStream(undefined, t);
   ok(s.SECTIONS.some(x => x.id === r.section), `old tab ${t} lands in a real section`);
-  if (t !== 'overview') ok(r.tab === t, `old tab ${t} is still the sub-tab shown`);
+  if (r.section === 'viewers') ok(r.tab === null && r.card !== null, `old tab ${t} opens a card (What viewers get has no sub-tabs)`);
+  else if (t !== 'overview') ok(r.tab === t, `old tab ${t} is still the sub-tab shown`);
 }
 ok(s.resolveStream(undefined, 'overview').section === 'live', 'Overview is now Live');
 ok(s.resolveStream(undefined, 'paid').section === 'viewers' && s.resolveStream(undefined, 'events').section === 'viewers', 'viewer tabs are under What viewers get');
 ok(s.resolveStream(undefined, 'connection').section === 'connections' && s.resolveStream(undefined, 'log').section === 'history', 'connection and log have their sections');
 ok(s.resolveStream(undefined, undefined).section === 'live' && s.resolveStream('nope', 'nope').section === 'live', 'no or unknown params is Live');
-ok(s.resolveStream('viewers', undefined).tab === 'paid', 'a section with sub-tabs opens its first');
-ok(s.resolveStream('viewers', 'log').tab === 'paid', 'a tab from another section falls back to the first');
+ok(s.resolveStream('connections', undefined).tab === 'connection', 'a section with sub-tabs opens its first');
+ok(s.resolveStream('connections', 'log').tab === 'connection', 'a tab from another section falls back to the first');
+ok(s.resolveStream('viewers', undefined).card === null && s.resolveStream('live', undefined).card === null, 'the card grid has no card open, and other sections have none');
 ok(s.resolveStream('live', 'paid').tab === null && s.resolveStream('test', undefined).tab === null, 'Live and Test have no sub-tabs');
 ok(s.resolveStream('__proto__', '__proto__').section === 'live', 'a prototype name is not a section');
 ok(s.legacyStreamHref({ tab: 'log', filter: 'refused', note: 'hi' }) === '/admin/stream?section=history&tab=log&note=hi&filter=refused', 'the redirect keeps note and filter and maps the tab');
 ok(s.legacyStreamHref({}) === '/admin/stream?section=live', 'the redirect with nothing is Live');
-ok(s.legacyStreamHref({ tab: 'commands', saved: 'mixitup', error: 'x y' }).startsWith('/admin/stream?section=viewers&tab=commands&error=x+y&saved=mixitup'), 'the redirect keeps saved and error');
+ok(s.legacyStreamHref({ tab: 'commands', saved: 'mixitup', error: 'x y' }).startsWith('/admin/stream?section=viewers&card=commands&error=x+y&saved=mixitup'), 'the redirect keeps saved and error');
 
 // ── Status strip ──
 const card = (id: Card['id'], tone: Card['tone'], extra: Partial<Card> = {}): Card => ({ id, title: `T ${id}`, tone, state: `state ${id}`, rows: [], ...extra });

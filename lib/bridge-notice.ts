@@ -4,6 +4,7 @@ import { kv } from './db';
 import { sendNotice } from './bridge';
 import { REFUSAL_LABELS } from './mixitup-core';
 import type { BuildInfo } from './version';
+import { cardHref } from './viewers-cards';
 
 let announced = ''; // this server instance has already looked at this build
 
@@ -35,7 +36,7 @@ export async function noteDeploy(info: Pick<BuildInfo, 'version' | 'commitFull'>
 export async function noteAwardFailed(viewer: string, reward: string, why: string): Promise<boolean> {
   try {
     if (!(await kv.set('bridge:award-failed', 1, { nx: true, ex: 60 }))) return false;
-    return await sendNotice({ kind: 'attention', title: `Refund ${viewer}'s ${reward || 'reward'} by hand`, text: why.slice(0, 200), href: '/admin/stream?tab=events' });
+    return await sendNotice({ kind: 'attention', title: `Refund ${viewer}'s ${reward || 'reward'} by hand`, text: why.slice(0, 200), href: cardHref('points') });
   } catch {
     return false;
   }

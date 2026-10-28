@@ -1,13 +1,13 @@
 import { PendingButton } from '@/app/components/PendingButton';
-import { Icon } from '@/app/components/Icon';
 import { RARITIES } from '@/lib/rarity';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import { RULES_MAX, SCENE_SECS_DEFAULT, SCENE_SECS_MAX, SHOUT_MAX, SHOUT_VARS, type PullRule } from '@/lib/pull-rules-core';
 import type { BridgeCommand } from '@/lib/bridge-core';
-import { deletePullRuleAction, savePullRulesAction, saveWatchdogAction, testPullRuleAction } from './mixitup-actions';
+import { deletePullRuleAction, savePullRulesAction, testPullRuleAction } from './mixitup-actions';
+import { CardFrame } from './CardFrame';
+import { CardForm } from './CardForm';
 
 const label = 'block text-xs font-semibold text-gray-300 mb-1';
-const primary = 'rounded-lg bg-yellow-500 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-400 disabled:opacity-60';
 const secondary = 'rounded-lg border border-gray-700 px-3 py-2 text-sm font-semibold text-gray-200 hover:border-gray-500 disabled:opacity-60';
 
 const NEW_RULE: PullRule = { id: '', on: true, when: {}, commandId: '' };
@@ -24,20 +24,16 @@ function ObsSelect({ id, name, none, current, names }: { id: string; name: strin
   );
 }
 
-/** Mix It Up → Big pulls: run a Mix It Up command (a sound, lights, a chat line) and OBS actions (a clip, a scene, a source) when a pull on stream matches a rule. ROADMAP 55.6d, 55.8. */
-export function PullRules({ rules, commands, obs, watchdog }: { rules: PullRule[]; commands: BridgeCommand[]; obs: { scenes: string[]; sources: string[] }; watchdog: boolean }) {
+/** What viewers get → Big pull rules: run a Mix It Up command (a sound, lights, a chat line) and OBS actions (a clip, a scene, a source) when a pull on stream matches a rule. ROADMAP 55.6d, 55.8, 63.3. */
+export function PullRules({ rules, commands, obs }: { rules: PullRule[]; commands: BridgeCommand[]; obs: { scenes: string[]; sources: string[] } }) {
   const rows = rules.length < RULES_MAX ? [...rules, NEW_RULE] : rules;
   return (
-    <div className="space-y-6">
-    <form action={savePullRulesAction} className="card rounded-2xl overflow-hidden">
-      <div className="px-6 py-5 border-b border-gray-800">
-        <h2 className="font-semibold text-white flex items-center gap-2"><Icon name="sparkles" className="text-yellow-400" />Big pulls</h2>
-        <p className="text-xs text-gray-500 mt-0.5">
-          When a pull is shown on stream and matches a rule, TCG Bridge runs a Mix It Up command of yours (a sound, lights, a message of its own). The first rule that matches runs and the rest are skipped.
-          The command gets the viewer, the card, its rarity and its version as <code>$arg1text</code> to <code>$arg4text</code>. Needs TCG Bridge 0.4.0 or newer; pulls from a gift never run a rule. Up to {RULES_MAX} rules.
-        </p>
-      </div>
-      <div className="px-6 py-5 space-y-4">
+    <CardFrame id="bigpulls" how={<>
+      <p>When a pull is shown on stream and matches a rule, TCG Bridge runs a Mix It Up command of yours (a sound, lights, a message of its own). The first rule that matches runs and the rest are skipped.</p>
+      <p>The command gets the viewer, the card, its rarity and its version as <code>$arg1text</code> to <code>$arg4text</code>. Needs TCG Bridge 0.4.0 or newer; pulls from a gift never run a rule. Up to {RULES_MAX} rules.</p>
+      <p>Test sends the saved rule&rsquo;s command once with a made-up pull (cheesyviewer, Gouda Goat, Epic, Full Art Holo), and does its OBS actions at once (the source for 3 seconds). Delete removes the saved rule at once and keeps no other edits.</p>
+    </>}>
+      <CardForm action={savePullRulesAction} saveLabel="Save rules">
         {commands.length === 0 && <p className="text-sm text-amber-300">Pair TCG Bridge to choose a command. The app lists the commands it finds in Mix It Up.</p>}
         <ul className="space-y-4">
           {rows.map((r, i) => {
@@ -129,25 +125,7 @@ export function PullRules({ rules, commands, obs, watchdog }: { rules: PullRule[
             );
           })}
         </ul>
-        <div className="flex flex-wrap items-center gap-3">
-          <PendingButton type="submit" className={primary}>Save rules</PendingButton>
-          <p className="text-[11px] text-gray-500">Test sends the saved rule&rsquo;s command once with a made-up pull (cheesyviewer, Gouda Goat, Epic, Full Art Holo), and does its OBS actions at once (the source for 3 seconds). Delete removes the saved rule at once and keeps no other edits.</p>
-        </div>
-      </div>
-    </form>
-    <form action={saveWatchdogAction} className="card rounded-2xl px-6 py-5 space-y-3">
-      <h2 className="font-semibold text-white flex items-center gap-2"><Icon name="refresh" className="text-yellow-400" />Overlay watchdog</h2>
-      <p className="text-xs text-gray-500">
-        While the stream is live, if the overlay has not pinged the site for 30 seconds but OBS shows the overlay source, the site asks TCG Bridge to refresh it. At most once every 5 minutes; each refresh is written to the Log. Off until you switch it on.
-      </p>
-      <div className="flex flex-wrap items-center gap-4">
-        <label className="flex items-center gap-2 text-sm font-semibold text-white">
-          <input type="checkbox" name="overlayWatchdog" defaultChecked={watchdog} className="toggle toggle-sm toggle-primary" />
-          Refresh a quiet overlay
-        </label>
-        <PendingButton type="submit" className={secondary}>Save</PendingButton>
-      </div>
-    </form>
-    </div>
+      </CardForm>
+    </CardFrame>
   );
 }

@@ -4,7 +4,7 @@ import type { ChatCommand } from './commands-core';
 import type { PullRole } from './mixitup-core';
 
 export const CHAT_EVENT = 'channel.chat.message';
-/** What the Commands tab, the `!pack` setup card, the wizard and the Connection tab say while chat comes through TCG Bridge. */
+/** What the Chat commands card, the `!pack` setup card, the wizard and the Connection tab say while chat comes through TCG Bridge. */
 export const CHAT_VIA_BRIDGE = 'Chat commands now come through TCG Bridge; the Mix It Up commands are only a fallback.';
 /** Twitch's own limit for one chat message and for one reply we send. A longer text is not from Twitch, so the event is refused. */
 export const CHAT_TEXT_MAX = 500;

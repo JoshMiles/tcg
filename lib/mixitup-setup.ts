@@ -40,7 +40,7 @@ export function incomingSetup(url: string, secret: string, fields: Record<string
   return { url, body: pretty({ secret, ...fields }) };
 }
 
-/** The built-in !pack command (setup wizard and Commands tab): same card in both. It calls /api/webhooks/pull, not the command route, so it is not in the command builder. */
+/** The built-in !pack command (setup wizard and Mix It Up commands helper): same card in both. It calls /api/webhooks/pull, not the command route, so it is not in the command builder. */
 export function packSetup(siteUrl: string, secret: string): { url: string; body: string; preset: PresetSpec } {
   const fields = { username: '$username', pack: '$allargs', requestId: REQUEST_ID };
   return { ...incomingSetup(`${siteUrl}/api/webhooks/pull`, secret, fields), preset: { kind: 'chat', name: 'pack', path: 'pull', fields, reply: ['message', 'left', 'balance'] } };

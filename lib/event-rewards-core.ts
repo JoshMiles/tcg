@@ -63,10 +63,14 @@ export function normalizeEventRewards(raw: unknown): EventRewards {
   return out;
 }
 
-/** The Events form (`ev_<event>_on`, `_reward`, `_buff`, `_every`) as rewards, or the first problem in words. A blank number means the default. */
-export function cleanEventRewardsInput(get: (key: string) => string | undefined): { ok: true; rewards: EventRewards } | { ok: false; message: string } {
-  const raw: Record<string, unknown> = {};
-  for (const name of EVENT_NAMES) {
+/**
+ * The Event rewards form (`ev_<event>_on`, `_reward`, `_buff`, `_every`) and the Raid shout-out form (`ev_shout_on`, `ev_shout_min`) as rewards, or the first
+ * problem in words. A blank number means the default. Each card posts only its own fields (63.3): `part` says which are read, and the rest are taken from `cur`
+ * (what is saved), so one card never switches the other off. 'all' reads both, as the old single form did.
+ */
+export function cleanEventRewardsInput(get: (key: string) => string | undefined, part: 'all' | 'events' | 'shoutout' = 'all', cur: EventRewards = DEFAULT_EVENT_REWARDS): { ok: true; rewards: EventRewards } | { ok: false; message: string } {
+  const raw: Record<string, unknown> = { ...cur };
+  for (const name of part === 'shoutout' ? [] : EVENT_NAMES) {
     const info = EVENT_INFO[name];
     const every = (get(`ev_${name}_every`) ?? '').trim();
     if (info.every && every !== '' && !(whole(every) >= 1 && whole(every) <= EVERY_MAX)) return { ok: false, message: `${info.every.label} must be a whole number, 1 to ${EVERY_MAX.toLocaleString('en-US')}.` };
@@ -75,9 +79,11 @@ export function cleanEventRewardsInput(get: (key: string) => string | undefined)
     if (reward === 'buff' && !buffId) return { ok: false, message: `${info.label}: choose a buff, or give packs.` };
     raw[name] = { on: get(`ev_${name}_on`) === 'on', reward, buffId, every: every === '' ? undefined : every };
   }
-  const min = (get('ev_shout_min') ?? '').trim();
-  if (min !== '' && !(whole(min) >= 1 && whole(min) <= EVERY_MAX)) return { ok: false, message: `Raid shout-out: the minimum raid size must be a whole number, 1 to ${EVERY_MAX.toLocaleString('en-US')}.` };
-  raw.raidShoutout = { on: get('ev_shout_on') === 'on', minViewers: min === '' ? undefined : min };
+  if (part !== 'events') {
+    const min = (get('ev_shout_min') ?? '').trim();
+    if (min !== '' && !(whole(min) >= 1 && whole(min) <= EVERY_MAX)) return { ok: false, message: `Raid shout-out: the minimum raid size must be a whole number, 1 to ${EVERY_MAX.toLocaleString('en-US')}.` };
+    raw.raidShoutout = { on: get('ev_shout_on') === 'on', minViewers: min === '' ? undefined : min };
+  }
   return { ok: true, rewards: normalizeEventRewards(raw) };
 }
 

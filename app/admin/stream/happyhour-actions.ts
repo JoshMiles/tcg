@@ -4,7 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard';
 import { endHappyHour, startHappyHour } from '@/lib/happyhour';
 import type { ActionResult } from '../action-types';
 
-// The Paid pulls tab's Happy hour box (ROADMAP 55.4c). Staff only; the input is validated in lib/happyhour.ts.
+// The Paid pulls card's Happy hour box (ROADMAP 55.4c). Staff only; the input is validated in lib/happyhour.ts.
 
 export async function startHappyHourAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   const staff = await requireAdmin();

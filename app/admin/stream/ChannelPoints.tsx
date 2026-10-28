@@ -1,20 +1,25 @@
 import Link from 'next/link';
-import { PendingButton } from '@/app/components/PendingButton';
 import { describeBuffDef, type BuffDef } from '@/lib/buffs-core';
 import type { RewardList } from '@/lib/twitch-awards';
 import { AWARD_NAMES, type Awards } from '@/lib/twitch-awards-core';
-import { Panel, fieldClass, selectClass } from '../components/ui';
+import { fieldClass, selectClass } from '../components/ui';
+import { CardFrame } from './CardFrame';
+import { CardForm } from './CardForm';
 import { saveRewardAwardsAction } from './mixitup-actions';
 
 const help = 'text-[11px] text-gray-500 leading-relaxed';
 
-/** Events → Channel points (ROADMAP 58.3): the channel's own rewards, listed read-only from Twitch, each with an award. Nothing is fulfilled or refunded on Twitch. */
-export function ChannelPoints({ list, awards, buffs }: { list: RewardList; awards: Awards; buffs: BuffDef[] }) {
+/** What viewers get → Channel points (ROADMAP 58.3, 63.3): the channel's own rewards, listed read-only from Twitch, each with an award. Nothing is fulfilled or refunded on Twitch. */
+export function ChannelPoints({ list, awards, buffs, paused }: { list: RewardList; awards: Awards; buffs: BuffDef[]; paused: boolean }) {
   const usable = buffs.filter(b => b.streamDeck && b.scope !== 'community' && b.type !== 'grant-achievement');
   return (
-    <Panel title="Channel points" icon="gift" hint={<>Pick what a viewer gets when they redeem one of the channel&rsquo;s existing rewards. The list is read from Twitch each time this tab opens; nothing is created, fulfilled or refunded there, so a failed award shows in the Mix It Up log and a staff notice asks a mod to refund it by hand in Twitch&rsquo;s reward queue. While the live channel is connected and any reward has an award, the Mix It Up Redeem event above is ignored.</>}>
+    <CardFrame id="points" how={<>
+      <p>The list is read from Twitch each time this card opens; nothing is created, fulfilled or refunded there, so a failed award shows in the Mix It Up log and a staff notice asks a mod to refund it by hand in Twitch&rsquo;s reward queue.</p>
+      <p>While the live channel is connected and any reward has an award, the Redeem event in Event rewards is ignored.</p>
+    </>}>
+      {paused && <p role="status" className="rounded-lg border border-amber-500/30 bg-amber-950/30 px-4 py-2.5 text-sm text-amber-300">Awards are paused, so redeems give nothing right now. Turn them back on in <Link href="/admin/stream?section=live" className="link">Live</Link>.</p>}
       {!list.ok ? <p role="alert" className="text-sm text-amber-300">{list.message}</p> : list.rewards.length === 0 ? <p className="text-sm text-gray-400">This channel has no channel points rewards yet.</p> : (
-        <form action={saveRewardAwardsAction} className="space-y-4">
+        <CardForm action={saveRewardAwardsAction}>
           {list.rewards.map(r => {
             const a = awards[r.id];
             return (
@@ -54,9 +59,8 @@ export function ChannelPoints({ list, awards, buffs }: { list: RewardList; award
             );
           })}
           <p className={help}>The buff, minutes and percent only count for the award they belong to. A buff award uses the same rules as a Stream Deck button; pick buffs in the <Link href="/admin/buffs" className="link">Buff Editor</Link>. An award for a reward not listed here is kept.</p>
-          <PendingButton type="submit" className="btn btn-primary btn-sm self-start">Save channel point awards</PendingButton>
-        </form>
+        </CardForm>
       )}
-    </Panel>
+    </CardFrame>
   );
 }
