@@ -13,6 +13,7 @@ import { claimDraw } from '@/lib/draw';
 import { revealDelay } from '@/lib/pull-rules-core';
 import { getMixItUpSettings, claimPaidPull, chargePaidPull, noticeUnpaid, refundPaidPull, firePullRules } from '@/lib/mixitup';
 import { isOverlayRequest } from '@/lib/overlay-key';
+import { isPreviewRequest } from '@/lib/overlay-preview';
 import { consumePullOnSave } from '@/lib/buffs';
 import { testCollectionName } from '@/lib/mixitup-test-core';
 import { noteMade, traceStep } from '@/lib/mixitup-trace';
@@ -24,7 +25,8 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get('name');
   if (!name) return NextResponse.json({ error: 'missing name' }, { status: 400, headers: NO_STORE });
-  if (!(await isOverlayRequest(req))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: NO_STORE });
+  // The staff preview window (57.10) may read, never write: POST below has no preview path.
+  if (!(await isOverlayRequest(req)) && !(await isPreviewRequest(req))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: NO_STORE });
   return NextResponse.json(await getCollection(name), { headers: NO_STORE });
 }
 

@@ -30,6 +30,7 @@ import { errorsChecks } from './check-errors';
 import { releasesChecks } from './check-releases';
 import { BridgeService } from '../src/service';
 import { cleanStaffAction, StaffTools } from '../src/staff';
+import { cleanCanvas, previewAddress, previewFrameAllowed } from '../src/preview';
 import { defaults, FileSettingsStore } from '../src/settings';
 import { CHECK_NOTE, DOWNLOAD_NOTE, Startup } from '../src/startup';
 import { checkText, releaseUrl, updatedTo, updateText } from '../src/update';
@@ -206,6 +207,16 @@ async function main() {
     assert.ok(!isOverlayUrl('https://cheesytcg.app/admin', 'https://cheesytcg.app'));
     assert.ok(!isOverlayUrl('https://evil.example/overlay.html', 'https://cheesytcg.app'));
 
+    // Preview overlay (57.10): the canvas size and the only address the window may load
+    assert.deepEqual(cleanCanvas(2560, 1440), { width: 2560, height: 1440 });
+    for (const [w, h] of [[0, 0], [50, 1080], [1920, 99999], [1920.5, 1080], ['1920', 1080], [undefined, null]]) assert.deepEqual(cleanCanvas(w, h), { width: 1920, height: 1080 }, `canvas ${String(w)}x${String(h)} falls back`);
+    const pk = 'ab12'.repeat(12);
+    assert.equal(previewAddress('https://cheesytcg.app', `/overlay.html?pk=${pk}`), `https://cheesytcg.app/overlay.html?pk=${pk}`);
+    for (const bad of ['//evil.test/overlay.html?pk=' + pk, 'https://evil.test/overlay.html?pk=' + pk, '/overlay.html?key=' + pk, '/overlay.html?pk=' + pk + '&x=1', '/overlay.html?pk=ABC', 5, null]) assert.equal(previewAddress('https://cheesytcg.app', bad), null, `not an address: ${String(bad)}`);
+    assert.ok(previewFrameAllowed('https://cheesytcg.app', `https://cheesytcg.app/overlay.html?pk=${pk}`));
+    assert.ok(!previewFrameAllowed('https://cheesytcg.app', 'https://evil.test/overlay.html') && !previewFrameAllowed('https://cheesytcg.app', 'https://cheesytcg.app/admin') && !previewFrameAllowed('https://cheesytcg.app', 'not a url'), 'a frame cannot leave the site\'s overlay page');
+    assert.deepEqual(await obs.canvasSize(), { width: 1920, height: 1080 }, 'without OBS the preview is 1920x1080');
+
     // the wrong password is named, the tray says "partly", and the site hears OBS is switched on but unreachable
     await svc.reconfigureObs({ enabled: true, address, password: 'nope' });
     await waitFor('wrong password', () => svc.state.obs.error === 'Wrong OBS WebSocket password');
@@ -216,6 +227,7 @@ async function main() {
     await svc.reconfigureObs({ enabled: true, address, password: 'pw-123' });
     await waitFor('connected', () => svc.state.obs.connected && svc.state.obs.overlay.found);
     await waitFor('first snapshot', () => lastObs()?.connected === true);
+    assert.deepEqual(await svc.obs.canvasSize(), { width: 1280, height: 720 }, 'with OBS connected the preview uses its base canvas');
     assert.deepEqual(lastObs(), { type: 'obs', connected: true, scene: 'Gameplay', overlay: { found: true, inProgram: true, visible: true, sourceName: 'TCG Overlay' }, scenes: ['Gameplay', 'Just Chatting'], sources: ['Cam'] });
     assert.deepEqual(streamReports(), [false], 'the stream state is reported once on connect');
     assert.equal(svc.state.tray, 'connected');
@@ -998,17 +1010,19 @@ async function main() {
         return send(res, 200, { cards: [{ number: 1, name: 'Gouda' }] });
       }
       const sent = JSON.parse(body);
+      if (sent.action === 'preview-url') return send(res, 200, { ok: true, message: 'ready', url: previewPath, expiresAt: 1234 });
       send(res, 200, sent.action === 'gift' && !sent.force ? { ok: false, message: 'No overlay', needsForce: true } : { ok: true, message: `did ${sent.action}` });
     });
+    let previewPath = `/overlay.html?pk=${'ab12'.repeat(12)}`;
     const client = new SiteClient(s.url, TOKEN, '0.10.0');
     const scenes = ['Main', 'BRB'];
     let current = 'Main';
     const opened: string[] = [];
-    const quiet = { mix: { twitchUser: async () => null }, obs: { sceneNames: () => [] as string[], setScene: async () => undefined, state: { scene: '' } }, currencyId: () => '', openExternal: () => undefined };
+    const quiet = { mix: { twitchUser: async () => null }, obs: { sceneNames: () => [] as string[], setScene: async () => undefined, canvasSize: async () => ({ width: 1920, height: 1080 }), state: { scene: '' } }, currencyId: () => '', openExternal: () => undefined };
     const tools = new StaffTools({
       client,
       mix: { twitchUser: async name => (name === 'alice' ? { id: ALICE, twitchId: '1', username: 'alice', amounts: [{ id: CUR.toUpperCase(), name: 'Brie Bucks', amount: 42 }] } : null) },
-      obs: { sceneNames: () => scenes, setScene: async n => { current = n; }, state: { scene: 'Main' } },
+      obs: { sceneNames: () => scenes, setScene: async n => { current = n; }, canvasSize: async () => ({ width: 2560, height: 1440 }), state: { scene: 'Main' } },
       currencyId: () => CUR,
       openExternal: url => { opened.push(url); },
     });
@@ -1043,7 +1057,17 @@ async function main() {
     assert.equal(opened.length, 2, 'nothing else was opened');
     assert.ok((await tools.run({ op: 'activity' })).ok && (await tools.run({ op: 'search', q: 'goat' })).ok, 'Activity and search are reads');
     assert.ok(seen.some(l => l.includes('what=search') && l.includes('q=goat')), 'search asks the site');
+    // Preview overlay (57.10): the address, the canvas size, and a test pull that needs no name
+    assert.deepEqual(cleanStaffAction({ action: 'test-pull', evil: 1 }), { action: 'test-pull', force: false }, 'a test pull needs no name');
+    assert.deepEqual(cleanStaffAction({ action: 'test-pull', username: '@Tester', force: true }), { action: 'test-pull', username: 'tester', force: true });
+    const pv = await tools.run({ op: 'preview-url' });
+    assert.ok(pv.ok && pv.data?.src === `${s.url}${previewPath}` && pv.data?.width === 2560 && pv.data?.height === 1440 && pv.data?.expiresAt === 1234, 'the preview address is the site plus the key path, at the OBS canvas size');
+    for (const bad of ['https://evil.test/overlay.html?pk=' + 'ab12'.repeat(12), '/admin?pk=' + 'ab12'.repeat(12), '/overlay.html?key=' + 'ab12'.repeat(12), '/overlay.html?pk=short']) {
+      previewPath = bad;
+      assert.equal((await tools.run({ op: 'preview-url' })).ok, false, `not loaded: ${bad}`);
+    }
     staffOn = false;
+    assert.equal((await tools.run({ op: 'preview-url' })).ok, false, 'no preview address without the staff switch');
     assert.match((await tools.run({ op: 'do', action: 'trading', on: false })).text, /Staff tools are off/);
     assert.equal((await new StaffTools({ ...quiet, client }).run({ op: 'cards', q: 'g' })).ok, false, 'a read on a PC without the switch says so');
     await assert.rejects(new StaffTools({ ...quiet, client: new SiteClient(s.url, 'wrong', '0.10.0') }).run({ op: 'state' }), /Pair again/);

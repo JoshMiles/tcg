@@ -492,6 +492,7 @@ const fill = (list, items) => list.replaceChildren(...items.map(text => { const 
 
 function renderStaff() {
   $('rail-staff').hidden = !(state && state.staff);
+  $('preview-card').hidden = !(state && state.staff);
   if (state && !state.staff && !document.querySelector('[data-panel="staff"]').hidden) showTab('status');
   const s = staffState;
   if (!s) return;
@@ -573,6 +574,7 @@ action('staff-showcard', 'staff-card-result', async () => needName() || staffDo(
 action('staff-extra-set', 'staff-stream-result', () => staffDo({ action: 'stream-extra', amount: Number($('staff-extra').value) }));
 action('staff-extra-clear', 'staff-stream-result', () => staffDo({ action: 'stream-extra', amount: 0 }));
 action('staff-scene-go', 'staff-stream-result', async () => $('staff-scene').value ? staffAsk({ op: 'scene', name: $('staff-scene').value }) : { ok: false, text: 'OBS has no scenes yet.' });
+$('preview-open').addEventListener('click', () => { void window.bridge.openPreview(); });
 action('staff-trading', 'staff-stream-result', async () => { const r = await window.bridge.staffTrading(!(staffState && staffState.tradingPaused)); void loadStaff(); return r; });
 
 // ── Shortcuts and Activity (55.13) ──

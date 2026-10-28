@@ -7,6 +7,7 @@ import { cleanLogin } from './staff-core';
 import { limitWebhook } from './rate-limit';
 import { noteSecretUsed } from './secret-used';
 import { noteIncoming } from './mixitup-health';
+import { mirrorForPreview } from './overlay-preview';
 import { NextResponse } from 'next/server';
 
 // ── Types ─────────────────────────────────────────────────
@@ -76,6 +77,7 @@ export async function saveWebhookSettings(settings: WebhookSettings): Promise<vo
 export async function enqueueEvent(event: QueuedEvent): Promise<void> {
   await kv.lpush('webhooks:queue', event);
   await kv.ltrim('webhooks:queue', 0, 49); // cap at 50 unprocessed events
+  await mirrorForPreview(event); // a ticket-less copy for the staff preview window (57.10), only while one is open
 }
 
 export async function dequeueEvent(): Promise<QueuedEvent | null> {

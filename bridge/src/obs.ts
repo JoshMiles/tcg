@@ -3,6 +3,7 @@
 // It only ever connects to this PC (ws://localhost or ws://127.0.0.1) and only tells the site facts, never the overlay address or key.
 import { EventSubscription, OBSWebSocket } from 'obs-websocket-js/json';
 import { textInputNames } from './obsstats';
+import { cleanCanvas, type Canvas } from './preview';
 
 export const DEFAULT_OBS_ADDRESS = 'ws://127.0.0.1:4455';
 export interface ObsConfig { enabled: boolean; address: string; password: string; /** Start the replay buffer when the stream starts (55.8). */ startReplay?: boolean }
@@ -193,6 +194,13 @@ export class ObsWatcher {
 
   /** The scene names last read from OBS (the Staff tab's scene list, ROADMAP 55.12). */
   sceneNames(): string[] { return [...this.scenes]; }
+
+  /** OBS's canvas (base) size for the Preview overlay window (57.10); 1920x1080 when OBS is not connected or does not answer. */
+  async canvasSize(): Promise<Canvas> {
+    if (!this.obs || !this.state.connected) return cleanCanvas(null, null);
+    const v = await this.ask(() => this.obs!.call('GetVideoSettings'), 'OBS did not answer').catch(() => null);
+    return cleanCanvas(v?.baseWidth, v?.baseHeight);
+  }
 
   /** The GDI+ / FreeType text inputs last read from OBS (the Settings tab's stat list, ROADMAP 57.4). */
   textSources(): string[] { return [...this.texts]; }

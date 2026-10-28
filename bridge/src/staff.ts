@@ -4,12 +4,13 @@ import { Unauthorized, type SiteClient } from './site';
 import { siteUrl } from './notices';
 import type { MixItUpClient } from './mixitup';
 import type { ObsWatcher } from './obs';
+import { previewAddress } from './preview';
 
 export interface StaffReply { ok: boolean; text: string; data?: Record<string, unknown> }
 export interface StaffDeps {
   client: Pick<SiteClient, 'base' | 'staff' | 'staffGet'>;
   mix: Pick<MixItUpClient, 'twitchUser'>;
-  obs: Pick<ObsWatcher, 'sceneNames' | 'setScene'> & { state: { scene: string } };
+  obs: Pick<ObsWatcher, 'sceneNames' | 'setScene' | 'canvasSize'> & { state: { scene: string } };
   /** The Brie Bucks currency id the site chose ('' = none yet). */
   currencyId: () => string;
   openExternal: (url: string) => unknown;
@@ -17,7 +18,7 @@ export interface StaffDeps {
 }
 
 /** The only actions the window may send; anything else is turned away here before it reaches the site. */
-const ACTIONS = new Set(['gift', 'show-collection', 'show-card', 'grant', 'stream-extra', 'trading', 'block', 'unblock', 'backup']);
+const ACTIONS = new Set(['gift', 'show-collection', 'show-card', 'grant', 'stream-extra', 'trading', 'block', 'unblock', 'backup', 'test-pull']);
 const NAME = /^[a-z0-9_]{2,25}$/;
 const USERS_TTL_MS = 5 * 60_000;
 
@@ -30,7 +31,11 @@ export function cleanStaffAction(raw: Record<string, unknown>): Record<string, u
   const action = clean(raw.action, 30);
   if (!ACTIONS.has(action)) return null;
   const out: Record<string, unknown> = { action };
-  if (action !== 'stream-extra' && action !== 'trading' && action !== 'backup') {
+  if (action === 'test-pull') { // always a free pull; the site uses the first test viewer when none is named
+    const username = cleanViewer(raw.username);
+    if (username) out.username = username;
+    out.force = raw.force === true;
+  } else if (action !== 'stream-extra' && action !== 'trading' && action !== 'backup') {
     const username = cleanViewer(raw.username);
     if (!username) return null;
     out.username = username;
@@ -62,6 +67,7 @@ export class StaffTools {
         case 'activity': return await this.read('activity');
         case 'search': return await this.read('search', clean(req.q, 60));
         case 'open': return this.open(req.href);
+        case 'preview-url': return await this.preview();
         default: return { ok: false, text: 'Unknown request.' };
       }
     } catch (e) {
@@ -113,6 +119,14 @@ export class StaffTools {
     if (!body) return { ok: false, text: 'Check the name and try again.' };
     const r = await this.d.client.staff(body);
     return { ok: r.ok, text: r.message, ...(r.needsForce ? { data: { needsForce: true } } : {}) };
+  }
+
+  /** The Preview overlay window's address (57.10): the site's read-only preview key on its own overlay page, and OBS's canvas size (1920x1080 without OBS). */
+  private async preview(): Promise<StaffReply> {
+    const r = await this.d.client.staff({ action: 'preview-url' });
+    const src = r.ok ? previewAddress(this.d.client.base, r.url) : null;
+    if (!src) return { ok: false, text: r.ok ? 'The site did not give a preview address.' : r.message };
+    return { ok: true, text: '', data: { src, expiresAt: r.expiresAt ?? 0, ...(await this.d.obs.canvasSize()) } };
   }
 
   /** Switches the OBS program scene on this PC, then tells the site so the change is in the audit log. */

@@ -15,7 +15,9 @@ import type { BridgeToken } from './bridge';
 import { getActivity } from './activity';
 import { getActiveSeasonWithPacks, getAllCollectionUsers, getUserCards } from './kv';
 import { getSeasonLeaderboardCached } from './leaderboard';
-import { currentStreamKey, getMixItUpLog } from './mixitup';
+import { currentStreamKey, getMixItUpLog, getMixItUpSettings } from './mixitup';
+import { startTestPull } from './mixitup-test';
+import { issuePreviewKey, previewPath } from './overlay-preview';
 import { REFUSAL_LABELS } from './mixitup-core';
 import { getStreamBuff, setStreamPullBuff } from './pull-limit';
 import { streamAmount, streamBuffAmount } from './pull-limit-core';
@@ -24,7 +26,7 @@ import { grantCardTo, queueOverlayEvents, queueShowOff } from './staff-actions';
 import { getTradeSettings, saveTradeSettings } from './trades';
 import { VARIANTS, VARIANT_LABELS, decodeEntry } from './variants';
 
-export interface StaffResult { ok: boolean; message: string; needsForce?: boolean }
+export interface StaffResult { ok: boolean; message: string; needsForce?: boolean; /** `preview-url` (57.10): the overlay preview's path on this site, and when its key stops working. */ url?: string; expiresAt?: number }
 const done = (ok: boolean, message: string, extra: Partial<StaffResult> = {}): StaffResult => ({ ok, message, ...extra });
 const NO_USER = 'Type a valid Twitch name (letters, numbers and underscores).';
 
@@ -53,6 +55,17 @@ export async function runStaffAction(pc: BridgeToken, body: Record<string, unkno
       const r = await queueShowOff(user, typeof body.card === 'string' ? body.card : '');
       if (r.ok) await audit(user, 'Showed a card on stream', r.card);
       return done(r.ok, r.ok ? r.message : r.message || r.error);
+    }
+    case 'preview-url': { // ROADMAP 57.10: a read-only key for the Preview overlay window (lib/overlay-preview.ts), never the OBS overlay key
+      const k = await issuePreviewKey(pc.name);
+      await audit(null, 'Overlay preview opened');
+      return done(true, 'The preview is ready.', { url: previewPath(k.token), expiresAt: k.expiresAt });
+    }
+    case 'test-pull': { // the 55.14 test pull: a free pull for a test viewer (the one named, else the first), never a real viewer or a charge
+      const login = user ?? (await getMixItUpSettings()).testViewers[0];
+      const r = await startTestPull({ username: login, paid: false, force: body.force === true });
+      if (r.ok) await audit(login, 'Test pull simulated', `free (${r.id})`);
+      return done(r.ok, r.message, r.needsForce ? { needsForce: true } : {});
     }
     case 'grant': {
       if (!user) return done(false, NO_USER);

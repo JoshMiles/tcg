@@ -20,4 +20,13 @@ ul, ol { margin: 0; padding-left: 20px; }
 .event.ignored small { color: #ff8a8a; }
 .row { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
 button { padding: 8px 14px; color: #0a0f21; background: var(--primary); border: 0; border-radius: 8px; font: 700 14px inherit; cursor: pointer; }
+/* Preview overlay window (57.10): the controls on top, the overlay page scaled to fit below. */
+body.preview { display: flex; flex-direction: column; height: 100vh; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.bar input { padding: 7px 10px; color: var(--fg); background: #121936; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+.bad { color: #ff8a8a; }
+.stage { position: relative; flex: 1; min-height: 0; margin-top: 8px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: #000; }
+.stage iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: top left; background: transparent; }
+button[hidden] { display: none; }
+button:disabled { opacity: .6; cursor: default; }
 button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }

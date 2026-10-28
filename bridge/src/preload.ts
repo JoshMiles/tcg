@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('bridge', {
   getQueue: (): Promise<{ ok: boolean; text: string; rows: { id: string; kind: string; username: string; pack: string; waitedS: number }[] }> => ipcRenderer.invoke('queue'),
   queueDo: (what: 'skip' | 'clear'): Result => ipcRenderer.invoke('queue-do', what),
   staff: (req: Record<string, unknown>): Promise<{ ok: boolean; text: string; data?: Record<string, unknown> }> => ipcRenderer.invoke('staff', req),
+  openPreview: (): Promise<void> => ipcRenderer.invoke('open-preview'),
   staffTrading: (pause: boolean): Result => ipcRenderer.invoke('staff-trading', !!pause),
   restartToUpdate: (): Promise<void> => ipcRenderer.invoke('restart-to-update'),
   openRelease: (): Promise<void> => ipcRenderer.invoke('open-release'),
