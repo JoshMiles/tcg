@@ -23,7 +23,7 @@ export interface StatusCard {
 export interface StatusInput {
   health: MixItUpHealth;
   settings: Pick<MixItUpSettings, 'connection' | 'currencyId' | 'currency' | 'balanceUrl' | 'deductUrl' | 'addUrl' | 'viewersUrl'>;
-  bridge: { at: number | null; version: string; currencies: { id: string; name: string }[] };
+  bridge: { at: number | null; appVersion: string; mixitupVersion: string; currencies: { id: string; name: string }[] };
   /** How many bridges are paired. */
   paired: number;
   obs: ObsSnapshot | null;
@@ -73,8 +73,8 @@ function outgoingCard({ health, settings: s, bridge, paired, now, ago }: StatusI
   const currency = bridge.currencies.find(c => c.id === s.currencyId);
   const calls = OUT_KINDS.filter(k => health.out[k]).map(k => ({ label: `Last ${k}`, ...callRow(k, health, now, ago) }));
   const rows: StatusCard['rows'] = [
-    { label: 'TCG Bridge', text: paired === 0 ? 'not paired' : connected ? `connected${bridge.version ? `, version ${bridge.version}` : ''}` : `not connected${bridge.at ? `, last seen ${ago(bridge.at, now)}` : ''}`, tone: paired && connected ? 'ok' : 'bad' },
-    { label: 'Mix It Up', text: bridge.currencies.length ? `found, ${bridge.currencies.length} currenc${bridge.currencies.length === 1 ? 'y' : 'ies'}` : 'not found yet', tone: bridge.currencies.length ? 'ok' : 'muted' },
+    { label: 'TCG Bridge', text: paired === 0 ? 'not paired' : connected ? `connected${bridge.appVersion ? `, version ${bridge.appVersion}` : ''}` : `not connected${bridge.at ? `, last seen ${ago(bridge.at, now)}` : ''}`, tone: paired && connected ? 'ok' : 'bad' },
+    { label: 'Mix It Up', text: bridge.currencies.length ? `found${bridge.mixitupVersion ? `, version ${bridge.mixitupVersion}` : ''}, ${bridge.currencies.length} currenc${bridge.currencies.length === 1 ? 'y' : 'ies'}` : 'not found yet', tone: bridge.currencies.length ? 'ok' : 'muted' },
     { label: 'Currency', text: currency ? currency.name : s.currencyId ? `${s.currency} (saved, not in the last list)` : 'not chosen', tone: currency ? 'ok' : 'muted' },
     ...calls,
   ];

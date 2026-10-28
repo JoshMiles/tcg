@@ -1,4 +1,6 @@
+import { Suspense } from 'react';
 import { Icon } from '@/app/components/Icon';
+import { BridgeVersionLine } from '../BridgeRelease';
 import { PendingButton } from '@/app/components/PendingButton';
 import { Panel, fieldClass, selectClass } from '../components/ui';
 import type { MixItUpSettings } from '@/lib/mixitup-core';
@@ -17,7 +19,8 @@ const secondary = 'btn btn-sm btn-outline';
 export function ConnectionTab({ settings: s, bridge, bridges, blocks }: { settings: MixItUpSettings; bridge: BridgeState; bridges: BridgeRow[]; blocks: BlockRow[] }) {
   return (
     <div className="space-y-6">
-      <BridgeCard version={bridge.version} bridges={bridges} blocks={blocks} />
+      <BridgeCard version={bridge.appVersion} bridges={bridges} blocks={blocks} />
+      {bridges.length > 0 && <Suspense fallback={null}><BridgeVersionLine running={bridge.appVersion} /></Suspense>}
 
       <form action={saveConnectionAction}>
         <Panel title="Connection to Mix It Up" icon="link" hint="TCG Bridge is the normal way. Direct addresses are for a relay of your own and live under Advanced.">

@@ -74,7 +74,14 @@ const helloBody = await helloRes.json();
 ok(helloRes.status === 200 && helloBody.ok === true, 'hello is accepted');
 ok(helloBody.channel === 'Cheesygidds' && typeof helloBody.currencyId === 'string', 'hello answers with the channel name and the chosen currency id');
 const state = await b.readBridge();
-ok(state.version === '0.1.0' && state.currencies[0].id === 'cur-1', 'hello fills the currency list');
+ok(state.mixitupVersion === '0.1.0' && state.appVersion === '' && state.currencies[0].id === 'cur-1', 'hello fills the currency list and the Mix It Up version, not the app version');
+const seenTokens = (await kv.hgetall<Record<string, { lastSeen: number }>>('bridge:tokens')) ?? {};
+for (const [k, rec] of Object.entries(seenTokens)) await kv.hset('bridge:tokens', { [k]: { ...rec, lastSeen: Date.now() - 20_000 } }); // past the 10 s touch throttle
+await post(pollRoute, 'poll', tokenA, { version: '0.12.0' });
+await kv.hset('mixitup:bridge', { version: '9.9.9' }); // an old stored version: neither one
+const split = await b.readBridge();
+ok(split.appVersion === '0.12.0' && split.mixitupVersion === '0.1.0', 'a poll sets the app version and leaves the Mix It Up version');
+ok(!JSON.stringify(split).includes('9.9.9'), 'an old stored version field is ignored');
 ok(state.commit === '', 'an older app without a commit stores none');
 await post(helloRoute, 'hello', tokenA, { version: '0.1.0', currencies: [{ id: 'cur-1', name: 'Bucks' }], commit: 'ABCDEF1' });
 ok((await b.readBridge()).commit === 'abcdef1', 'hello stores the commit beside the version');
