@@ -8,6 +8,7 @@ import { attentionItems } from './status';
 import { connectionRows } from './connections';
 import { clock, type EventLine } from './events';
 import type { ChecklistLine } from './checklist';
+import { viewerFacts } from './staffpages';
 import { FEED_KEEP, mergeFeed, readySummary, streamNumbers, type PullEntry } from './home';
 
 export interface DemoContext {
@@ -111,6 +112,10 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
   const notes = { startNote: "Couldn't check for updates", update: 'Version 0.5.1 is available. Restart TCG Bridge to install it.', updateVersion: '0.5.1' };
   const openPill = `document.getElementById('status-pill').click()`;
   const pick = (conn: string): string => `document.querySelector('.conn-row[data-conn="${conn}"]').click()`;
+  // Staff pages (59.7): the renderer reads the site through the app, which has no site in the demo, so the shots hand it what the site would have answered.
+  const viewer = { username: 'brie_fan', copies: 38, unique: 24, rank: 3, of: 112, bucks: 420, blocked: false, pulls: [{ text: 'Gouda Goat (Holo)' }, { text: 'Brie Bear' }, { text: 'Swiss Sloth' }], refusals: [{ text: 'Packs are paused' }] };
+  const staffReads = `staffState = ${JSON.stringify({ tradingPaused: false, extra: 2, variants: [{ id: 'regular', label: 'Regular' }, { id: 'holo', label: 'Holo' }], scenes: ['Main scene', 'Be right back', 'Starting soon'] })}; renderStaff();`;
+  const viewerCard = `${staffReads} showViewer(${JSON.stringify({ ...viewer, facts: viewerFacts({ ...viewer }) })}); document.getElementById('staff-card').value = '#12 Gouda Goat'; document.getElementById('staff-viewer-result').textContent = 'Gifted 2 packs to brie_fan.'; document.getElementById('staff-viewer-result').className = 'result ok';`;
   const shots: [string, object, string, string?][] = [
     ['main-1-home-connected', state(true), 'home'], // the busy dashboard at 1280 x 800: chips, pulls, happy hour, queue, numbers, feed
     ['main-1b-home-staff', state(true, { staff: true }), 'home'],
@@ -126,8 +131,8 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
     ['main-9-app', state(true), 'app'],
     ['main-10-about', state(true, { update: notes.update, updateVersion: notes.updateVersion }), 'about'],
     ['main-11-about-whats-new', state(true, { whatsNew: { open: true } }), 'about'], // after an update: the What's new card
-    ['main-12-staff-viewers-and-cards', state(true, { staff: true }), 'viewers'], // the Staff group shows on a staff PC only
-    ['main-13-staff-this-stream', state(true, { staff: true }), 'stream'],
+    ['main-12-staff-viewers-and-cards', state(true, { staff: true }), 'viewers', viewerCard], // the Staff group shows on a staff PC only; a found viewer's card with its result line
+    ['main-13-staff-this-stream', state(true, { staff: true }), 'stream', staffReads], // extra pulls, scene select, trading, preview, search, back up
     ['main-14-feed-and-history', state(false), 'feed'], // everyone: the history only
     ['main-14b-feed-and-history-staff', state(true, { staff: true }), 'feed'], // a staff PC: the activity part as well
     ['main-15-connect-screen', { ...state(false), paired: false, site: 'https://cheesytcg.app', pairedAs: '', service: null, attention: attentionItems({ paired: false, updateVersion: '', startNote: '', site: null, mixFound: false, obsEnabled: false, obsConnected: false }) }, 'home'], // the first-run Connect screen

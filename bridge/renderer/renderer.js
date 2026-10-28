@@ -701,10 +701,9 @@ action('queue-clear', 'queue-result', async () => { const r = await window.bridg
 
 // ── Staff tab (55.12): shown only when the site says this PC has staff tools; reads only while the tab is open, at most every 5 seconds ──
 let staffState = null;
-let staffUsersAt = 0;
+let staffViewer = ''; // the viewer the card shows; '' = the search is showing
 const staffTabOpen = () => !!state && state.staff && ['viewers', 'stream'].some(p => document.querySelector(`[data-panel="${p}"]`).hidden === false) && !document.hidden;
 const staffAsk = req => window.bridge.staff(req);
-const staffName = () => $('staff-name').value;
 const fill = (list, items) => list.replaceChildren(...items.map(text => { const o = document.createElement('option'); o.value = text; return o; }));
 
 function renderStaff() {
@@ -714,9 +713,11 @@ function renderStaff() {
   const s = staffState;
   if (!s) return;
   $('staff-extra-now').textContent = s.extra > 0 ? `Everyone gets ${s.extra} extra this stream.` : 'No extra pulls right now.';
-  $('staff-trading').textContent = s.tradingPaused ? 'Open trading' : 'Pause trading';
+  $('staff-trading').textContent = s.tradingPaused ? 'Resume trading' : 'Pause trading';
   $('staff-trading-now').textContent = s.tradingPaused ? 'Trading is paused.' : 'Trading is open.';
   const scenes = s.scenes || [];
+  $('staff-scene-row').hidden = !scenes.length; // no tiny empty select: the empty state shows instead
+  $('staff-scene-empty').hidden = scenes.length > 0;
   if ($('staff-scene').dataset.key !== scenes.join('|')) {
     $('staff-scene').dataset.key = scenes.join('|');
     $('staff-scene').replaceChildren(...scenes.map(name => { const o = document.createElement('option'); o.value = name; o.textContent = name; return o; }));
@@ -724,17 +725,15 @@ function renderStaff() {
   if (!$('staff-variant').options.length && Array.isArray(s.variants)) {
     $('staff-variant').replaceChildren(...s.variants.map(v => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.label; return o; }));
   }
+  const noVariants = !$('staff-variant').options.length;
+  $('staff-variant').hidden = noVariants;
+  $('staff-variant-empty').hidden = !noVariants;
 }
 
 async function loadStaff() {
   if (!staffTabOpen()) return;
   const r = await staffAsk({ op: 'state' });
   if (r.ok && r.data) { staffState = r.data; renderStaff(); }
-  if (Date.now() - staffUsersAt > 300000) { // the names to complete; the app keeps them for five minutes
-    staffUsersAt = Date.now();
-    const u = await staffAsk({ op: 'users' });
-    if (u.ok && u.data && Array.isArray(u.data.users)) fill($('staff-users'), u.data.users);
-  }
 }
 for (const b of document.querySelectorAll('.rail-btn')) b.addEventListener('click', () => { void loadStaff(); });
 setInterval(() => { void loadStaff(); }, 5000);
@@ -746,6 +745,7 @@ $('staff-card').addEventListener('input', () => {
     const q = $('staff-card').value.trim();
     if (q.length < 2 || q.startsWith('#')) return;
     const r = await staffAsk({ op: 'cards', q });
+    if (!r.ok) say('staff-viewer-result', r); // a role that may not search cards hears why
     if (r.ok && r.data && Array.isArray(r.data.cards)) fill($('staff-cards'), r.data.cards.map(c => `#${c.number} ${c.name}`));
   }, 300);
 });
@@ -759,40 +759,91 @@ async function staffDo(body) {
   void loadStaff();
   return r;
 }
-const needName = () => (staffName().trim() ? null : { ok: false, text: 'Type a Twitch name first.' });
 
-action('staff-lookup', 'staff-viewer-result', async () => {
-  const r = await staffAsk({ op: 'viewer', name: staffName() });
-  const box = $('staff-viewer');
-  box.hidden = !r.ok;
-  if (!r.ok) return r;
-  const d = r.data;
-  const rows = [
-    ['Viewer', d.username + (d.blocked ? ' (blocked from pulls)' : '')],
-    ['Cards', `${d.copies} owned, ${d.unique} different`],
-    ['Rank', d.rank ? `${d.rank} of ${d.of}` : 'Not ranked'],
-    ['Brie Bucks', d.bucks === null || d.bucks === undefined ? 'Unknown (Mix It Up is not answering)' : String(d.bucks)],
-    ['Last pulls', d.pulls.length ? d.pulls.map(p => p.text).join(', ') : 'None'],
-    ['Refusals', d.refusals.length ? d.refusals.map(p => p.text).join(', ') : 'None'],
-  ];
-  box.replaceChildren(...rows.flatMap(([k, v]) => { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; return [dt, dd]; }));
-  return { ok: true, text: '' };
+// Find a viewer (59.7): matching names as a list of buttons; picking one opens the viewer card.
+let findTimer;
+let findSeq = 0;
+function say(id, r) { $(id).textContent = r.ok ? '' : r.text; $(id).className = 'result ' + (r.ok ? '' : 'fail'); }
+async function runFind() {
+  const q = $('staff-name').value.trim();
+  const seq = ++findSeq;
+  const r = q ? await staffAsk({ op: 'find', q }) : { ok: true, text: '', data: { names: [] } };
+  if (seq !== findSeq) return; // a newer keystroke is already being looked up
+  say('staff-find-result', r);
+  const names = r.ok && r.data && Array.isArray(r.data.names) ? r.data.names : [];
+  $('staff-found-empty').hidden = names.length > 0;
+  $('staff-found-empty').textContent = q ? 'No viewer matches that name.' : 'Type a Twitch name to find a viewer.';
+  $('staff-found').replaceChildren(...names.map(name => {
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn plain';
+    b.textContent = name;
+    b.addEventListener('click', () => { void openViewer(name); });
+    li.append(b);
+    return li;
+  }));
+}
+$('staff-name').addEventListener('input', () => { clearTimeout(findTimer); findTimer = setTimeout(() => { void runFind(); }, 150); });
+$('staff-name').addEventListener('keydown', e => { if (e.key === 'Enter') { clearTimeout(findTimer); const first = $('staff-found').querySelector('button'); if (first) first.click(); else void runFind(); } });
+for (const b of document.querySelectorAll('.rail-btn')) b.addEventListener('click', () => { if (b.dataset.tab === 'viewers' && !staffViewer) void runFind(); });
+
+/** Fills the viewer card from a viewer read (facts come ready-made from the app). */
+function paintViewer(d) {
+  staffViewer = d.username;
+  $('staff-viewer-title').textContent = d.username;
+  $('staff-viewer').replaceChildren(...(d.facts || []).flatMap(([k, v]) => { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; return [dt, dd]; }));
+  $('staff-block').hidden = d.blocked === true;
+  $('staff-unblock').hidden = d.blocked !== true;
+}
+async function openViewer(name) {
+  const r = await staffAsk({ op: 'viewer', name });
+  if (!r.ok || !r.data) return say('staff-find-result', r);
+  showViewer(r.data);
+}
+function showViewer(d) {
+  paintViewer(d);
+  $('staff-viewer-result').textContent = '';
+  $('staff-viewer-result').className = 'result';
+  $('staff-find').hidden = true;
+  $('staff-viewer-card').hidden = false;
+  $('staff-viewer-title').focus(); // the heading names the viewer for a screen reader
+}
+async function refreshViewer() {
+  const r = await staffAsk({ op: 'viewer', name: staffViewer });
+  if (r.ok && r.data) paintViewer(r.data);
+}
+$('staff-clear').addEventListener('click', () => {
+  staffViewer = '';
+  $('staff-viewer-card').hidden = true;
+  $('staff-find').hidden = false;
+  $('staff-name').value = '';
+  $('staff-card').value = '';
+  void runFind();
+  $('staff-name').focus();
 });
-action('staff-admin', 'staff-viewer-result', async () => needName() || staffAsk({ op: 'open-admin', name: staffName() }));
-action('staff-gift', 'staff-viewer-result', async () => needName() || staffDo({ action: 'gift', username: staffName(), count: Number($('staff-count').value) }));
-action('staff-collection', 'staff-viewer-result', async () => needName() || staffDo({ action: 'show-collection', username: staffName() }));
-action('staff-block', 'staff-viewer-result', async () => needName() || staffDo({ action: 'block', username: staffName(), mode: $('staff-block-mode').value }));
-action('staff-unblock', 'staff-viewer-result', async () => needName() || staffDo({ action: 'unblock', username: staffName() }));
-action('staff-grant', 'staff-card-result', async () => {
+
+/** An action on the chosen viewer; the card's facts are read again after it so they stay true. */
+async function viewerDo(body) {
+  const r = await staffDo({ ...body, username: staffViewer });
+  if (r.ok) await refreshViewer();
+  return r;
+}
+action('staff-admin', 'staff-viewer-result', async () => staffAsk({ op: 'open-admin', name: staffViewer }));
+action('staff-gift', 'staff-viewer-result', () => viewerDo({ action: 'gift', count: Number($('staff-count').value) }));
+action('staff-collection', 'staff-viewer-result', () => staffDo({ action: 'show-collection', username: staffViewer }));
+action('staff-block', 'staff-viewer-result', () => viewerDo({ action: 'block', mode: $('staff-block-mode').value }));
+action('staff-unblock', 'staff-viewer-result', () => viewerDo({ action: 'unblock' }));
+action('staff-grant', 'staff-viewer-result', async () => {
   const n = cardNumber();
-  return needName() || (n === null ? { ok: false, text: 'Pick a card from the list.' } : staffDo({ action: 'grant', username: staffName(), cardNumber: n, variant: $('staff-variant').value }));
+  return n === null ? { ok: false, text: 'Pick a card from the list.' } : viewerDo({ action: 'grant', cardNumber: n, variant: $('staff-variant').value });
 });
-action('staff-showcard', 'staff-card-result', async () => needName() || staffDo({ action: 'show-card', username: staffName(), card: $('staff-card').value.trim().replace(/^(#\d+)\s.*$/, '$1') }));
-action('staff-extra-set', 'staff-stream-result', () => staffDo({ action: 'stream-extra', amount: Number($('staff-extra').value) }));
-action('staff-extra-clear', 'staff-stream-result', () => staffDo({ action: 'stream-extra', amount: 0 }));
-action('staff-scene-go', 'staff-stream-result', async () => $('staff-scene').value ? staffAsk({ op: 'scene', name: $('staff-scene').value }) : { ok: false, text: 'OBS has no scenes yet.' });
+action('staff-showcard', 'staff-viewer-result', async () => staffDo({ action: 'show-card', username: staffViewer, card: $('staff-card').value.trim().replace(/^(#\d+)\s.*$/, '$1') }));
+action('staff-extra-set', 'staff-extra-result', () => staffDo({ action: 'stream-extra', amount: Number($('staff-extra').value) }));
+action('staff-extra-clear', 'staff-extra-result', () => staffDo({ action: 'stream-extra', amount: 0 }));
+action('staff-scene-go', 'staff-scene-result', async () => $('staff-scene').value ? staffAsk({ op: 'scene', name: $('staff-scene').value }) : { ok: false, text: 'OBS has no scenes yet.' });
 $('preview-open').addEventListener('click', () => { void window.bridge.openPreview(); });
-action('staff-trading', 'staff-stream-result', async () => { const r = await window.bridge.staffTrading(!(staffState && staffState.tradingPaused)); void loadStaff(); return r; });
+action('staff-trading', 'staff-trading-result', async () => { const r = await window.bridge.staffTrading(!(staffState && staffState.tradingPaused)); void loadStaff(); return r; });
 
 // ── Shortcuts and Activity (55.13) ──
 action('staff-backup', 'staff-backup-result', () => staffDo({ action: 'backup' }));
@@ -803,9 +854,11 @@ $('staff-search').addEventListener('input', () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(async () => {
     const q = $('staff-search').value.trim();
-    if (q.length < 2) return listOf($('staff-search-results'), []);
+    if (q.length < 2) { $('staff-search-empty').hidden = true; return listOf($('staff-search-results'), []); }
     const r = await staffAsk({ op: 'search', q });
     const found = r.ok && r.data && Array.isArray(r.data.results) ? r.data.results : [];
+    say('staff-search-result', r);
+    $('staff-search-empty').hidden = !r.ok || found.length > 0;
     listOf($('staff-search-results'), found.map(x => {
       const li = document.createElement('li');
       const b = document.createElement('button');
