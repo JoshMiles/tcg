@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Goal
-Track 56 (TCG Bridge versions, releases, dashboard card, README): one agent per item, Opus reviews and merges.
+Tracks 57 then 58 (Josh, 2026-10-28: keep going after 56): one fresh agent per item, Opus reviews, reads all comments, merges on green, next. 57.12 and 57.13 need an Opus design pass first; Track 58 needs Josh to connect a Twitch account (any account, 58.1) before 58.2 is tried for real.
 
 ## Done
 - Track 45 (#480 to #483), 34.8 (#484, panel 0.0.2 submitted, under Twitch review).
@@ -71,3 +71,4 @@ Track 56 (TCG Bridge versions, releases, dashboard card, README): one agent per 
 - 2026-10-28: Josh: merge 55.5 (#603) without the test import. Every PR touching bridge/ bumps the bridge minor; releases publish on merge; the About tab shows the commit; the dashboard shows the latest bridge; README rewrite (Track 56).
 - 2026-10-28: Josh: Track 58 through TCG Bridge (EventSub in the app), no custom rewards (awards on existing ones, mods refund by hand), Twitch wins over Mix It Up events; 58.6 chat commands replace the Mix It Up ones, replies as the channel account with an optional bot account.
 - 2026-10-28: Josh: 58.1 accepts any Twitch account as the channel, for testing; a test account shows a warning and never switches Mix It Up off. 56.1 merged (#619); first automatic release bridge-v0.12.0 published by the workflow.
+- 2026-10-28: Track 56 done (#619, #622, #623, #624) and archived. Josh: keep going through Tracks 57 and 58.

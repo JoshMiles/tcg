@@ -1549,3 +1549,12 @@ Josh: connecting Mix It Up was confusing, there were too few settings, and the S
 - **55.4 More settings (Done, #605 to #612).** Josh picked all eight (2026-10-27). Shared price order, worked out at reserve and stored on the reservation: pack price (only when picked by name), else role price, else base; then happy hour; a first free pack makes it 0. A price of 0 sends no balance check or deduct and still counts toward the limit.
   - 55.4a Editable chat replies (#605). 55.4b Price per role (#606; the in-flight total is now a sum of prices). 55.4c Happy hour (#607; page and Stream Deck, ends by time). 55.4d Cooldown (#608; the channel login is exempt). 55.4e Queue cap (#609; chat `!pack` only, a soft limit, counts show-offs too). 55.4f Pick a pack (#610). 55.4g Event rewards (#611; Events tab, free packs or a buff, 10 per event, identifiers read from Mix It Up's source). 55.4h First pack free (#612; a viewer with cards in any season never qualifies).
 - **55.5 Download command presets for Mix It Up (Done, #603).** Merged by Josh's call (2026-10-28) without the planned test import into Mix It Up; the generator matches the exported sample's `$type`s and keys (`scripts/check-mixitup-presets.mts`). Follow-up still open: download files for the four event commands (55.4g's Events tab).
+
+## Track 56: TCG Bridge versions, releases and docs (2026-10-28)
+
+Josh: every PR that touches TCG Bridge bumps its minor; the app shows the commit it was built from; the admin dashboard shows the latest TCG Bridge; tagging happens by itself; the README needed a big update.
+
+- **56.1 Version rule, automatic releases, commit on the About tab (Done, #619).** CI fails a PR that changes `bridge/` (except its README) without raising the minor; a merge that changes the version builds and publishes `bridge-v<version>` in the same run (first one: 0.12.0). The About tab and Copy diagnostics show the commit, PR and build date; the app sends its commit with `hello`.
+- **56.2 TCG Bridge on the admin dashboard (Done, #623).** Latest release from the GitHub API (cached 10 minutes), the running app's version and commit, an out-of-date line, the same line on the Connection tab. Fixed on the way: `bridge:state` stored Mix It Up's and the app's version in one field; now `appVersion` and `mixitupVersion`.
+- **56.3 README rewrite (Done, #624).** `README.md` rewritten for someone new; `bridge/README.md` brought to 0.12.0.
+- Also in this run: built-in `!pack` on the Commands tab (#622), after Josh found the status hint pointed at a tab without it.
