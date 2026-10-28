@@ -40,7 +40,13 @@ h1, h2 { font-family: var(--display); letter-spacing: .01em; margin: 0; }
 .rail-btn:hover { background: var(--card); color: var(--fg); }
 .rail-btn[aria-current="page"] { background: var(--card); color: var(--primary); box-shadow: inset 3px 0 0 var(--primary); }
 .rail-foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 10px 12px 0; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); }
-.content { overflow-y: auto; padding: 20px 24px 28px; }
+.content { overflow-y: auto; padding: 20px 24px 28px; container-type: inline-size; }
+/* A wide window (ROADMAP 59.2, from about 1220 px: the default 1280 is wide enough): cards on the busy tabs flow into two columns; a card with .wide (a table) spans both. */
+@container (min-width: 960px) {
+  [data-panel="status"] > #status, [data-panel="control"], [data-panel="staff"], [data-panel="settings"] { column-count: 2; column-gap: 14px; }
+  [data-panel="status"] > #status > .card, [data-panel="control"] > .card, [data-panel="staff"] > .card, [data-panel="settings"] > .card { break-inside: avoid; }
+  .card.wide { column-span: all; }
+}
 button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 /* Cards */
