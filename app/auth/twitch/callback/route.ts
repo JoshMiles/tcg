@@ -6,6 +6,9 @@ import { saveUserProfile, getUserProfile } from '@/lib/kv';
 import { bindAccount } from '@/lib/account-bind';
 import { STAFF_COOKIE } from '@/lib/staff-token';
 import { ACCESS_COOKIE } from '@/lib/access-token';
+import { getStaff } from '@/lib/staff-guard';
+import { roleCan } from '@/lib/staff-core';
+import { channelStateOk, connectChannel } from '@/lib/twitch-channel';
 
 function fail(req: NextRequest, reason: string) {
   const res = NextResponse.redirect(new URL(`/auth/error?reason=${reason}`, req.url));
@@ -13,7 +16,21 @@ function fail(req: NextRequest, reason: string) {
   return res;
 }
 
-const sameString = (a: string, b: string) => {
+/** The OAuth return of an admin's channel connection: only that admin's own state cookie counts, and no viewer session is made. */
+async function channelReturn(req: NextRequest, code: string, state: string, cookie: string) {
+  const back = (error?: string) => {
+    const res = NextResponse.redirect(new URL(`/admin/mixitup?tab=connection${error ? `&error=${encodeURIComponent(error)}` : ''}`, req.url));
+    res.cookies.delete(OAUTH_COOKIE);
+    return res;
+  };
+  const staff = await getStaff();
+  if (!staff || !roleCan(staff.role, 'admin')) return back('only an admin can connect the Twitch channel');
+  if (!channelStateOk(cookie, state, staff.login)) return back('the Twitch sign-in expired, try again');
+  const r = await connectChannel(code, staff.login);
+  return back(r.ok ? undefined : r.reason === 'scopes' ? 'Twitch did not grant every permission, connect again and allow them all' : 'Twitch would not connect the channel, try again');
+}
+
+const sameString =(a: string, b: string) => {
   const x = Buffer.from(a), y = Buffer.from(b);
   return x.length === y.length && timingSafeEqual(x, y);
 };
@@ -31,8 +48,9 @@ export async function GET(req: NextRequest) {
   const cookie = req.cookies.get(OAUTH_COOKIE)?.value;
   if (!code || !state || !cookie) return fail(req, 'expired');
 
-  let expected: { state?: string; returnTo?: string };
+  let expected: { state?: string; returnTo?: string; channel?: boolean };
   try { expected = JSON.parse(cookie); } catch { return fail(req, 'expired'); }
+  if (expected.channel) return channelReturn(req, code, state, cookie); // "Connect Twitch channel" (58.1): the same redirect address, a different job
   if (typeof expected.state !== 'string' || !sameString(expected.state, state)) return fail(req, 'expired');
 
   let profile;

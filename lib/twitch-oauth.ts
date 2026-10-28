@@ -8,24 +8,24 @@ import { SITE_URL } from './site';
 // tested without real Twitch credentials. In production they are always the real ones.
 
 const dev = process.env.NODE_ENV !== 'production';
-const ID_URL = (dev && process.env.TWITCH_ID_URL) || 'https://id.twitch.tv';
-const API_URL = (dev && process.env.TWITCH_API_URL) || 'https://api.twitch.tv';
+export const ID_URL = (dev && process.env.TWITCH_ID_URL) || 'https://id.twitch.tv';
+export const API_URL = (dev && process.env.TWITCH_API_URL) || 'https://api.twitch.tv';
 
 /** Must match a "OAuth Redirect URL" registered on the Twitch application exactly. */
 export const REDIRECT_URI = `${SITE_URL}/auth/twitch/callback`;
 
-const credentials = () => ({
+export const credentials = () => ({
   clientId: process.env.TWITCH_CLIENT_ID ?? '',
   clientSecret: process.env.TWITCH_CLIENT_SECRET ?? '',
 });
 
-export function authorizeUrl(state: string): string {
+export function authorizeUrl(state: string, scope = ''): string {
   const { clientId } = credentials();
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
-    scope: '',
+    scope,
     state,
   });
   return `${ID_URL}/oauth2/authorize?${params}`;

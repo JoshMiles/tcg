@@ -12,7 +12,7 @@
 | `SUPER_ADMIN_TWITCH_IDS` | Optional. Extra super admins (comma-separated numeric Twitch IDs); joshmiles is hard-coded |
 | `KV_URL`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `KV_REST_API_READ_ONLY_TOKEN` | Vercel KV credentials |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob credentials |
-| `BACKUP_ENCRYPTION_KEY` | 16+ character password the nightly backups are encrypted with; without it no backup is written. Keep a copy: backups cannot be read without it |
+| `BACKUP_ENCRYPTION_KEY` | 16+ character password the nightly backups are encrypted with; without it no backup is written. Also encrypts the connected Twitch channel's refresh token (Mix It Up > Connection, 58.1); changing it means connecting the channel again. Keep a copy: backups cannot be read without it |
 | `CRON_SECRET` | 16+ character random string; Vercel sends it to `/api/cron/backup`, `/api/cron/accounts`, `/api/cron/weekly` and `/api/cron/minute`, which refuse any other caller |
 | `TWITCH_EXTENSION_SECRET` | Base64 Extension Secret for JWT verification |
 | `TWITCH_CLIENT_ID` | Twitch OAuth app Client ID (for Helix API) |

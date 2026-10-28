@@ -5,6 +5,7 @@ import { recordAudit } from '@/lib/audit';
 import { createPairCode, revokeBridge, setBridgeStaff } from '@/lib/bridge';
 import { liftPullBlock } from '@/lib/pull-block';
 import { showCode } from '@/lib/bridge-core';
+import { disconnectChannel } from '@/lib/twitch-channel';
 
 /** Makes a one-time code (good for 10 minutes) to type into TCG Bridge. Returned to the page, never put in a URL. */
 export async function createPairCodeAction(): Promise<{ code: string; until: string }> {
@@ -27,6 +28,13 @@ export async function setBridgeStaffAction(id: string, on: boolean): Promise<voi
   await requireAdmin();
   const name = await setBridgeStaff(String(id), on === true);
   if (name) await recordAudit('everyone', on ? 'TCG Bridge staff tools switched on' : 'TCG Bridge staff tools switched off', name);
+  revalidatePath('/admin/mixitup');
+}
+
+/** Disconnects the Twitch channel (ROADMAP 58.1): the token is revoked at Twitch and the stored one deleted. */
+export async function disconnectTwitchChannelAction(): Promise<void> {
+  await requireAdmin();
+  await disconnectChannel();
   revalidatePath('/admin/mixitup');
 }
 
