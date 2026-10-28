@@ -91,3 +91,5 @@ Track 59 done (archived); 61.1 (Stream Deck keys fix) building, then 58 (58.0a s
 - 2026-10-28: Josh: add a native OBS plugin (Track 62, design pass first, after Track 58) and fix the Stream Deck plugin (keys don't work: 61.1, right after Track 59, before 58) then expand it with queue, staff, live info and OBS / overlay keys (61.2 to 61.5, after 58). Wiki (60) stays last.
 - 2026-10-28: 59.6 merged (#653, 0.31.0), 59.7 merged (#655, 0.32.0: viewer-first staff pages, staffActionsFor helper ready for 58.0b).
 - 2026-10-28: 59.8 merged (#656, 0.33.0): tool windows share the main style, feed window filters, a11y check (CodeQL false positive fixed by a scanner). Track 59 done; next 61.1 Stream Deck keys fix.
+- 2026-10-28: 61.1 merged (#658, bridge 0.34.0): the plugin crashed on start (manifest MinimumVersion 6.9, SDK 3.x needs 7.1; confirmed in Josh's plugin log). Josh to reinstall the plugin and press each key. Next 58.0b.
+- 2026-10-28: Josh: the admin Mix It Up page is far too messy; added Track 63 (design pass 63.1 first, site only, can run beside the bridge work) with an audit and suggestions.

@@ -22,7 +22,8 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 47 | Access hardening (47.11) | Blocked (Josh, from 2026-11-02) | S |
 | 50 | Swap finder trial (50.3) | Blocked (trial readout from 2026-11-24) | S |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
-| 61 | Stream Deck plugin: fix the keys that do not work (61.1), then queue, staff, live info and OBS / overlay keys (61.2 to 61.5) | 61.1 building; 61.2 on after Track 58 | M |
+| 61 | Stream Deck plugin: fix the keys that do not work (61.1), then queue, staff, live info and OBS / overlay keys (61.2 to 61.5) | 61.1 done (#658); 61.2 on after Track 58 | M |
+| 63 | Admin Mix It Up page redesign: too messy; reorganise by job (63.1 design pass, then build items) | Ready (63.1 design first; site only, can run beside the TCG Bridge work) | M to L |
 | 58 | Twitch through TCG Bridge: sign in to the app with Twitch, connect the channel, EventSub in the app, awards for existing channel points rewards, bits / subs / raids, chat commands replacing the Mix It Up ones (58.0 to 58.6) | After 61.1 (Track 59 done) | L |
 | 62 | Native OBS plugin for TCG Bridge (62.1 design pass, then build items) | After Track 58 | L |
 | 60 | Staff wiki refresh: every page brought up to date, new pages for TCG Bridge, Twitch, the Stream Deck plugin and the OBS plugin (60.1) | Last, after Tracks 61 and 62 | M |
@@ -105,11 +106,37 @@ Josh (2026-10-28): replace the Mix It Up chat commands; reply as the channel acc
 6. **Replacing Mix It Up.** While chat is connected through TCG Bridge (58.2 up, chat subscription active), requests on `/api/webhooks/pull` (without `event`), `/api/webhooks/show-card` and `/api/webhooks/command` answer `{ ok: true, ignored: true, reason: 'from_twitch', message: '' }`, so a leftover Mix It Up command never runs twice and says nothing. When the connection is down they work as before. Stream Deck buttons (`/api/webhooks/buff`), event commands (58.4 decides those) and the paid-pull currency calls are not affected. The Commands tab, the `!pack` setup card and the setup wizard say "Chat commands now come through TCG Bridge; the Mix It Up commands are only a fallback", and the wizard's !pack step becomes optional.
 7. **Checks:** a fake EventSub chat message runs `!pack <name>` and a chat command end to end with the reply sent to a fake Helix; badges map to roles; a Mix It Up `!pack` is ignored while connected and works when not; the reply rate limit; bot fallback to the channel account.
 
+## Track 63: admin Mix It Up page redesign (2026-10-28)
+
+Josh: the Mix It Up page on the admin dashboard (`app/admin/mixitup/`, about 1,800 lines across 30 files) is far too messy; refresh, reorganise, reimagine it. Site only, so it can run beside the TCG Bridge work (Tracks 58, 61, 62). Like Track 59, a design pass with mockups for Josh first, then one PR per build item.
+
+What is wrong today (starting audit, 63.1 checks and extends it):
+- **Nine tabs by feature, not by job:** Overview, Connection, Paid pulls, Big pulls, Chat and Brie Bucks, Commands, Stream Deck, Events, Log, plus a separate Setup wizard page (`/admin/mixitup/setup`). The page is called Mix It Up but now runs TCG Bridge, OBS, events, the Stream Deck and soon Twitch.
+- **Live and set-once mixed:** Happy hour and the Community pack goal (used during a stream) sit on Paid pulls above prices and limits (set once); the stream's pull blocks sit on Connection inside the TCG Bridge card.
+- **Connection is a junk drawer:** paired PCs and their accounts, pull blocks, the Mix It Up command check, bridge error reports, the TCG Bridge / direct addresses switch with seven address and secret fields, Try it and Test viewers.
+- **Tests scattered:** Quick actions and Test pulls on Overview, Try it and Test viewers on Connection, Test it in the Setup wizard.
+- **Repeated setup blocks:** the incoming webhook address and secret are shown separately on Commands, Stream Deck and Events (and Paid pulls' `!pack` setup), each with its own copy-and-paste instructions.
+- **Two logs:** Latest requests on Overview and Recent requests on Log; the Brie Bucks ledger check on Chat and Brie Bucks; uptime on Overview.
+- **Long hint paragraphs** under nearly every panel, and each tab's subtitle repeating the tab name.
+
+Suggestions for 63.1 to weigh (not decisions):
+1. **Group by job, mirroring TCG Bridge (Track 59):** **Live** (health strip, this stream's numbers, pause, happy hour, pack goal, queue, blocks this stream, latest requests), **What viewers get** (paid pulls prices and limits, `!pack` packs, event rewards and raid shout-out, big pull rules, chat commands, Stream Deck buffs), **Connections** (TCG Bridge PCs with their Twitch accounts and roles, Mix It Up, OBS, the Twitch channel slot for 58.1, command check, error reports; direct addresses under Advanced), **Test** (every test in one place: simulate a chat pull, try balance, test viewers, quick actions), **History** (one log with filters, the ledger check, uptime, backups).
+2. **Rename the page** to reflect what it is now (for example "Stream" or "Stream tools"), keeping `/admin/mixitup` as a redirect.
+3. **One status strip** at the top of every section (the same wording as the TCG Bridge status pill: "All good" or "N things need you", each with a link to the fix), replacing per-tab warnings.
+4. **One "Mix It Up commands" helper:** the webhook address and secret once, with Copy buttons and the existing command downloads, used by every reward type instead of four copies.
+5. **The Setup wizard becomes the page's first-run state** (shown until a connection exists), not a separate page; afterwards its steps live in Connections.
+6. **Set-once settings get a clear edit pattern:** one Save per section with an unsaved-changes marker, Advanced fields folded away, hints behind "How?" like the app.
+7. **Phone-friendly Live section** for mods watching on a phone during a stream.
+8. **Room for Track 58:** channel point awards beside paid pulls in What viewers get, Twitch events in the Live feed, Twitch chat commands beside the Mix It Up ones.
+
+### 63.1 Design pass (Ready; Needs design: Opus, then Josh)
+Walk every tab, panel and the Setup wizard as they stand (screenshots against the mock KV with demo data), finish the audit, and propose two or three directions with mockups (one built on suggestion 1). Mockups for Josh to pick from before any build; then split into build items (63.2 onward), one PR each. Keep every existing setting, test and log reachable; no change to what the settings do.
+
 ## Track 61: Stream Deck plugin fix and more keys (2026-10-28)
 
 Josh: the plugin's keys don't work; fix that, then add queue, staff, live info and OBS / overlay keys. The plugin is `streamdeck/` (Elgato SDK, UUID `tv.cheesygidds.tcgbridge`, built into `bin/plugin.js`), talking to the app's `DeckServer` (`bridge/src/deck.ts`) on 127.0.0.1 with the port and token from `%APPDATA%\TCG Bridge\streamdeck.json`; the plugin's version always equals the bridge's (`x.y.z.0`). Every item bumps the bridge minor and keeps the Mix It Up Stream Deck commands working.
 
-### 61.1 Fix the keys (Building, M; Track 59 done, before Track 58)
+### 61.1 Fix the keys (Done, #658, bridge 0.34.0: the manifest asked for Stream Deck 6.9, the SDK needs 7.1, so the plugin crashed on start)
 1. **Reproduce first.** Josh reports the keys do nothing or the wrong thing. Walk the whole path on the code and with `bridge/scripts/check-deck.ts`'s real server: install from TCG Bridge (does the packed plugin contain `bin/plugin.js` and its `node_modules`, is the manifest's `CodePath` right, does Stream Deck 6.9+ load it), the link (is `DeckServer` running: it only listens while the Settings switch is on, and that switch moved in 59.4 / 59.6; is `streamdeck.json` written where the plugin reads it, port and token current after an app restart), the key press (action UUIDs in the manifest match `keys.ts`, settings from the property inspector reach the key, the request reaches `runStaffKey` / the control actions), and the answer (title / state / alert on the key).
 2. Ask Josh for the Stream Deck app's plugin log (`%APPDATA%\Elgato\StreamDeck\logs\tv.cheesygidds.tcgbridge*.log`) and TCG Bridge's log if the code walk does not find it.
 3. Fix every cause found; the app shows the link state plainly on the Stream Deck plugin connection (59.6) and in the status pill when the plugin is installed but not linked.
