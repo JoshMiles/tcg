@@ -21,6 +21,7 @@ import { Logger, redact } from '../src/log';
 import { MixItUpClient } from '../src/mixitup';
 import { cleanObsAddress, isOverlayUrl, ObsWatcher } from '../src/obs';
 import { checkObs, sendTestChat, testMixItUp, TEST_CHAT_MESSAGE } from '../src/selftest';
+import { checklistChecks } from './check-checklist';
 import { BridgeService } from '../src/service';
 import { cleanStaffAction, StaffTools } from '../src/staff';
 import { defaults, FileSettingsStore } from '../src/settings';
@@ -1036,6 +1037,8 @@ async function main() {
     await assert.rejects(new StaffTools({ ...quiet, client: new SiteClient(s.url, 'wrong', '0.10.0') }).run({ op: 'state' }), /Pair again/);
     s.server.close();
   }
+
+  await checklistChecks();
 
   miSrv.server.close();
   siSrv.server.close();

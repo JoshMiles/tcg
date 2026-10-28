@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { bridgeGuard, setFeedOn, storeObs } from '@/lib/bridge';
 import { noteUptime } from '@/lib/bridge-uptime';
+import { storeChecklist } from '@/lib/bridge-checklist';
 import { setLiveFromBridge } from '@/lib/twitch-live';
 import { cleanObs } from '@/lib/bridge-core';
 import { overlayWatchdog } from '@/lib/overlay-watchdog';
@@ -31,5 +32,6 @@ export async function POST(req: Request) {
     await setFeedOn(body.on);
     return NextResponse.json({ ok: true });
   }
-  return NextResponse.json({ error: 'Send { type: "stream", live }, { type: "obs", connected, scene, overlay }, { type: "mix", found } or { type: "feed", on }.' }, { status: 400 });
+  if (body?.type === 'checklist' && (await storeChecklist(body))) return NextResponse.json({ ok: true }); // the pre-stream checklist's result (57.1)
+  return NextResponse.json({ error: 'Send { type: "stream", live }, { type: "obs", connected, scene, overlay }, { type: "mix", found }, { type: "feed", on } or { type: "checklist", lines }.' }, { status: 400 });
 }

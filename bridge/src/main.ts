@@ -14,6 +14,7 @@ import { defaultMixItUpPath, defaultObsPath, isMixItUpExe, isObsExe, obsRunning,
 import { Logger } from './log';
 import { MixItUpClient } from './mixitup';
 import { cleanObsAddress, ObsWatcher } from './obs';
+import { runChecklist, type ChecklistResult } from './checklist';
 import { checkObs, sendTestChat, testMixItUp, type TestResult } from './selftest';
 import { BridgeService, type TrayLevel } from './service';
 import { cleanNotice, NOTICE_KINDS, type NoticeKind } from './notices';
@@ -59,6 +60,7 @@ let staff = false; // the site says an admin switched "Staff tools on this PC" o
 let tradingPaused = false;
 let staffTools: StaffTools | null = null;
 let lastControl = ''; // what the last button, hotkey or switch got
+let lastChecklist: (ChecklistResult & { at: number }) | null = null; // the last pre-stream checklist (57.1)
 let queueRows: QueueRow[] = [];
 let queueAt = 0;
 let menuFor = '';
@@ -93,6 +95,7 @@ const appState = (): object => demoState ?? ({
   mixItUp: { startWithBridge: settings.startMixItUp, path: settings.mixItUpPath || defaultMixItUpPath() },
   tools: { feed: settings.feed, summary: settings.summary, startObs: settings.startObs, obsPath: settings.obsPath || defaultObsPath() },
   staff,
+  checklist: lastChecklist,
   notices: settings.notices,
   control: { error: control?.error ?? '', paused, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
   appVersion: app.getVersion(),
@@ -184,6 +187,7 @@ async function disconnect(): Promise<void> {
   service = null;
   client = null;
   paused = null;
+  lastChecklist = null;
   buffs = [];
   staff = false;
   tradingPaused = false;
@@ -354,6 +358,7 @@ async function setTrading(pause: boolean): Promise<{ ok: boolean; text: string }
 
 const trayMenu = () => Menu.buildFromTemplate([
   { label: 'Open TCG Bridge', click: showWindow },
+  { label: 'Checklist', enabled: !!client, click: () => { void checklist().then(r => { if (Notification.isSupported()) new Notification({ title: 'Pre-stream checklist', body: r.text }).show(); }); } },
   { label: 'Pause pulls', type: 'checkbox', checked: !!paused, enabled: !!client, click: () => { void runControl({ action: 'pause' }); } },
   ...staffMenu(),
   { label: 'Quit', click: () => app.quit() },
@@ -408,6 +413,19 @@ function setupUpdates(): void {
 }
 
 const asText = (r: TestResult) => ({ ok: r.ok, text: r.text });
+
+/** The pre-stream checklist (ROADMAP 57.1): looks at every part, keeps the result for the window and tells the site. Changes nothing. */
+async function checklist(): Promise<TestResult> {
+  const c = client;
+  const svc = service;
+  if (!c || !svc) return { ok: false, text: 'Pair TCG Bridge first' };
+  const r = await runChecklist({ mix: new MixItUpClient(), channel: svc.state.channel, currencyId: svc.state.currencyId, facts: () => c.checklistFacts(), obsEnabled: settings.obsEnabled, obsCheck: () => svc.obs.checkNow() });
+  lastChecklist = { ...r, at: Date.now() };
+  log(`Checklist: ${r.summary} ${r.lines.filter(l => l.tone === 'bad').map(l => l.label).join(', ')}`.trim());
+  push();
+  void c.report({ type: 'checklist', lines: r.lines }).catch(e => log(`Checklist report failed: ${e instanceof Error ? e.message : 'unknown error'}`));
+  return { ok: r.ready, text: r.summary };
+}
 
 function setupIpc(): void {
   ipcMain.handle('state', () => appState());
@@ -508,6 +526,7 @@ function setupIpc(): void {
   // ── Self-tests ──
   ipcMain.handle('test-mix', async (_e, name: string) => asText(await testMixItUp(new MixItUpClient(), String(name), service?.state.currencyId ?? '')));
   ipcMain.handle('test-chat', async () => asText(await sendTestChat(new MixItUpClient())));
+  ipcMain.handle('checklist', async () => asText(await checklist()));
   ipcMain.handle('test-obs', async () => asText(service ? await checkObs(service.obs) : { ok: false, text: 'Pair TCG Bridge first' }));
 
   // ── Mix It Up: start it, choose where it is ──

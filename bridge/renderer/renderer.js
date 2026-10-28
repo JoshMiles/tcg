@@ -40,6 +40,25 @@ function renderObs(obs, saved) {
   $('obs-overlay').textContent = up ? overlayText(obs.overlay, obs.scene) : '-';
 }
 
+// The pre-stream checklist (57.1): one line per check, a dot for green, red or grey.
+const CHECK_DOT = { ok: 'ok', bad: '', muted: 'off' };
+function renderChecklist(c) {
+  setDot('checklist-dot', c ? (c.ready ? 'ok' : '') : 'off');
+  $('checklist-state').textContent = c ? `${c.summary} (${ago(c.at)})` : 'Not run yet';
+  $('checklist-lines').replaceChildren(...(c ? c.lines : []).map(l => {
+    const li = document.createElement('li');
+    const dot = document.createElement('span');
+    dot.className = 'dot' + (CHECK_DOT[l.tone] ? ' ' + CHECK_DOT[l.tone] : '');
+    const label = document.createElement('strong');
+    label.textContent = l.label;
+    const text = document.createElement('span');
+    text.textContent = l.text;
+    li.append(dot, label, text);
+    return li;
+  }));
+}
+setInterval(() => { if (state) renderChecklist(state.checklist); }, 15_000); // keeps "N seconds ago" honest
+
 const HOTKEYS = ['refresh', 'pause', 'lastBuff'];
 let hotkeysFilled = false;
 let buttonsKey = '';
@@ -159,6 +178,7 @@ function render() {
     if (!$('test-name').value) $('test-name').value = svc.channel.toLowerCase();
   }
   renderObs(svc && svc.obs, state.obsSettings);
+  renderChecklist(state.checklist);
   const jobs = svc ? svc.jobs : [];
   $('no-jobs').hidden = jobs.length > 0;
   $('jobs').hidden = jobs.length === 0;
@@ -249,6 +269,13 @@ function action(buttonId, resultId, call) {
 action('test-mix', 'test-mix-result', () => window.bridge.testMixItUp($('test-name').value));
 action('test-chat', 'test-chat-result', () => window.bridge.testChat());
 action('test-obs', 'test-obs-result', () => window.bridge.testObs());
+$('checklist-run').addEventListener('click', async () => {
+  $('checklist-run').disabled = true;
+  $('checklist-state').textContent = 'Checking...';
+  try { await window.bridge.runChecklist(); } catch { /* the state comes back through onState */ }
+  $('checklist-run').disabled = false;
+  if (state) renderChecklist(state.checklist);
+});
 action('mix-start', 'mix-start-result', () => window.bridge.startMixItUp());
 action('mix-choose', 'mix-start-result', () => window.bridge.chooseMixItUp());
 action('obs-choose', 'obs-choose-result', () => window.bridge.chooseObsExe());

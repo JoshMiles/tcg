@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('bridge', {
   testMixItUp: (name: string): Result => ipcRenderer.invoke('test-mix', String(name)),
   testChat: (): Result => ipcRenderer.invoke('test-chat'),
   testObs: (): Result => ipcRenderer.invoke('test-obs'),
+  runChecklist: (): Result => ipcRenderer.invoke('checklist'),
   startMixItUp: (): Result => ipcRenderer.invoke('start-mix'),
   chooseMixItUp: (): Result => ipcRenderer.invoke('choose-mix'),
   setStartMixItUp: (on: boolean): Promise<void> => ipcRenderer.invoke('start-mix-with-bridge', !!on),
