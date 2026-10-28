@@ -317,7 +317,7 @@ async function recheckRole(hash: string, pc: BridgeToken, now = Date.now()): Pro
   pc.role = role;
   pc.roleCheckedAt = now;
   // An unlink while the role was being read must stay an unlink. shortcut: a revoke between this check and the write still slips through, as in touchBridge.
-  if (!(await kv.hexists(TOKENS, hash))) return false;
+  if (!(await kv.hget(TOKENS, hash))) return false;
   await kv.hset(TOKENS, { [hash]: pc });
   return true;
 }
