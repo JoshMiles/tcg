@@ -164,6 +164,30 @@ export async function deckChecks(): Promise<void> {
   assert.equal(HOLD_MS, 1000);
   assert.equal(SKIP_MS, 3000);
 
+  // ── The 61.2 queue keys: Skip next pull, Clear queue (hold), Pulls waiting ──
+  assert.deepEqual(parseRequest({ what: 'clear-queue' }), { what: 'clear-queue' });
+  assert.deepEqual(toAction({ what: 'clear-queue' }), { action: 'clear-queue' }, 'the same action as the Control tab and the tray, so refunds are the app path as today');
+  assert.equal(toStaff({ what: 'clear-queue' }), null);
+  assert.equal(ACTION_KIND['tv.cheesygidds.tcgbridge.skip'], 'skip');
+  assert.equal(ACTION_KIND['tv.cheesygidds.tcgbridge.clear-queue'], 'clear-queue');
+  assert.equal(ACTION_KIND['tv.cheesygidds.tcgbridge.queue'], 'queue');
+  assert.equal(view('skip', state(), {}, now).title, 'Skip\nnext pull');
+  assert.equal(view('clear-queue', state(), {}, now).title, 'Clear\nqueue');
+  assert.equal(view('queue', state({ stats: { queue: 5 } }), {}, now).title, 'Waiting\n5');
+  assert.equal(view('queue', state({ stats: { queue: 0 } }), {}, now).title, 'Waiting\n0');
+  assert.equal(view('queue', state(), {}, now).title, 'Waiting\n-', 'before the app has said');
+  for (const k of ['skip', 'clear-queue', 'queue'] as const) {
+    assert.match(view(k, null, {}, now).title, /App closed/);
+    assert.match(view(k, state({ ready: false }), {}, now).title, /Not paired/);
+    for (const line of view(k, state({ stats: { queue: 12 } }), {}, now).title.split('\n')) assert.ok(line.length <= 10, `"${line}" fits a key`);
+  }
+  assert.deepEqual(requestFor('skip', {}), { what: 'skip' });
+  assert.deepEqual(requestFor('clear-queue', {}), { what: 'clear-queue' });
+  assert.equal(requestFor('queue', {}), null, 'a press on the count asks for nothing');
+  // The count is polled from the app, at most every 5 seconds, and only while a Pulls waiting (or Queue stat) key is on a deck: the plugin has no timer of its own for it.
+  assert.match(readFileSync(join(__dirname, '..', 'src', 'main.ts'), 'utf8'), /const STATS_MS = 5000;/, 'the app asks the site for the queue count at most every 5 seconds');
+  assert.doesNotMatch(readFileSync(join(__dirname, '..', '..', 'streamdeck', 'src', 'controller.ts'), 'utf8'), /setInterval/, 'the keys poll nothing themselves');
+
   // ── Test pull and Show a card are staff actions: refused with a reason, and logged, on a PC that is not a staff PC ──
   const staffLog: string[] = [];
   const staffRan: Record<string, unknown>[] = [];
@@ -363,6 +387,37 @@ export async function deckChecks(): Promise<void> {
     assert.equal(x.packs.alerts + x.goal.alerts, 0);
     for (const id of ['k-queue', 'k-packs', 'k-goal']) keys.remove(id);
     await until('no stats wanted', () => server.wanted.length === 0);
+
+    // Queue keys: Skip next pull is one press; Clear queue only after a hold of a second, a short press shows the hint; Pulls waiting wants the queue stat and does nothing when pressed.
+    const q = { skip: new FakeKey(), clear: new FakeKey(), count: new FakeKey() };
+    keys.add('k-skip', 'skip', q.skip, {});
+    keys.add('k-clear', 'clear-queue', q.clear, {});
+    keys.add('k-count', 'queue', q.count, {});
+    await until('the waiting count to be wanted', () => server.wanted.join() === 'queue');
+    keys.add('k-count2', 'queue', new FakeKey(), {});
+    keys.remove('k-count2');
+    await until('the count key still on a deck', () => server.wanted.join() === 'queue');
+    calls.length = 0;
+    await keys.down('k-skip');
+    assert.deepEqual(calls, [{ action: 'skip' }], 'one press skips the next pull');
+    assert.equal(q.skip.oks, 1);
+    await keys.down('k-clear'); clockNow += 200; await keys.up('k-clear');
+    assert.deepEqual(calls, [{ action: 'skip' }], 'a short press does not clear the queue');
+    assert.equal(q.clear.title, 'Hold 1 second\nto clear');
+    assert.equal(q.clear.alerts, 1);
+    clockNow += 2100;
+    await keys.down('k-clear'); clockNow += HOLD_MS - 1; await keys.up('k-clear');
+    assert.equal(calls.length, 1, 'just under a second does not clear it');
+    await keys.down('k-clear'); clockNow += HOLD_MS; await keys.up('k-clear');
+    assert.deepEqual(calls, [{ action: 'skip' }, { action: 'clear-queue' }], 'a hold of a second clears it');
+    assert.equal(q.clear.oks, 1);
+    await keys.down('k-count'); await keys.up('k-count');
+    assert.equal(calls.length, 2, 'the count key does nothing when pressed');
+    current = state({ stats: { queue: 6 } });
+    server.broadcast();
+    await until('the waiting count to show', () => q.count.title === 'Waiting\n6');
+    for (const id of ['k-skip', 'k-clear', 'k-count']) keys.remove(id);
+    await until('no stats wanted after the queue keys', () => server.wanted.length === 0);
 
     // The app closing turns every key back to "App closed", and the plugin finds it again when it returns.
     await server.stop();

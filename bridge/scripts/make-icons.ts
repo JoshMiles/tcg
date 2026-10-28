@@ -37,7 +37,7 @@ const both = (path: string, make: (size: number) => Buffer, size: number) => {
 };
 both('plugin/icon', s => png(svg(), s), 256);
 both('plugin/category', s => png(svg(), s), 28);
-for (const [file, glyph] of [['buff', 'buff'], ['last-buff', 'last-buff'], ['pause', 'pause'], ['happy-hour', 'happy'], ['test-pull', 'test-pull'], ['show-card', 'show-card'], ['stat', 'stat']] as const) {
+for (const [file, glyph] of [['buff', 'buff'], ['last-buff', 'last-buff'], ['pause', 'pause'], ['happy-hour', 'happy'], ['test-pull', 'test-pull'], ['show-card', 'show-card'], ['stat', 'stat'], ['skip', 'skip'], ['clear-queue', 'clear-queue'], ['queue', 'queue']] as const) {
   both(`actions/${file}`, s => png(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144" width="${s}" height="${s}"><g fill="#fff" stroke="#fff" stroke-width="0">${GLYPHS[glyph]}</g></svg>`, s), 20);
 }
 console.log('Icons written');

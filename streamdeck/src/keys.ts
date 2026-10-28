@@ -2,7 +2,7 @@
 // its own: it draws the state the app pushed and sends the app a request.
 import { DECK_STATS, type DeckRequest, type DeckState, type DeckStatKind } from './protocol';
 
-export type KeyKind = 'buff' | 'last-buff' | 'pause' | 'happy' | 'test-pull' | 'show-card' | 'stat';
+export type KeyKind = 'buff' | 'last-buff' | 'pause' | 'happy' | 'test-pull' | 'show-card' | 'stat' | 'skip' | 'clear-queue' | 'queue';
 
 /** The action UUIDs in manifest.json. */
 export const ACTION_KIND: Record<string, KeyKind> = {
@@ -13,10 +13,13 @@ export const ACTION_KIND: Record<string, KeyKind> = {
   'tv.cheesygidds.tcgbridge.test-pull': 'test-pull',
   'tv.cheesygidds.tcgbridge.show-card': 'show-card',
   'tv.cheesygidds.tcgbridge.stat': 'stat',
+  'tv.cheesygidds.tcgbridge.skip': 'skip',
+  'tv.cheesygidds.tcgbridge.clear-queue': 'clear-queue',
+  'tv.cheesygidds.tcgbridge.queue': 'queue',
 };
 
 export type Settings = Record<string, unknown>;
-/** How long a press must be held to end a running happy hour. */
+/** How long a press must be held to end a running happy hour or to clear the queue. */
 export const HOLD_MS = 1000;
 /** A Queue key skips the next pull only when it is pressed again within this long. */
 export const SKIP_MS = 3000;
@@ -69,6 +72,9 @@ export const GLYPHS: Record<KeyKind | 'play', string> = {
   'test-pull': '<rect x="38" y="20" width="68" height="104" rx="8" fill="none" stroke-width="9"/><polyline points="56,74 68,88 92,56" fill="none" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>',
   'show-card': '<rect x="24" y="32" width="58" height="86" rx="8" fill="none" stroke-width="9"/><rect x="62" y="26" width="58" height="86" rx="8" fill="#0a0f21" stroke-width="9"/>',
   stat: '<rect x="30" y="76" width="26" height="42" rx="4"/><rect x="59" y="48" width="26" height="70" rx="4"/><rect x="88" y="26" width="26" height="92" rx="4"/>',
+  skip: '<polygon points="28,28 94,72 28,116"/><rect x="104" y="28" width="14" height="88" rx="3"/>',
+  'clear-queue': '<rect x="30" y="40" width="84" height="12" rx="4"/><rect x="56" y="26" width="32" height="14" rx="3"/><path d="M42 62h60l-5 56H47z" fill="none" stroke-width="9" stroke-linejoin="round"/>',
+  queue: '<rect x="26" y="34" width="92" height="14" rx="4"/><rect x="26" y="65" width="92" height="14" rx="4"/><rect x="26" y="96" width="60" height="14" rx="4"/>',
 };
 
 /** A key image as an SVG data URI: a dark tile with one glyph, no text (the title is the key's own text). */
@@ -109,6 +115,9 @@ export function view(kind: KeyKind, state: DeckState | null, s: Settings, now: n
       return { title: who ? `Show card\n${who}` : 'Name a viewer', image: icon('show-card', who ? 'idle' : 'off') };
     }
     case 'stat': return statView(statOf(s), state.stats);
+    case 'skip': return { title: 'Skip\nnext pull', image: icon('skip', 'idle') };
+    case 'clear-queue': return { title: 'Clear\nqueue', image: icon('clear-queue', 'idle') };
+    case 'queue': { const n = state.stats.queue; return { title: `Waiting\n${n ?? '-'}`, image: icon('queue', n ? 'on' : 'idle') }; }
   }
 }
 
@@ -135,5 +144,8 @@ export function requestFor(kind: KeyKind, s: Settings): DeckRequest | null {
     case 'test-pull': return { what: 'test-pull' };
     case 'show-card': { const username = viewerOf(s); return username ? { what: 'show-card', username } : null; }
     case 'stat': return statOf(s) === 'queue' ? { what: 'skip' } : null; // the other stats do nothing on a press
+    case 'skip': return { what: 'skip' };
+    case 'clear-queue': return { what: 'clear-queue' }; // only sent after a 1 second hold (controller.ts)
+    case 'queue': return null; // shows a number; a press does nothing
   }
 }

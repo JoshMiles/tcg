@@ -39,6 +39,7 @@ export function deckStats(f: StatFacts | null): DeckStats {
 export function toAction(r: DeckRequest): ControlAction | null {
   switch (r.what) {
     case 'skip': return { action: 'skip' };
+    case 'clear-queue': return { action: 'clear-queue' };
     case 'test-pull':
     case 'show-card': return null;
     case 'buff': return { action: 'buff', id: r.id };
