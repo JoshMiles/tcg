@@ -37,7 +37,7 @@ export function PackPanel({ packId, pack, base, onChange, seasons, overrideCount
         <Field label="Draw weight" htmlFor="pw-weight" help="Relative chance this pack is the one drawn.">
           <NumberInput id="pw-weight" value={pack.weight} min={0.01} onChange={n => onChange({ weight: n }, 'weight')} />
         </Field>
-        <Field label="Price per paid pull" htmlFor="pw-price" help="A whole number from 1, in the Mix It Up currency. Empty = no price of its own (a role price or the base price applies). Used when a viewer asks for this pack by name with !pack.">
+        <Field label="Price per paid pull" htmlFor="pw-price" help="A whole number from 1, in the Mix It Up currency. Empty = no price of its own (a role price or the base price applies). Charged for every paid pull that opens this pack.">
           <input id="pw-price" className={inputCls} type="number" min={1} step={1} placeholder="Base price" value={pack.price ? String(pack.price) : ''}
             onChange={e => { const n = Math.floor(Number(e.target.value)); onChange({ price: e.target.value.trim() !== '' && Number.isFinite(n) && n >= 1 ? n : 0 }, 'price'); }} />
         </Field>
