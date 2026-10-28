@@ -857,12 +857,13 @@ async function main() {
     s.event({ type: 'available', version: '0.6.0' }, 100);
     st = s.event({ type: 'error' }, 3000);
     assert.deepEqual([st.phase, st.handover, st.install, st.note], ['starting', true, false, DOWNLOAD_NOTE]);
+    assert.deepEqual(st.update, { stage: 'available', version: '0.6.0' }, 'the restart button stays on offer');
     // a download that goes quiet for 30 s is given up on too
     s = new Startup(0);
     s.event({ type: 'available', version: '0.6.0' }, 100);
     s.event({ type: 'progress', percent: 10 }, 5000);
     assert.equal(s.tick(34_999).handover, false);
-    assert.deepEqual([s.tick(35_000).handover, s.step.note], [true, DOWNLOAD_NOTE]);
+    assert.deepEqual([s.tick(35_000).handover, s.step.note, s.step.update.stage], [true, DOWNLOAD_NOTE, 'available']);
     // an update found at start-up leaves the running stage alone: the app restarts into the installer instead
     s = new Startup(0);
     s.event({ type: 'checking' }, 0);

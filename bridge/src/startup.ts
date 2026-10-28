@@ -92,7 +92,7 @@ export class Startup {
 
   private giveUp(note: string): void {
     this.note = note;
-    this.update = { stage: 'idle' };
+    this.update = this.version ? { stage: 'available', version: this.version } : { stage: 'idle' }; // a failed download keeps Restart to update on offer
     this.start();
   }
 }
