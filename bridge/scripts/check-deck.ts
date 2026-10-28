@@ -1,4 +1,4 @@
-// The Stream Deck plugin link (ROADMAP 57.13a): the token and the 127.0.0.1-only refusals, the message shapes, the install helpers, the version match with the plugin
+// The Stream Deck plugin link (ROADMAP 57.13): the token and the 127.0.0.1-only refusals, the message shapes, the install helpers, the version match with the plugin
 // manifest, and the plugin's own link and key logic (streamdeck/src, no Stream Deck SDK) driven against the real server with a fake Stream Deck. Run with the rest: npm run check.
 import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
@@ -6,17 +6,18 @@ import { networkInterfaces, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import WebSocket from 'ws';
 import type { ControlAction } from '../src/control';
-import { DeckServer, toAction } from '../src/deck';
+import { DeckServer, deckStats, runStaffKey, toAction, toStaff } from '../src/deck';
+import { statsPlan, noStatMap } from '../src/obsstats';
 import { manifestVersion, installedPluginVersion, pluginOutdated, streamDeckAppFound, type DeckEnv, PLUGIN_UUID } from '../src/deckinstall';
 import { CLOSE_REFUSED, parseClient, parseLinkFile, parseRequest, parseServer, type DeckState } from '../src/deckprotocol';
 import { versionProblems } from './check-version';
 import { Keys, type KeyHandle } from '../../streamdeck/src/controller';
-import { ACTION_KIND, HOLD_MS, happyStart, requestFor, view } from '../../streamdeck/src/keys';
+import { ACTION_KIND, HOLD_MS, SKIP_MS, happyStart, requestFor, view } from '../../streamdeck/src/keys';
 import { BridgeLink, type Socket } from '../../streamdeck/src/link';
 
 const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 const until = async (what: string, ok: () => boolean) => { for (let i = 0; i < 200 && !ok(); i++) await wait(10); assert.ok(ok(), `timed out waiting for ${what}`); };
-const state = (over: Partial<DeckState> = {}): DeckState => ({ ready: true, paused: false, reason: '', happy: null, buffs: [{ id: 'b1', name: 'Speed up' }], ...over });
+const state = (over: Partial<DeckState> = {}): DeckState => ({ ready: true, paused: false, reason: '', happy: null, buffs: [{ id: 'b1', name: 'Speed up' }], stats: {}, ...over });
 
 /** A raw client: what it was sent and how it closed (or why it was never let in). */
 function client(url: string, opts: WebSocket.ClientOptions = {}) {
@@ -84,6 +85,37 @@ export async function deckChecks(): Promise<void> {
   assert.deepEqual(toAction({ what: 'happy-start', minutes: 15, kind: 'free', percent: 0 }), { action: 'happy-hour-start', minutes: 15, kind: 'free' });
   assert.deepEqual(toAction({ what: 'happy-end' }), { action: 'happy-hour-end' });
 
+  // ── The 57.13b messages: Test pull, Show a card, skip, the visible-stats list, the stats in the state ──
+  assert.deepEqual(parseRequest({ what: 'test-pull' }), { what: 'test-pull' });
+  assert.deepEqual(parseRequest({ what: 'skip' }), { what: 'skip' });
+  assert.deepEqual(parseRequest({ what: 'show-card', username: 'cheesy_1' }), { what: 'show-card', username: 'cheesy_1' });
+  assert.equal(parseRequest({ what: 'show-card' }), null, 'a card needs a viewer');
+  assert.equal(parseRequest({ what: 'show-card', username: '' }), null);
+  assert.equal(parseRequest({ what: 'show-card', username: 5 }), null);
+  assert.deepEqual(parseClient(JSON.stringify({ t: 'stats', want: ['packs', 'nope', 'queue', 'queue'] })), { t: 'stats', want: ['queue', 'packs'] }, 'only known stats, once each');
+  assert.deepEqual(parseClient(JSON.stringify({ t: 'stats', want: [] })), { t: 'stats', want: [] });
+  assert.equal(parseClient(JSON.stringify({ t: 'stats' })), null, 'a stats message needs a list');
+  assert.equal(parseClient(JSON.stringify({ t: 'stats', want: 'queue' })), null);
+  const withStats = parseServer(JSON.stringify({ t: 'state', state: { ...state(), stats: { queue: 3, packs: 12, goal: null, junk: 1 } } }));
+  assert.deepEqual(withStats?.t === 'state' ? withStats.state.stats : null, { queue: 3, packs: 12, goal: null }, 'the stats are rebuilt field by field');
+  const oldApp = parseServer(JSON.stringify({ t: 'state', state: { ready: true, paused: false, reason: '', happy: null, buffs: [] } }));
+  assert.deepEqual(oldApp?.t === 'state' ? oldApp.state.stats : null, {}, 'a state from an app without stats still parses');
+  assert.deepEqual(toAction({ what: 'skip' }), { action: 'skip' });
+  assert.equal(toAction({ what: 'test-pull' }), null, 'a test pull is a staff action, not a control action');
+  assert.deepEqual(toStaff({ what: 'test-pull' }), { action: 'test-pull' });
+  assert.deepEqual(toStaff({ what: 'show-card', username: 'cheesy_1' }), { action: 'show-card', username: 'cheesy_1' });
+  assert.equal(toStaff({ what: 'skip' }), null);
+  assert.deepEqual(deckStats({ queue: 2, packs: 0, goal: 'Goal: 3 / 50', lastBig: null }), { queue: 2, packs: 0, goal: 'Goal: 3 / 50' });
+  assert.deepEqual(deckStats(null), {});
+
+  // ── Asking the site for stats: only while OBS has a mapped stat or a Stat key is on a deck ──
+  const none = noStatMap();
+  assert.deepEqual(statsPlan(none, true, []), { poll: false, obs: false, ask: [] }, 'nothing mapped, no Stat key: no polling');
+  assert.equal(statsPlan({ ...none, queue: 'Q' }, false, []).poll, false, 'a mapped stat with OBS down: no polling');
+  assert.deepEqual(statsPlan({ ...none, queue: 'Q' }, true, []), { poll: true, obs: true, ask: ['queue'] });
+  assert.deepEqual(statsPlan(none, false, ['packs', 'queue']), { poll: true, obs: false, ask: ['packs', 'queue'] }, 'a Stat key alone polls, and OBS is not written');
+  assert.deepEqual(statsPlan({ ...none, queue: 'Q', goal: 'G' }, true, ['queue', 'packs']).ask, ['packs', 'goal', 'queue'], 'the OBS and the deck stats are asked for once each');
+
   // ── Install helpers, on a fake PC ──
   const files = new Map<string, string>();
   const env = (programFiles = ['C:\\PF']): DeckEnv => ({ programFiles, appData: 'C:\\AD', exists: p => files.has(p), read: p => files.get(p) ?? '' });
@@ -113,6 +145,34 @@ export async function deckChecks(): Promise<void> {
   assert.deepEqual(happyStart({ preset: 'custom', minutes: 9999, kind: 'discount', percent: 0 }), { what: 'happy-start', minutes: 240, kind: 'discount', percent: 1 }, 'custom values are kept in range');
   assert.equal(requestFor('buff', {}), null, 'no buff picked = nothing to ask for');
   assert.deepEqual(requestFor('last-buff', {}), { what: 'last-buff' });
+  assert.equal(view('test-pull', state(), {}, now).title, 'Test pull');
+  assert.deepEqual(requestFor('test-pull', {}), { what: 'test-pull' });
+  assert.equal(view('show-card', state(), { viewer: '@Cheesy_1' }, now).title, 'Show card\ncheesy_1');
+  assert.equal(view('show-card', state(), {}, now).title, 'Name a viewer');
+  assert.equal(requestFor('show-card', {}), null, 'no viewer named = nothing to ask for');
+  assert.equal(requestFor('show-card', { viewer: 'x' }), null, 'a name that cannot be a Twitch login is not sent');
+  assert.deepEqual(requestFor('show-card', { viewer: ' @Cheesy_1 ' }), { what: 'show-card', username: 'cheesy_1' });
+  assert.equal(view('stat', state({ stats: { queue: 4 } }), { stat: 'queue' }, now).title, 'Queue\n4');
+  assert.equal(view('stat', state(), { stat: 'queue' }, now).title, 'Queue\n-', 'before the site has said');
+  assert.equal(view('stat', state({ stats: { packs: 12 } }), { stat: 'packs' }, now).title, 'Packs\n12');
+  assert.equal(view('stat', state({ stats: { goal: 'Pack goal: 37 / 50' } }), { stat: 'goal' }, now).title, 'Pack goal\n37 / 50');
+  assert.equal(view('stat', state({ stats: { goal: null } }), { stat: 'goal' }, now).title, 'Goal\nnone set');
+  assert.equal(view('stat', state(), {}, now).title, 'Pick a stat');
+  assert.match(view('stat', null, { stat: 'queue' }, now).title, /App closed/);
+  assert.deepEqual(requestFor('stat', { stat: 'queue' }), { what: 'skip' });
+  assert.equal(requestFor('stat', { stat: 'packs' }), null, 'only the queue key asks for anything');
+  assert.equal(HOLD_MS, 1000);
+  assert.equal(SKIP_MS, 3000);
+
+  // ── Test pull and Show a card are staff actions: refused with a reason, and logged, on a PC that is not a staff PC ──
+  const staffLog: string[] = [];
+  const staffRan: Record<string, unknown>[] = [];
+  const tools = { run: async (req: Record<string, unknown>) => { staffRan.push(req); return { ok: true, text: 'Queued' }; } };
+  assert.deepEqual(await runStaffKey(tools, false, { action: 'test-pull' }, l => staffLog.push(l)), { ok: false, text: 'Staff tools are off for this PC' });
+  assert.deepEqual(await runStaffKey(null, true, { action: 'show-card', username: 'a_b' }, l => staffLog.push(l)), { ok: false, text: 'Staff tools are off for this PC' });
+  assert.deepEqual(staffRan, [], 'nothing reaches the site without staff tools');
+  assert.deepEqual(staffLog, ['Staff: test-pull (Stream Deck key): refused, Staff tools are off for this PC', 'Staff: show-card (Stream Deck key): refused, Staff tools are off for this PC']);
+  assert.deepEqual(await runStaffKey({ run: async () => { throw new Error('boom'); } }, true, { action: 'test-pull' }, () => undefined), { ok: false, text: 'boom' });
 
   // ── The server: token, loopback only ──
   const dir = mkdtempSync(join(tmpdir(), 'tcg-deck-'));
@@ -122,9 +182,13 @@ export async function deckChecks(): Promise<void> {
   let current = state();
   const logs: string[] = [];
   let changes = 0;
+  const staffRuns: Record<string, unknown>[] = [];
+  let staffOn = false;
+  const staffTools = { run: async (req: Record<string, unknown>) => { staffRuns.push(req); return { ok: true, text: 'Queued' }; } };
   const server = new DeckServer({
     file, version: '9.9.9', state: () => current, ports: [0], helloMs: 150, log: l => logs.push(l), onChange: () => { changes++; },
     run: async a => { calls.push(a); return refuse ? { ok: false, text: 'Pulls are not open' } : { ok: true, text: 'Done' }; },
+    staff: body => runStaffKey(staffTools, staffOn, body, l => logs.push(l)),
   });
   await server.start();
   try {
@@ -231,6 +295,75 @@ export async function deckChecks(): Promise<void> {
     await keys.down('k-happy'); clockNow += HOLD_MS; await keys.up('k-happy');
     assert.deepEqual(calls, [{ action: 'happy-hour-end' }], 'a hold of a second ends it');
 
+    // Test pull and Show a card: a PC that is not a staff PC refuses, the key shows its alert and the log says why.
+    const x = { test: new FakeKey(), card: new FakeKey(), nocard: new FakeKey(), queue: new FakeKey(), packs: new FakeKey(), goal: new FakeKey() };
+    keys.add('k-test', 'test-pull', x.test, {});
+    keys.add('k-card', 'show-card', x.card, { viewer: '@Cheesy_1' });
+    keys.add('k-nocard', 'show-card', x.nocard, {});
+    calls.length = 0;
+    await keys.down('k-test');
+    await keys.down('k-card');
+    assert.equal(x.test.alerts, 1, 'a test pull from a PC without staff tools shows the alert');
+    assert.equal(x.card.alerts, 1);
+    assert.deepEqual(staffRuns, [], 'nothing reached the site');
+    assert.ok(logs.includes('Staff: test-pull (Stream Deck key): refused, Staff tools are off for this PC'), 'the log says why');
+    assert.ok(logs.includes('Staff: show-card (Stream Deck key): refused, Staff tools are off for this PC'));
+    staffOn = true;
+    await keys.down('k-test');
+    await keys.down('k-card');
+    assert.deepEqual(staffRuns, [{ op: 'do', action: 'test-pull' }, { op: 'do', action: 'show-card', username: 'cheesy_1' }], 'a staff PC runs the same staff actions as the Preview overlay');
+    assert.equal(x.test.oks, 1);
+    assert.equal(x.card.oks, 1);
+    await keys.down('k-nocard');
+    assert.equal(x.nocard.alerts, 1, 'a Show a card key with no viewer named shows the alert');
+    assert.equal(staffRuns.length, 2, 'and asks for nothing');
+    assert.deepEqual(calls, [], 'the staff keys never run a control action');
+
+    // Stat keys: the app wants stats only while a Stat key is on a deck.
+    assert.deepEqual(server.wanted, [], 'no Stat key, no stats wanted');
+    assert.equal(statsPlan(noStatMap(), false, server.wanted).poll, false, 'so nothing is polled');
+    keys.add('k-queue', 'stat', x.queue, { stat: 'queue' });
+    await until('the queue stat to be wanted', () => server.wanted.join() === 'queue');
+    keys.add('k-packs', 'stat', x.packs, { stat: 'packs' });
+    await until('two stats to be wanted', () => server.wanted.join() === 'queue,packs');
+    assert.deepEqual(statsPlan(noStatMap(), false, server.wanted), { poll: true, obs: false, ask: ['packs', 'queue'] });
+    keys.setSettings('k-packs', { stat: 'goal' });
+    await until('the goal stat to be wanted', () => server.wanted.join() === 'queue,goal');
+    keys.remove('k-packs');
+    await until('the goal stat to be dropped', () => server.wanted.join() === 'queue');
+    keys.add('k-packs', 'stat', x.packs, { stat: 'packs' });
+    keys.add('k-goal', 'stat', x.goal, { stat: 'goal' });
+    await until('all three', () => server.wanted.join() === 'queue,packs,goal');
+    current = state({ stats: { queue: 4, packs: 12, goal: 'Pack goal: 37 / 50' } });
+    server.broadcast();
+    await until('the stats to show', () => x.queue.title === 'Queue\n4' && x.packs.title === 'Packs\n12' && x.goal.title === 'Pack goal\n37 / 50');
+
+    // A Queue key skips the next pull only on a second press within 3 seconds; the other stat keys do nothing on a press.
+    calls.length = 0;
+    await keys.down('k-queue');
+    assert.deepEqual(calls, [], 'the first press does not skip');
+    assert.equal(x.queue.title, 'Press again\nto skip');
+    clockNow += SKIP_MS - 1;
+    await keys.down('k-queue');
+    assert.deepEqual(calls, [{ action: 'skip' }], 'a second press inside 3 seconds skips');
+    assert.equal(x.queue.oks, 1);
+    calls.length = 0;
+    await keys.down('k-queue');
+    clockNow += SKIP_MS + 1;
+    await keys.down('k-queue');
+    assert.deepEqual(calls, [], 'a second press after 3 seconds only starts over');
+    await keys.down('k-queue');
+    assert.deepEqual(calls, [{ action: 'skip' }], 'and the next one skips');
+    calls.length = 0;
+    await keys.down('k-packs');
+    await keys.down('k-packs');
+    await keys.down('k-goal');
+    await keys.down('k-goal');
+    assert.deepEqual(calls, [], 'the packs and goal keys do nothing on a press');
+    assert.equal(x.packs.alerts + x.goal.alerts, 0);
+    for (const id of ['k-queue', 'k-packs', 'k-goal']) keys.remove(id);
+    await until('no stats wanted', () => server.wanted.length === 0);
+
     // The app closing turns every key back to "App closed", and the plugin finds it again when it returns.
     await server.stop();
     assert.equal(existsSync(file), false, 'stop removes streamdeck.json');
@@ -245,10 +378,10 @@ export async function deckChecks(): Promise<void> {
   assert.ok(changes > 0);
 
   // Every port taken: the app says so.
-  const blocker = new DeckServer({ file: join(tmpdir(), 'tcg-deck-blocker.json'), version: '1', state: () => state(), ports: [0], run: async () => ({ ok: true, text: '' }), onChange: () => undefined, log: () => undefined });
+  const blocker = new DeckServer({ file: join(tmpdir(), 'tcg-deck-blocker.json'), version: '1', state: () => state(), ports: [0], run: async () => ({ ok: true, text: '' }), staff: async () => ({ ok: true, text: '' }), onChange: () => undefined, log: () => undefined });
   await blocker.start();
   try {
-    const busy = new DeckServer({ file: join(tmpdir(), 'tcg-deck-busy.json'), version: '1', state: () => state(), ports: [blocker.listeningPort], run: async () => ({ ok: true, text: '' }), onChange: () => undefined, log: () => undefined });
+    const busy = new DeckServer({ file: join(tmpdir(), 'tcg-deck-busy.json'), version: '1', state: () => state(), ports: [blocker.listeningPort], run: async () => ({ ok: true, text: '' }), staff: async () => ({ ok: true, text: '' }), onChange: () => undefined, log: () => undefined });
     await busy.start();
     assert.match(busy.error, /are used by other programs/);
     assert.equal(existsSync(join(tmpdir(), 'tcg-deck-busy.json')), false, 'no file is written when nothing listens');

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Show a card</title>
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+<label for="viewer">Viewer (Twitch name)</label>
+<input id="viewer" type="text" maxlength="26" autocomplete="off" spellcheck="false" placeholder="for example cheesygidds">
+<div class="note">Press to show one of this viewer's cards on the overlay. The key needs a named viewer: the app does not know who pulled last, so there is no "last puller" option. Works on a staff PC only (switch it on in the admin site).</div>
+<script src="pi.js"></script>
+<script>
+const box = document.getElementById('viewer');
+onSettings = s => { if (document.activeElement !== box) box.value = typeof s.viewer === 'string' ? s.viewer : ''; };
+box.addEventListener('input', () => save({ viewer: box.value }));
+</script>
+</body>
+</html>

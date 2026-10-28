@@ -8,7 +8,10 @@ import type { AddressInfo } from 'node:net';
 import type { IncomingMessage } from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { same, type ControlAction, type ControlResult } from './control';
-import { CLOSE_REFUSED, DECK_HOST, DECK_PORTS, HELLO_MS, MAX_MESSAGE, PROTOCOL, parseClient, type DeckLinkFile, type DeckRequest, type DeckState, type ServerMessage } from './deckprotocol';
+import { Unauthorized } from './site';
+import type { StaffTools } from './staff';
+import { CLOSE_REFUSED, DECK_HOST, DECK_PORTS, DECK_STATS, HELLO_MS, MAX_MESSAGE, PROTOCOL, parseClient, type DeckLinkFile, type DeckRequest, type DeckState, type DeckStatKind, type DeckStats, type ServerMessage } from './deckprotocol';
+import type { StatFacts } from './obsstats';
 
 export interface DeckOptions {
   /** streamdeck.json: where the port and the token are written for the plugin. */
@@ -16,22 +19,52 @@ export interface DeckOptions {
   version: string;
   state: () => DeckState;
   run: (a: ControlAction) => Promise<ControlResult>;
+  /** Test pull and Show a card: one staff action (the body of StaffTools' `do`), refused with a reason on a PC that is not a staff PC. */
+  staff: (body: Record<string, unknown>) => Promise<ControlResult>;
   /** A client came or went. */
   onChange: () => void;
+  /** The set of stats the keys show changed (`wanted`). */
+  onWanted?: () => void;
   log: (line: string) => void;
   ports?: readonly number[];
   helloMs?: number;
 }
 
-/** A key's request as the action the Control tab and the tray run. */
-export function toAction(r: DeckRequest): ControlAction {
+/** The stats the Stat keys show, from what the site last said for the OBS text sources (57.4). */
+export function deckStats(f: StatFacts | null): DeckStats {
+  return { ...(typeof f?.queue === 'number' ? { queue: f.queue } : {}), ...(typeof f?.packs === 'number' ? { packs: f.packs } : {}), ...(f?.goal !== undefined ? { goal: f.goal } : {}) };
+}
+
+/** A key's request as the action the Control tab and the tray run; null for the two that are staff actions (toStaff). */
+export function toAction(r: DeckRequest): ControlAction | null {
   switch (r.what) {
+    case 'skip': return { action: 'skip' };
+    case 'test-pull':
+    case 'show-card': return null;
     case 'buff': return { action: 'buff', id: r.id };
     case 'last-buff': return { action: 'last-buff' };
     case 'pause': return { action: 'pause' };
     case 'happy-end': return { action: 'happy-hour-end' };
     case 'happy-start': return { action: 'happy-hour-start', minutes: r.minutes, kind: r.kind, ...(r.kind === 'discount' ? { percent: r.percent } : {}) };
   }
+}
+
+/** The staff action of Test pull and Show a card, the same bodies as the Preview overlay window sends (57.10); null for every other request. */
+export function toStaff(r: DeckRequest): Record<string, unknown> | null {
+  if (r.what === 'test-pull') return { action: 'test-pull' };
+  if (r.what === 'show-card') return { action: 'show-card', username: r.username };
+  return null;
+}
+
+/** A Test pull or Show a card key: the same staff action as the Preview overlay window, and only on a staff PC (else the key's alert, and the log says why). */
+export async function runStaffKey(tools: Pick<StaffTools, 'run'> | null, isStaff: boolean, body: Record<string, unknown>, log: (line: string) => void): Promise<ControlResult> {
+  let r: ControlResult;
+  if (!tools || !isStaff) r = { ok: false, text: 'Staff tools are off for this PC' };
+  else {
+    try { r = await tools.run({ op: 'do', ...body }); } catch (e) { r = { ok: false, text: e instanceof Unauthorized ? 'Pair again' : e instanceof Error ? e.message : 'Something went wrong' }; }
+  }
+  log(`Staff: ${String(body.action)} (Stream Deck key): ${r.ok ? 'ok' : 'refused'}, ${r.text}`);
+  return { ok: r.ok, text: r.text };
 }
 
 export class DeckServer {
@@ -42,10 +75,18 @@ export class DeckServer {
   private wss: WebSocketServer | null = null;
   private port = 0;
   private authed = new Set<WebSocket>();
+  /** What each plugin said its keys show. */
+  private wants = new Map<WebSocket, DeckStatKind[]>();
   private lastState = '';
   constructor(private o: DeckOptions) {}
 
   get listeningPort(): number { return this.port; }
+  /** The stats a Stat key on any connected deck shows now; the app asks the site for stats only while this is not empty. */
+  get wanted(): DeckStatKind[] {
+    const all = new Set<DeckStatKind>();
+    for (const w of this.wants.values()) for (const k of w) all.add(k);
+    return DECK_STATS.filter(k => all.has(k));
+  }
   /** At least one plugin has said hello with the token. */
   get connected(): boolean { return this.authed.size > 0; }
 
@@ -78,6 +119,9 @@ export class DeckServer {
     const had = this.authed.size > 0;
     for (const ws of this.authed) ws.terminate();
     this.authed.clear();
+    const hadWants = this.wants.size > 0;
+    this.wants.clear();
+    if (hadWants) this.o.onWanted?.();
     if (had) this.o.onChange();
     if (wss) await new Promise<void>(resolve => wss.close(() => resolve()));
   }
@@ -120,11 +164,22 @@ export class DeckServer {
         this.o.onChange();
         return;
       }
+      if (msg?.t === 'stats') {
+        if (msg.want.length) this.wants.set(ws, msg.want); else this.wants.delete(ws);
+        this.o.onWanted?.();
+        return;
+      }
       if (msg?.t !== 'do') return refuse();
       const n = msg.n;
-      this.o.run(toAction(msg.req)).catch(() => ({ ok: false, text: 'Something went wrong' })).then(r => send({ t: 'done', n, ok: r.ok, text: r.text.slice(0, 500) }));
+      const action = toAction(msg.req);
+      const job = action ? this.o.run(action) : this.o.staff(toStaff(msg.req) ?? {});
+      job.catch(() => ({ ok: false, text: 'Something went wrong' })).then(r => send({ t: 'done', n, ok: r.ok, text: r.text.slice(0, 500) }));
     });
-    ws.on('close', () => { clearTimeout(timer); if (this.authed.delete(ws)) { this.o.log('Stream Deck plugin disconnected'); this.o.onChange(); } });
+    ws.on('close', () => {
+      clearTimeout(timer);
+      if (this.wants.delete(ws)) this.o.onWanted?.();
+      if (this.authed.delete(ws)) { this.o.log('Stream Deck plugin disconnected'); this.o.onChange(); }
+    });
     ws.on('error', () => ws.terminate());
   }
 }

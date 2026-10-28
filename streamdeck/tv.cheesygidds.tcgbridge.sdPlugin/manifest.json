@@ -2,9 +2,9 @@
   "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
   "UUID": "tv.cheesygidds.tcgbridge",
   "Name": "TCG Bridge",
-  "Version": "0.25.0.0",
+  "Version": "0.26.0.0",
   "Author": "CheesyGidds",
-  "Description": "Buffs, pause pulls and happy hours for the stream, run through the TCG Bridge app on the same PC.",
+  "Description": "Buffs, pause pulls, happy hours, test pulls, show a card and live stats for the stream, run through the TCG Bridge app on the same PC.",
   "Category": "TCG Bridge",
   "CategoryIcon": "imgs/plugin/category",
   "Icon": "imgs/plugin/icon",
@@ -84,6 +84,56 @@
       "States": [
         {
           "Image": "imgs/actions/happy-hour",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.test-pull",
+      "Name": "Test pull",
+      "Tooltip": "Plays a test pull on the overlay. Staff PC only.",
+      "Icon": "imgs/actions/test-pull",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/test-pull",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.show-card",
+      "Name": "Show a card",
+      "Tooltip": "Shows a card of the viewer named in the key's settings on the overlay. Staff PC only.",
+      "Icon": "imgs/actions/show-card",
+      "PropertyInspectorPath": "ui/show-card.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/show-card",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "UUID": "tv.cheesygidds.tcgbridge.stat",
+      "Name": "Stat",
+      "Tooltip": "Shows the queue length, the packs this stream or the pack goal. A queue key skips the next pull on a second press within 3 seconds.",
+      "Icon": "imgs/actions/stat",
+      "PropertyInspectorPath": "ui/stat.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/stat",
           "TitleAlignment": "bottom",
           "FontSize": 12
         }

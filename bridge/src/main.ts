@@ -8,7 +8,7 @@ import { Alerts, snapshotOf } from './alerts';
 import { aboutParts, commitUrl, readBuildInfo, stampText } from './buildinfo';
 import { Ledger } from './bucks';
 import { buttonUrl, ControlServer, HOTKEY_ACTION, HOTKEYS, Hotkeys, newControlKey, type ControlAction, type ControlResult, type HotkeyMap, type HotkeyName } from './control';
-import { DeckServer } from './deck';
+import { DeckServer, deckStats, runStaffKey } from './deck';
 import type { DeckState } from './deckprotocol';
 import { installedPluginVersion, PLUGIN_FILE, pluginOutdated, realEnv, streamDeckAppFound } from './deckinstall';
 import { diagnosticsText } from './diagnostics';
@@ -26,7 +26,7 @@ import { StaffTools } from './staff';
 import { previewFrameAllowed } from './preview';
 import { cleanScenePause, ScenePause } from './scenepause';
 import { eventsAfter, mergeEvents, type EventLine } from './events';
-import { acceptStatMap, siteStats, STAT_IDS, STAT_LABELS, TextWriter, wantedTexts, type StatFacts } from './obsstats';
+import { acceptStatMap, statsPlan, STAT_IDS, STAT_LABELS, TextWriter, wantedTexts, type StatFacts } from './obsstats';
 import { FileSettingsStore, defaults, type Settings } from './settings';
 import { cleanSite, pair, SiteClient, Unauthorized, type QueueRow } from './site';
 import { Startup, type StartupEvent, type StartupStep } from './startup';
@@ -124,7 +124,7 @@ function deckInfo(): object {
     offer: settings.deckOfferedFor !== app.getVersion() && pluginOutdated(deckFacts.installed, app.getVersion()), // "Update the Stream Deck plugin", once per app version
   };
 }
-const deckState = (): DeckState => ({ ready: !!client, paused, reason: pauseReason, happy, buffs });
+const deckState = (): DeckState => ({ ready: !!client, paused, reason: pauseReason, happy, buffs, stats: deckStats(statFacts) });
 const pluginFile = (): string => (app.isPackaged ? join(process.resourcesPath, PLUGIN_FILE) : join(__dirname, '..', '..', 'streamdeck', 'dist', PLUGIN_FILE));
 const appState = (): object => demoState ?? ({
   deck: deckInfo(),
@@ -214,11 +214,13 @@ async function applyDeck(): Promise<void> {
   if (settings.streamDeck && !deck) {
     const d = new DeckServer({
       file: join(app.getPath('userData'), 'streamdeck.json'), version: app.getVersion(), state: deckState, onChange: push, log,
+      onWanted: () => { statsAt = 0; }, // a Stat key came or went: ask the site again at the next tick (nothing is asked when none is left)
       run: async a => {
         const r = await runControl(a);
         if (!r.ok) log(`Stream Deck key ${a.action} refused: ${r.text}`);
         return r;
       },
+      staff: body => runStaffKey(staffTools, staff, body, log),
     });
     deck = d;
     await d.start();
@@ -267,10 +269,11 @@ async function loadStatus(): Promise<void> {
 async function loadStats(): Promise<void> {
   statsAt = Date.now();
   try {
-    const r = await client?.action({ action: 'stats', stats: siteStats(settings.obsStats) });
+    const r = await client?.action({ action: 'stats', stats: statsPlan(settings.obsStats, !!service?.obs.state.connected, deck?.wanted ?? []).ask });
     if (!r?.stats) return;
     statFacts = r.stats;
     if (r.happyHour !== undefined && JSON.stringify(r.happyHour) !== JSON.stringify(happy)) { happy = r.happyHour; push(); }
+    else deck?.broadcast(); // the Stat keys show these (push() has just done it when the happy hour changed)
   } catch { /* asked again in a few seconds */ }
 }
 
@@ -293,12 +296,15 @@ function tickEvents(): void {
   if (Date.now() - eventsAt >= (open ? EVENTS_OPEN_MS : EVENTS_IDLE_MS)) void loadEvents();
 }
 
-/** Once a second: write the mapped stats that changed (TextWriter keeps it to one write a second per source), and ask the site now and then. Nothing happens until a stat is mapped. */
+/** Once a second: write the mapped stats that changed (TextWriter keeps it to one write a second per source), and ask the site now and then. Nothing happens until a stat is mapped or a Stream Deck Stat key is on a deck. */
 function tickStats(): void {
-  const up = !!client && !!service?.obs.state.connected && STAT_IDS.some(id => settings.obsStats[id]);
-  if (!up) { statsObsUp = false; return; }
-  if (!statsObsUp) { statsObsUp = true; statWriter?.reset(); statsAt = 0; } // OBS just came up: write everything again
-  statWriter?.push(wantedTexts(settings.obsStats, statFacts, happy, Date.now()));
+  const plan = statsPlan(settings.obsStats, !!service?.obs.state.connected, deck?.wanted ?? []);
+  if (!client || !plan.poll) { statsObsUp = false; return; }
+  if (!plan.obs) statsObsUp = false;
+  else {
+    if (!statsObsUp) { statsObsUp = true; statWriter?.reset(); statsAt = 0; } // OBS just came up: write everything again
+    statWriter?.push(wantedTexts(settings.obsStats, statFacts, happy, Date.now()));
+  }
   if (Date.now() - statsAt >= STATS_MS) void loadStats();
 }
 

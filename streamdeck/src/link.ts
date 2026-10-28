@@ -1,7 +1,7 @@
 // The plugin's link to TCG Bridge (ROADMAP 57.13a). Reads streamdeck.json (port and token, written by the app), connects to 127.0.0.1, sends the token first and
 // retries every few seconds. No SDK and no `ws` import: the socket comes in through `connect`, so bridge/scripts/check-deck.ts runs this against the real server.
 import { readFileSync } from 'node:fs';
-import { DECK_HOST, PROTOCOL, parseLinkFile, parseServer, type ClientMessage, type DeckRequest, type DeckState } from './protocol';
+import { DECK_HOST, PROTOCOL, parseLinkFile, parseServer, type ClientMessage, type DeckRequest, type DeckState, type DeckStatKind } from './protocol';
 
 /** The few things the link needs from a WebSocket. */
 export interface Socket {
@@ -34,6 +34,7 @@ export class BridgeLink {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private stopped = true;
   private n = 0;
+  private wanted: DeckStatKind[] = [];
   private pending = new Map<number, { done: (a: Answer) => void; timer: ReturnType<typeof setTimeout> }>();
   constructor(private o: LinkOptions) {}
 
@@ -46,6 +47,13 @@ export class BridgeLink {
     this.stopped = true;
     clearTimeout(this.timer);
     this.socket?.close();
+  }
+
+  /** Tells the app which stats the visible Stat keys show (all of them, [] = none), now if connected and again after every reconnect. */
+  want(list: DeckStatKind[]): void {
+    if (list.join() === this.wanted.join()) return;
+    this.wanted = list;
+    if (this.socket && this.state) this.socket.send(JSON.stringify({ t: 'stats', want: list } satisfies ClientMessage));
   }
 
   /** Asks the app to do something; the answer is the app's own words. Never rejects. */
@@ -73,7 +81,11 @@ export class BridgeLink {
     socket.onMessage(raw => {
       const m = parseServer(raw);
       if (!m) return;
-      if (m.t === 'welcome' || (m.t === 'state' && this.state)) { this.state = m.state; this.o.onChange(); }
+      if (m.t === 'welcome') {
+        this.state = m.state;
+        if (this.wanted.length) socket.send(JSON.stringify({ t: 'stats', want: this.wanted } satisfies ClientMessage));
+        this.o.onChange();
+      } else if (m.t === 'state' && this.state) { this.state = m.state; this.o.onChange(); }
       else if (m.t === 'done') {
         const p = this.pending.get(m.n);
         if (p) { clearTimeout(p.timer); this.pending.delete(m.n); p.done({ ok: m.ok, text: m.text }); }

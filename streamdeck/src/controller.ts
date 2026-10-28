@@ -1,6 +1,7 @@
-// The keys on the decks (ROADMAP 57.13a), without the Stream Deck SDK: plugin.ts hands the SDK's events and key objects to this, bridge/scripts/check-deck.ts hands it fakes.
+// The keys on the decks (ROADMAP 57.13), without the Stream Deck SDK: plugin.ts hands the SDK's events and key objects to this, bridge/scripts/check-deck.ts hands it fakes.
 import type { BridgeLink } from './link';
-import { HOLD_MS, requestFor, view, type KeyKind, type Settings } from './keys';
+import { HOLD_MS, SKIP_MS, requestFor, statOf, view, type KeyKind, type Settings } from './keys';
+import type { DeckStatKind } from './protocol';
 
 /** What a key object must do; the SDK's KeyAction does all of it. */
 export interface KeyHandle {
@@ -10,22 +11,30 @@ export interface KeyHandle {
   showOk(): Promise<void> | void;
 }
 
-interface Key { kind: KeyKind; handle: KeyHandle; settings: Settings; shown: string; downAt: number; wasRunning: boolean; hintUntil: number }
+interface Key { kind: KeyKind; handle: KeyHandle; settings: Settings; shown: string; downAt: number; wasRunning: boolean; hintUntil: number; skipUntil: number }
 
 export class Keys {
   private keys = new Map<string, Key>();
   constructor(private link: BridgeLink, private now: () => number = Date.now) {}
 
   add(id: string, kind: KeyKind, handle: KeyHandle, settings: Settings): void {
-    this.keys.set(id, { kind, handle, settings, shown: '', downAt: 0, wasRunning: false, hintUntil: 0 });
+    this.keys.set(id, { kind, handle, settings, shown: '', downAt: 0, wasRunning: false, hintUntil: 0, skipUntil: 0 });
     this.draw(id);
+    this.tell();
   }
 
-  remove(id: string): void { this.keys.delete(id); }
+  remove(id: string): void { this.keys.delete(id); this.tell(); }
 
   setSettings(id: string, settings: Settings): void {
     const k = this.keys.get(id);
-    if (k) { k.settings = settings; this.draw(id); }
+    if (k) { k.settings = settings; k.skipUntil = 0; this.draw(id); this.tell(); }
+  }
+
+  /** The stats the visible Stat keys show: the app asks the site for them only while this is not empty. */
+  private tell(): void {
+    const want = new Set<DeckStatKind>();
+    for (const k of this.keys.values()) if (k.kind === 'stat') { const s = statOf(k.settings); if (s) want.add(s); }
+    this.link.want([...want]);
   }
 
   /** Draws every key; each one only talks to the Stream Deck when what it shows changed. Called when the state changes and once a second (the happy hour counts down). */
@@ -40,7 +49,7 @@ export class Keys {
     const k = this.keys.get(id);
     if (!k) return;
     const v = view(k.kind, this.link.state, k.settings, this.now());
-    const title = k.hintUntil > this.now() ? 'Hold 1 second\nto end' : v.title;
+    const title = k.hintUntil > this.now() ? 'Hold 1 second\nto end' : k.skipUntil > this.now() ? 'Press again\nto skip' : v.title;
     const shown = `${title}|${v.image}`;
     if (shown === k.shown) return;
     k.shown = shown;
@@ -61,7 +70,22 @@ export class Keys {
     if (!k) return;
     k.downAt = this.now();
     k.wasRunning = this.happyRunning();
+    if (k.kind === 'stat') return this.pressStat(id, k);
     if (k.kind !== 'happy') await this.run(k, k.kind, k.settings);
+  }
+
+  /** Only the Queue stat does anything: the first press says how to skip, a second within SKIP_MS skips the next pull. */
+  private async pressStat(id: string, k: Key): Promise<void> {
+    if (statOf(k.settings) !== 'queue') return;
+    if (!this.link.state) return void k.handle.showAlert();
+    if (k.skipUntil <= this.now()) {
+      k.skipUntil = this.now() + SKIP_MS;
+      this.draw(id);
+      return;
+    }
+    k.skipUntil = 0;
+    this.draw(id);
+    await this.run(k, 'stat', k.settings);
   }
 
   /** Happy hour: a press starts one; while one runs, only a press of a second or more ends it. */

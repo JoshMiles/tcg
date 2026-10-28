@@ -8,7 +8,7 @@ import { ACTION_KIND, type Settings } from './keys';
 import { BridgeLink, type Socket } from './link';
 import { MAX_MESSAGE } from './protocol';
 
-const VERSION = '0.25.0';
+const VERSION = '0.26.0';
 
 function socket(url: string): Socket {
   const ws = new WebSocket(url, { maxPayload: MAX_MESSAGE * 8 });
