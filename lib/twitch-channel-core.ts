@@ -2,8 +2,15 @@
 // No KV and no site imports; lib/twitch-channel.ts holds the KV side. The access token is never stored and never logged.
 import { CHANNEL_LOGIN } from './site';
 
-export const CHANNEL_SCOPES = ['channel:read:redemptions', 'bits:read', 'channel:read:subscriptions'] as const;
+/** 58.6: the chat scopes (read chat, send as the channel, let a bot account post here). A channel connected without them keeps 58.2 to 58.4 working and shows "Reconnect to allow chat". */
+export const CHAT_SCOPES = ['user:read:chat', 'user:write:chat', 'channel:bot'] as const;
+export const CHANNEL_SCOPES = ['channel:read:redemptions', 'bits:read', 'channel:read:subscriptions', ...CHAT_SCOPES] as const;
 export const CHANNEL_AUTH_KEY = 'twitch:channel-auth';
+/** 58.6: the optional bot account, any account but the channel's; same stored shape as the channel's. */
+export const BOT_SCOPES = ['user:bot', 'user:write:chat'] as const;
+export const BOT_AUTH_KEY = 'twitch:bot-auth';
+export const RECONNECT_FOR_CHAT = 'Reconnect to allow chat';
+export const chatScopesOk = (granted: string[]): boolean => CHAT_SCOPES.every(s => granted.includes(s));
 /** Stop an access token this long before Twitch says it ends, so a caller never gets one about to die. */
 export const EXPIRY_MARGIN_S = 60;
 
@@ -28,7 +35,7 @@ export function cleanChannelAuth(raw: unknown): ChannelAuth | null {
   return { userId: o.userId, login: o.login, scopes: o.scopes as string[], refreshToken: o.refreshToken, connectedAt: o.connectedAt, by: o.by };
 }
 
-export const missingScopes = (granted: string[]): string[] => CHANNEL_SCOPES.filter(s => !granted.includes(s));
+export const missingScopes = (granted: string[], wanted: readonly string[] = CHANNEL_SCOPES): string[] => wanted.filter(s => !granted.includes(s));
 
 export type RefreshResult =
   | { ok: true; accessToken: string; refreshToken: string; expiresAt: number; scopes: string[] }

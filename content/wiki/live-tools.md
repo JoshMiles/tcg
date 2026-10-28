@@ -21,7 +21,7 @@ The on-stream test panel can reset a collection. Those buttons write real data, 
 
 ## Chat webhooks
 
-Incoming webhooks (pull, show a card, show a collection, grant a card, chat commands) share one secret. It is generated the first time the settings are opened and shown under [Settings, Webhooks](/admin/settings?tab=webhooks). The bot (Mix It Up or similar) sends it in the JSON body with the viewer's login.
+While chat comes through TCG Bridge (the channel connected on the Mix It Up page with chat allowed, and the app listening), chat commands run from Twitch chat directly and the pull (without an event), show-a-card and chat-command webhooks answer "ignored"; the Mix It Up commands are then only a fallback for when that connection is down. Incoming webhooks (pull, show a card, show a collection, grant a card, chat commands) share one secret. It is generated the first time the settings are opened and shown under [Settings, Webhooks](/admin/settings?tab=webhooks). The bot (Mix It Up or similar) sends it in the JSON body with the viewer's login.
 
 A pull webhook asks the server to roll a card and queue it. It does not pick the card. A grant webhook does pick a card number and a version, and adds that print. Treat the grant URL like a password: anyone with the secret can mint cards.
 

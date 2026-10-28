@@ -1,8 +1,9 @@
 // Twitch EventSub events forwarded by TCG Bridge, the KV side (ROADMAP 58.2). The app holds the EventSub WebSocket; the site only records what it is
 // sent: a capped list of recent events, the app's connection report, and stream online / offline feeding the live state like the OBS report does.
 // Channel point redemptions run their reward's award (58.3, lib/twitch-awards.ts); gifted subs, cheers and raids run the 55.4g event rules (58.4,
-// lib/event-rewards.ts); the rest are only recorded. Pure shapes live in twitch-events-core.ts.
+// lib/event-rewards.ts); chat messages run a chat command and are never stored (58.6, lib/twitch-chat.ts); the rest are only recorded. Pure shapes live in twitch-events-core.ts.
 import { kv } from './db';
+import { runChatMessage, type ChatOutcome } from './twitch-chat';
 import { setLiveFromBridge } from './twitch-live';
 import { readChannelStatus } from './twitch-channel';
 import { awardRedemption } from './twitch-awards';
@@ -12,23 +13,37 @@ import {
   EVENTS_KEPT, EVENT_TYPES, REWARD_EVENT, SEEN_TTL_S, eventChannelId, eventText,
   type CleanEvent, type EventLine,
 } from './twitch-events-core';
+import { CHAT_EVENT } from './twitch-chat-core';
 
 const EVENTS_KEY = 'twitch:events';
 const SEEN_PREFIX = 'twitch:event:';
 
-export type EventOutcome = { status: 'recorded'; live?: boolean } | { status: 'duplicate' } | { status: 'ignored'; reason: 'not_connected' | 'other_channel' };
+export type EventOutcome =
+  | { status: 'recorded'; live?: boolean } | { status: 'duplicate' } | { status: 'ignored'; reason: 'not_connected' | 'other_channel' | 'not_command' | 'own_message' }
+  /** 58.6: a chat command ran; `reply` says what happened to its answer in chat. */
+  | { status: 'ran'; reply: Extract<ChatOutcome, { status: 'ran' }>['reply'] };
 
 /**
  * Records one notification. A repeated Twitch message id is dropped for 10 minutes (SET NX EX), so a Twitch resend or a second app never counts
  * it twice. An event for another channel than the connected one is ignored. stream.online / stream.offline go through `setLiveFromBridge`, but not
  * while the connected account is a test one (not CHANNEL_LOGIN): a spare account going live must not flip the real channel's live state.
  */
-export async function recordTwitchEvent(e: CleanEvent, now = Date.now()): Promise<EventOutcome> {
+export async function recordTwitchEvent(e: CleanEvent, now = Date.now(), fetchFn: typeof fetch = fetch): Promise<EventOutcome> {
   const channel = await readChannelStatus();
   if (!channel) return { status: 'ignored', reason: 'not_connected' };
   if (eventChannelId(e.type, e.event) !== channel.userId) return { status: 'ignored', reason: 'other_channel' };
   const seenKey = SEEN_PREFIX + e.messageId;
   if (!(await kv.set(seenKey, 1, { nx: true, ex: SEEN_TTL_S }))) return { status: 'duplicate' };
+  if (e.type === CHAT_EVENT) {
+    // 58.6: a chat command. It has its own dedupe on the chat message id (a second EventSub session sends the same chat message under a new notification id).
+    try {
+      const r = await runChatMessage(e.event, fetchFn);
+      return r.status === 'ran' ? { status: 'ran', reply: r.reply } : r;
+    } catch (err) {
+      await kv.del(seenKey).catch(() => {});
+      throw err;
+    }
+  }
   try {
     // 58.3: a redemption runs its reward's award (nothing when the reward has none); the result is recorded with the event. Never throws.
     // 58.4: a gifted sub, cheer or raid runs the 55.4g event rules, the same ones the Mix It Up requests run (lib/event-rewards.ts). Never throws.

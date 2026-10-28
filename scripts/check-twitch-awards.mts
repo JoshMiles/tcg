@@ -22,7 +22,7 @@ const fake = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const h = new Headers(init?.headers);
   if (u.endsWith('/oauth2/token')) {
     if (tokenStatus !== 200) return new Response('{}', { status: tokenStatus });
-    return new Response(JSON.stringify({ access_token: 'ACCESS-1', refresh_token: 'REFRESH-1', expires_in: 14000, scope: ['channel:read:redemptions', 'bits:read', 'channel:read:subscriptions'] }), { status: 200 });
+    return new Response(JSON.stringify({ access_token: 'ACCESS-1', refresh_token: 'REFRESH-1', expires_in: 14000, scope: ['channel:read:redemptions', 'bits:read', 'channel:read:subscriptions', 'user:read:chat', 'user:write:chat', 'channel:bot'] }), { status: 200 });
   }
   if (u.endsWith('/oauth2/revoke')) return new Response('', { status: 200 });
   if (u.endsWith('/helix/users')) return new Response(JSON.stringify({ data: [twitchUser] }), { status: 200 });

@@ -14,12 +14,12 @@ const LOCK_KEY = `${CHANNEL_AUTH_KEY}:refresh`;
 /** Only one refresh at a time: Twitch can swap the refresh token, and two racing refreshes would leave one with a dead token. */
 const LOCK_S = 15;
 
-const secret = (): string => process.env.BACKUP_ENCRYPTION_KEY ?? '';
-const seal = (t: string): string => encryptBackup(Buffer.from(t, 'utf8'), secret()).toString('base64');
-const unseal = (s: string): string => decryptBackup(Buffer.from(s, 'base64'), secret()).toString('utf8');
+export const secret = (): string => process.env.BACKUP_ENCRYPTION_KEY ?? '';
+export const seal = (t: string): string => encryptBackup(Buffer.from(t, 'utf8'), secret()).toString('base64');
+export const unseal = (s: string): string => decryptBackup(Buffer.from(s, 'base64'), secret()).toString('utf8');
 
 const readAuth = async (): Promise<ChannelAuth | null> => cleanChannelAuth(await kv.get(CHANNEL_AUTH_KEY).catch(() => null));
-const audit = async (action: string, detail?: string) => { try { await (await import('./audit')).recordAudit('everyone', action, detail); } catch { /* best effort */ } };
+export const audit = async (action: string, detail?: string) => { try { await (await import('./audit')).recordAudit('everyone', action, detail); } catch { /* best effort */ } };
 
 /** The Connection tab's status: who is connected, never a token. Null when nothing is connected. */
 export async function readChannelStatus(): Promise<ChannelStatus | null> {
@@ -34,20 +34,29 @@ export const channelConnectReady = (): boolean => {
 };
 
 /** The state in the sign-in cookie must be the one Twitch sent back, made for a channel connection by this same admin. Pure. */
-export function channelStateOk(cookie: string | undefined, state: string | null, adminLogin: string): boolean {
+export function channelStateOk(cookie: string | undefined, state: string | null, adminLogin: string, marker: 'channel' | 'bot' = 'channel'): boolean {
   if (!cookie || !state) return false;
-  let c: { state?: unknown; channel?: unknown; by?: unknown };
+  let c: Record<string, unknown>;
   try { c = JSON.parse(cookie); } catch { return false; }
-  if (c.channel !== true || c.by !== adminLogin || typeof c.state !== 'string') return false;
+  // Exactly one marker: a bot sign-in cookie never finishes a channel connection (and the other way round).
+  if (c[marker] !== true || c[marker === 'channel' ? 'bot' : 'channel'] === true || c.by !== adminLogin || typeof c.state !== 'string') return false;
   const a = Buffer.from(c.state), b = Buffer.from(state);
   return a.length === b.length && timingSafeEqual(a, b);
 }
+/** 58.6: the same check for "Connect bot account" (cookie marker `bot`). */
+export const botStateOk = (cookie: string | undefined, state: string | null, adminLogin: string): boolean => channelStateOk(cookie, state, adminLogin, 'bot');
 
 /**
  * The OAuth return for a channel connection: the state check, the code exchange, the owner lookup, the scope check, then the store. `by` is the admin
  * (already checked by the caller). Returns a short reason code for the page when it fails; never a token.
  */
-export async function connectChannel(code: string, by: string, fetchFn: typeof fetch = fetch): Promise<{ ok: true; login: string } | { ok: false; reason: string }> {
+export const connectChannel = (code: string, by: string, fetchFn: typeof fetch = fetch) =>
+  connectAccount({ key: CHANNEL_AUTH_KEY, scopes: CHANNEL_SCOPES, audit: 'Twitch channel connected' }, code, by, fetchFn);
+
+/** What differs between the channel (58.1) and the bot account (58.6): where it is stored, the scopes it needs, the audit line and an optional refusal (the bot must not be the channel). */
+export interface AccountKind { key: string; scopes: readonly string[]; audit: string; refuse?: (userId: string) => Promise<string | null> }
+
+export async function connectAccount(kind: AccountKind, code: string, by: string, fetchFn: typeof fetch = fetch): Promise<{ ok: true; login: string } | { ok: false; reason: string }> {
   if (!channelConnectReady()) return { ok: false, reason: 'unavailable' };
   const { clientId, clientSecret } = credentials();
   let access: string, refresh: string, scopes: string[];
@@ -70,10 +79,12 @@ export async function connectChannel(code: string, by: string, fetchFn: typeof f
     const me = await fetchFn(`${API_URL}/helix/users`, { headers: { Authorization: `Bearer ${access}`, 'Client-Id': clientId } });
     const u = me.ok ? ((await me.json()) as { data?: { id?: string; login?: string }[] }).data?.[0] : null;
     if (!u?.id || !u.login) { await drop(access); return { ok: false, reason: 'failed' }; }
-    if (missingScopes(scopes).length) { await drop(access); return { ok: false, reason: 'scopes' }; }
+    if (missingScopes(scopes, kind.scopes).length) { await drop(access); return { ok: false, reason: 'scopes' }; }
+    const no = kind.refuse ? await kind.refuse(u.id) : null;
+    if (no) { await drop(access); return { ok: false, reason: no }; }
     const rec: ChannelAuth = { userId: u.id, login: u.login.toLowerCase(), scopes, refreshToken: seal(refresh), connectedAt: Date.now(), by };
-    await kv.set(CHANNEL_AUTH_KEY, rec);
-    await audit('Twitch channel connected', `${rec.login}${isTesting(rec.login) ? ' (testing, not the live channel)' : ''}`);
+    await kv.set(kind.key, rec);
+    await audit(kind.audit, `${rec.login}${kind.key === CHANNEL_AUTH_KEY && isTesting(rec.login) ? ' (testing, not the live channel)' : ''}`);
     return { ok: true, login: rec.login };
   } catch {
     return { ok: false, reason: 'failed' };

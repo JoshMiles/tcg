@@ -6,7 +6,8 @@ import { recordTwitchEvent } from '@/lib/twitch-events';
 import { EVENT_BODY_MAX, cleanTwitchEvent } from '@/lib/twitch-events-core';
 
 // One Twitch EventSub notification from TCG Bridge's WebSocket (ROADMAP 58.2): `{ messageId, type, event }`. The site records it (a short recent list)
-// and feeds stream.online / stream.offline into the live state; a channel points redemption runs its reward's award (58.3). Admin PCs only, like twitch-token; a repeated
+// and feeds stream.online / stream.offline into the live state; a channel points redemption runs its reward's award (58.3); a `channel.chat.message` runs its
+// chat command and sends the reply (58.6, never stored). Admin PCs only, like twitch-token; a repeated
 // message id is dropped for 10 minutes. 120 calls a minute per PC.
 export async function POST(req: Request) {
   const g = await bridgeStaffGuard(req);
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   let raw: unknown;
   try { raw = JSON.parse(text); } catch { raw = null; }
   const e = cleanTwitchEvent(raw);
-  if (!e) return NextResponse.json({ error: 'Send { messageId, type, event } with one of the six EventSub types.' }, { status: 400 });
+  if (!e) return NextResponse.json({ error: 'Send { messageId, type, event } with one of the seven EventSub types.' }, { status: 400 });
   const r = await recordTwitchEvent(e);
   return NextResponse.json({ ok: true, ...r });
 }

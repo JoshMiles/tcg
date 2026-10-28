@@ -6,6 +6,7 @@ import { createPairCode, revokeBridge, setBridgeStaff } from '@/lib/bridge';
 import { liftPullBlock } from '@/lib/pull-block';
 import { showCode } from '@/lib/bridge-core';
 import { disconnectChannel } from '@/lib/twitch-channel';
+import { disconnectBot, readBotStatus, setReplyAs } from '@/lib/twitch-bot';
 
 /** Makes a one-time code (good for 10 minutes) to type into TCG Bridge. Returned to the page, never put in a URL. */
 export async function createPairCodeAction(): Promise<{ code: string; until: string }> {
@@ -35,6 +36,21 @@ export async function setBridgeStaffAction(id: string, on: boolean): Promise<voi
 export async function disconnectTwitchChannelAction(): Promise<void> {
   await requireAdmin();
   await disconnectChannel();
+  revalidatePath('/admin/mixitup');
+}
+
+/** Disconnects the chat bot account (ROADMAP 58.6): the token is revoked at Twitch, the stored one deleted and an audit line written; replies go back to the channel account. */
+export async function disconnectTwitchBotAction(): Promise<void> {
+  await requireAdmin();
+  await disconnectBot();
+  revalidatePath('/admin/mixitup');
+}
+
+/** "Reply as: channel / bot" (ROADMAP 58.6). The bot choice needs a connected bot account. */
+export async function setReplyAsAction(value: string): Promise<void> {
+  await requireAdmin();
+  if (value === 'bot' && !(await readBotStatus())) return;
+  await setReplyAs(value === 'bot' ? 'bot' : 'channel');
   revalidatePath('/admin/mixitup');
 }
 

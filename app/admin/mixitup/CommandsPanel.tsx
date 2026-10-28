@@ -9,6 +9,7 @@ import {
 import { saveCommandsAction, tryCommandAction } from './commands-actions';
 import { commandSetups, type packSetup } from '@/lib/mixitup-setup';
 import { CopyCard, DownloadPreset } from './setup/SetupClient';
+import { CHAT_VIA_BRIDGE } from '@/lib/twitch-chat-core';
 
 const input = 'input w-full';
 const label = 'block text-xs font-semibold text-gray-300 mb-1';
@@ -19,7 +20,7 @@ const secondary = 'rounded-lg border border-gray-700 px-3 py-2 text-sm font-semi
 type Stats = Record<string, { count: number; last: number }>;
 
 /** Mix It Up → Commands: the command builder (ROADMAP 19.2). The whole list is edited here and saved in one piece. */
-export function CommandsPanel({ initial, stats, webhookUrl, secret, pack }: { initial: ChatCommand[]; stats: Stats; webhookUrl: string; secret: string; pack: ReturnType<typeof packSetup> }) {
+export function CommandsPanel({ initial, stats, webhookUrl, secret, pack, viaBridge = false }: { initial: ChatCommand[]; stats: Stats; webhookUrl: string; secret: string; pack: ReturnType<typeof packSetup>; viaBridge?: boolean }) {
   const [commands, setCommands] = useState<ChatCommand[]>(initial);
   const [selected, setSelected] = useState(initial[0]?.id ?? '');
   const [dirty, setDirty] = useState(false);
@@ -66,10 +67,11 @@ export function CommandsPanel({ initial, stats, webhookUrl, secret, pack }: { in
 
   return (
     <div className="space-y-6">
+      {viaBridge && <p role="status" className="rounded-lg border border-emerald-500/30 bg-emerald-950/30 px-4 py-2.5 text-sm text-emerald-300">{CHAT_VIA_BRIDGE}</p>}
       <section className="card rounded-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-800">
           <h2 className="font-semibold text-white flex items-center gap-2"><Icon name="chat" className="text-yellow-400" />!pack (built in)</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Opens a pack for the viewer; <code>!pack &lt;name&gt;</code> opens that pack. It is built in, so it is not in the list below and cannot be edited or deleted. Set it up in Mix It Up once with this card.</p>
+          <p className="text-xs text-gray-500 mt-0.5">Opens a pack for the viewer; <code>!pack &lt;name&gt;</code> opens that pack. It is built in, so it is not in the list below and cannot be edited or deleted. {viaBridge ? CHAT_VIA_BRIDGE : 'Set it up in Mix It Up once with this card.'}</p>
         </div>
         <div className="px-6 py-5"><CopyCard title="!pack" url={pack.url} body={pack.body} download={pack.preset} /></div>
       </section>
