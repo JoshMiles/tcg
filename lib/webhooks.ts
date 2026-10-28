@@ -46,6 +46,8 @@ export interface QueuedEvent {
   serialMult?: number;
   /** The edition number of that copy. */
   uid?: number;
+  /** For `card`: wording shown instead of the show-off label (the raid shout-out's "Raid from <name>"). */
+  caption?: string;
 }
 
 // ── KV helpers ────────────────────────────────────────────

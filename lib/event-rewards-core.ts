@@ -12,7 +12,9 @@ export interface EventReward {
   /** Bits per pack (bits) or the raid viewers needed for a pack (raid). Unused by the other two. */
   every?: number;
 }
-export type EventRewards = Record<EventName, EventReward>;
+/** The raid shout-out (ROADMAP 57.6): a raid of `minViewers` or more shows the raider's best card on the overlay and says one line in chat. */
+export interface RaidShoutout { on: boolean; minViewers: number }
+export type EventRewards = Record<EventName, EventReward> & { raidShoutout: RaidShoutout };
 
 /** Packs one event request can queue, whatever the amount. */
 export const EVENT_PACK_CAP = 10;
@@ -31,6 +33,7 @@ export const DEFAULT_EVENT_REWARDS: EventRewards = {
   bits: { on: false, reward: 'packs', every: 500 },
   raid: { on: false, reward: 'packs', every: 1 },
   redeem: { on: false, reward: 'packs' },
+  raidShoutout: { on: false, minViewers: 5 },
 };
 
 const whole = (v: unknown): number => {
@@ -54,6 +57,9 @@ export function normalizeEventRewards(raw: unknown): EventRewards {
       ...(d.every !== undefined ? { every: every >= 1 ? Math.min(EVERY_MAX, every) : d.every } : {}),
     };
   }
+  const s = (r.raidShoutout && typeof r.raidShoutout === 'object' ? r.raidShoutout : {}) as Record<string, unknown>;
+  const min = whole(s.minViewers);
+  out.raidShoutout = { on: s.on === true, minViewers: min >= 1 ? Math.min(EVERY_MAX, min) : DEFAULT_EVENT_REWARDS.raidShoutout.minViewers };
   return out;
 }
 
@@ -69,8 +75,18 @@ export function cleanEventRewardsInput(get: (key: string) => string | undefined)
     if (reward === 'buff' && !buffId) return { ok: false, message: `${info.label}: choose a buff, or give packs.` };
     raw[name] = { on: get(`ev_${name}_on`) === 'on', reward, buffId, every: every === '' ? undefined : every };
   }
+  const min = (get('ev_shout_min') ?? '').trim();
+  if (min !== '' && !(whole(min) >= 1 && whole(min) <= EVERY_MAX)) return { ok: false, message: `Raid shout-out: the minimum raid size must be a whole number, 1 to ${EVERY_MAX.toLocaleString('en-US')}.` };
+  raw.raidShoutout = { on: get('ev_shout_on') === 'on', minViewers: min === '' ? undefined : min };
   return { ok: true, rewards: normalizeEventRewards(raw) };
 }
+
+/** The overlay caption over the raider's card. */
+export const shoutoutCaption = (raider: string): string => `Raid from ${raider}`;
+
+/** The one chat line: "Welcome, raiders! cheesy brought 12 viewers. Their best card: Shiny Gouda." */
+export const shoutoutChatLine = (raider: string, viewers: number, card: string): string =>
+  `Welcome, raiders! ${raider} brought ${plural(viewers, 'viewer')}. Their best card: ${card}.`;
 
 /** The request's event, or null when it is not one of the four. */
 export const cleanEventName = (v: unknown): EventName | null => (EVENT_NAMES as readonly unknown[]).includes(v) ? (v as EventName) : null;

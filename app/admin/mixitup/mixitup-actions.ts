@@ -93,7 +93,7 @@ export async function saveEventRewardsAction(formData: FormData): Promise<void> 
     if (e.reward === 'buff' && !usable.has(e.buffId ?? '')) return back('events', 'error', 'Choose a buff that has the Stream Deck switch on and goes to one viewer.');
   }
   await saveMixItUpSettings({ ...(await getMixItUpSettings()), eventRewards: r.rewards });
-  await recordAudit('everyone', 'Event rewards saved', EVENT_NAMES.map(n => `${n} ${r.rewards[n].on ? 'on' : 'off'}`).join(', '));
+  await recordAudit('everyone', 'Event rewards saved', EVENT_NAMES.map(n => `${n} ${r.rewards[n].on ? 'on' : 'off'}`).join(', ') + `, raid shout-out ${r.rewards.raidShoutout.on ? `on from ${r.rewards.raidShoutout.minViewers}` : 'off'}`);
   revalidatePath('/admin/mixitup');
   return back('events', 'note', 'Event rewards saved.');
 }

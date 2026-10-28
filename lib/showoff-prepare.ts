@@ -30,7 +30,7 @@ export type ShowResult = { ok: true; plan: ShowPlan } | { ok: false; error: stri
  * running season and the viewer must really own it (in the version asked for), so the overlay can only ever be told to show a genuine
  * card of theirs. One show-off per viewer every few seconds, so a chat cannot flood the screen.
  */
-export async function prepareShowOff(username: string, text: unknown, opts: { dry?: boolean } = {}): Promise<ShowResult> {
+export async function prepareShowOff(username: string, text: unknown, opts: { dry?: boolean; /** Skip the pinned print and showcase: always the highest-value card (the raid shout-out). */ best?: boolean } = {}): Promise<ShowResult> {
   const user = username.toLowerCase();
   const active = await getActiveSeasonWithPacks();
   if (!active) return { ok: false, error: 'no-season', message: 'There is no season running right now.' };
@@ -43,7 +43,7 @@ export async function prepareShowOff(username: string, text: unknown, opts: { dr
   const q = parseShowQuery(text);
   // No card named: the pinned print, else the first showcase pick they still hold, else the best card below.
   let forced: { card: ShowCard; variant: Variant; serial: number; uid: number } | null = null;
-  if (q.number === null && !q.name) {
+  if (q.number === null && !q.name && !opts.best) {
     const [settings, mine] = await Promise.all([
       getUserSettings(user).catch(() => null),
       getOwnerCopies(season.collectionName, user).catch(() => []),

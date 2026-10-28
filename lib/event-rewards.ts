@@ -6,6 +6,7 @@ import { applyBuff, currentBuffStreamKey, getBuffDef } from './buffs';
 import { getMixItUpSettings } from './mixitup';
 import { queuePull } from './pull-queue';
 import { phrase, refusal } from './streamdeck';
+import { raidShoutout } from './raid-shoutout';
 import { cleanEventAmount, cleanEventName, eventCause, eventPacks, packsReason } from './event-rewards-core';
 
 export interface EventAnswer { status: number; body: Record<string, unknown> }
@@ -15,6 +16,16 @@ const ignored = (reason: string, message = ''): EventAnswer => ({ status: 200, b
 
 /** Runs one event request. The route has checked the secret and the username; `requestId` is handled around this by answerOnce. */
 export async function runEventReward(username: string, body: Record<string, unknown>): Promise<EventAnswer> {
+  const answer = await rewardFor(username, body);
+  // The raid shout-out (57.6) runs after the raid reward, whether or not the raid earns a pack; it never throws.
+  if (body.event === 'raid') {
+    const amount = cleanEventAmount('raid', body.amount);
+    if (amount !== null) await raidShoutout(username, amount);
+  }
+  return answer;
+}
+
+async function rewardFor(username: string, body: Record<string, unknown>): Promise<EventAnswer> {
   const event = cleanEventName(body.event);
   if (!event) return bad('event must be gifted-subs, bits, raid or redeem');
   const amount = cleanEventAmount(event, body.amount);

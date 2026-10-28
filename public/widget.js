@@ -2223,7 +2223,8 @@ function drawCard(username, opts) {
   phaseTimer(() => {
     cardInfo.style.opacity   = '1';
     cardInfo.style.transform = 'scale(1)';
-    if (show) showText(userText, P, username, tokenCtx, cfg); else gotText(userText, P, username, tokenCtx, cfg);
+    if (show && show.caption) userText.textContent = String(show.caption).slice(0, 80);
+    else if (show) showText(userText, P, username, tokenCtx, cfg); else gotText(userText, P, username, tokenCtx, cfg);
     if (show) styleShowLabel(userText, P);
   }, at(R.info));
 
