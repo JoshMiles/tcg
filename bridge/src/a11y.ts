@@ -8,14 +8,20 @@ function attr(attrs: string, name: string): string | null {
   return m ? (m[2] ?? m[3] ?? '') : null;
 }
 
+/** Applies `strip` until the text stops changing, so a removal cannot leave a new comment or tag behind (only ever run on the app's own pages). */
+function untilStable(text: string, strip: (s: string) => string): string {
+  for (let prev = ''; prev !== text; ) { prev = text; text = strip(text); }
+  return text;
+}
+
 /** Text with tags and comments removed, entities left as they are. */
 function plain(html: string): string {
-  return html.replace(/<!--[\s\S]*?-->/g, '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  return untilStable(html, s => s.replace(/<!--[\s\S]*?-->/g, '').replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
 }
 
 /** Problems found in one page, each a short sentence naming the element. An empty list means the page passes. */
 export function auditHtml(source: string): string[] {
-  const html = source.replace(/<!--[\s\S]*?-->/g, '').replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, '');
+  const html = untilStable(source, s => s.replace(/<!--[\s\S]*?-->/g, '').replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, ''));
   const problems: string[] = [];
   const ids = new Set<string>();
   for (const m of html.matchAll(/\sid\s*=\s*"([^"]*)"/gi)) {
