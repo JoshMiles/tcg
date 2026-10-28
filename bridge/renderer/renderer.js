@@ -149,6 +149,41 @@ function renderScenePause() {
 }
 $('scene-pause-on').addEventListener('change', saveScenePause);
 
+// Live stats in OBS (57.4): one drop-down per stat, listing the text sources OBS reported plus a saved one OBS no longer lists.
+let obsStatsKey = '';
+function saveObsStats() {
+  const map = {};
+  for (const sel of $('obs-stats-list').querySelectorAll('select')) map[sel.dataset.stat] = sel.value;
+  window.bridge.setObsStats(map);
+}
+function renderObsStats() {
+  const os = state.obsStats;
+  if (!os) return;
+  $('obs-stats-empty').hidden = os.texts.length > 0;
+  $('obs-stats-empty').textContent = 'No text sources yet. Connect TCG Bridge to OBS (Status page) and add a text source to a scene, and they appear here.';
+  const key = JSON.stringify([os.texts, os.map]);
+  if (key === obsStatsKey) return;
+  obsStatsKey = key;
+  $('obs-stats-list').replaceChildren(...os.stats.map(({ id, label }) => {
+    const li = document.createElement('li');
+    const row = document.createElement('label');
+    const sel = document.createElement('select');
+    sel.dataset.stat = id;
+    const names = [...new Set([...os.texts, ...(os.map[id] ? [os.map[id]] : [])])];
+    for (const [value, text] of [['', 'Not shown'], ...names.map(n => [n, os.texts.includes(n) ? n : n + ' (not in OBS now)'])]) {
+      const o = document.createElement('option');
+      o.value = value;
+      o.textContent = text;
+      sel.append(o);
+    }
+    sel.value = os.map[id] || '';
+    sel.addEventListener('change', saveObsStats);
+    row.append(document.createTextNode(label + ' '), sel);
+    li.append(row);
+    return li;
+  }));
+}
+
 function render() {
   if (!state) return;
   const svc = state.service;
@@ -187,6 +222,7 @@ function render() {
   renderBanners();
   renderControl();
   renderScenePause();
+  renderObsStats();
   const level = svc ? svc.tray : 'offline';
   setDot('rail-dot', level === 'connected' ? 'ok' : level === 'partly' ? 'warn' : '');
   $('rail-text').textContent = state.paired ? TRAY_TEXT[level] : 'Not paired';

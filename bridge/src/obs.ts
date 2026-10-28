@@ -2,6 +2,7 @@
 // browser source in that scene and visible. Plain TypeScript, no Electron: service.ts owns it, main.ts only gives it a config.
 // It only ever connects to this PC (ws://localhost or ws://127.0.0.1) and only tells the site facts, never the overlay address or key.
 import { EventSubscription, OBSWebSocket } from 'obs-websocket-js/json';
+import { textInputNames } from './obsstats';
 
 export const DEFAULT_OBS_ADDRESS = 'ws://127.0.0.1:4455';
 export interface ObsConfig { enabled: boolean; address: string; password: string; /** Start the replay buffer when the stream starts (55.8). */ startReplay?: boolean }
@@ -77,6 +78,8 @@ export class ObsWatcher {
   /** The scene and source names last read from OBS (and sent to the site): a job may only name one of these. */
   private scenes: string[] = [];
   private sources: string[] = [];
+  /** The text inputs last read from OBS (57.4): a stat may only be written to one of these. */
+  private texts: string[] = [];
   /** Puts things back later (the scene, a hidden source). */
   private timers = new Set<ReturnType<typeof setTimeout>>();
 
@@ -189,6 +192,16 @@ export class ObsWatcher {
   /** The scene names last read from OBS (the Staff tab's scene list, ROADMAP 55.12). */
   sceneNames(): string[] { return [...this.scenes]; }
 
+  /** The GDI+ / FreeType text inputs last read from OBS (the Settings tab's stat list, ROADMAP 57.4). */
+  textSources(): string[] { return [...this.texts]; }
+
+  /** Sets the `text` of a text input OBS reported, and nothing else about it. */
+  async setText(name: string, text: string): Promise<void> {
+    const obs = this.live();
+    if (!this.texts.includes(name)) throw new ObsError(`OBS has no text source called ${name}`);
+    await this.ask(() => obs.call('SetInputSettings', { inputName: name, inputSettings: { text } }), 'OBS did not accept the text');
+  }
+
   /** Cuts to a scene OBS reported and stays there (the Staff tab); `switchScene` goes back by itself. */
   async setScene(name: string): Promise<void> {
     const obs = this.live();
@@ -252,7 +265,8 @@ export class ObsWatcher {
         if (e.outputState === 'OBS_WEBSOCKET_OUTPUT_STARTED') this.streamChanged(true);
         else if (e.outputState === 'OBS_WEBSOCKET_OUTPUT_STOPPED') this.streamChanged(false);
       });
-      for (const name of EVENTS) obs.on(name, () => this.recheck());
+      // Our own stat writes change a text input once a second: that must not start a re-read of OBS each time (57.4).
+      for (const name of EVENTS) obs.on(name, (e: unknown) => { if (name !== 'InputSettingsChanged' || !this.texts.includes(String((e as { inputName?: unknown } | null)?.inputName))) this.recheck(); });
       const heartbeat = setInterval(() => this.send(true), this.o.heartbeatMs);
       this.state.connected = true;
       this.state.error = '';
@@ -330,6 +344,8 @@ export class ObsWatcher {
       // Best effort: a failure here must not hide the overlay check.
       const list = (await obs.call('GetSceneList').catch(() => ({ scenes: [] }))) as unknown as { scenes?: { sceneName?: string }[] };
       this.scenes = (list.scenes ?? []).map(s => s.sceneName).filter((n): n is string => typeof n === 'string').slice(0, SCENES_MAX);
+      const inputs = (await obs.call('GetInputList').catch(() => ({ inputs: [] }))) as unknown as { inputs?: { inputName?: unknown; inputKind?: unknown }[] };
+      this.texts = textInputNames(inputs.inputs ?? []).slice(0, SOURCES_MAX);
       const items = (await obs.call('GetSceneItemList', { sceneName: scene }).catch(() => ({ sceneItems: [] }))).sceneItems as unknown as Item[];
       this.sources = items.map(i => i.sourceName).filter(n => !names.includes(n)).slice(0, SOURCES_MAX);
       if (names.length) {

@@ -373,6 +373,12 @@
             <ul id="scene-pause-list" class="links"></ul>
           </section>
           <section class="card">
+            <h2 class="plain-title">Live stats in OBS</h2>
+            <p class="muted small">Pick an OBS text source (GDI+ or FreeType text) for each stat you want on screen. TCG Bridge writes only the text, at most once a second and only when it changes. A stat set to "Not shown" never touches a source, so its text stays as it is. Needs OBS connected on the Status page.</p>
+            <p id="obs-stats-empty" class="muted small" hidden></p>
+            <ul id="obs-stats-list" class="links"></ul>
+          </section>
+          <section class="card">
             <h2 class="plain-title">Pairing</h2>
             <p id="account-text" class="muted"></p>
             <div class="row tools"><button id="unpair" type="button" class="btn plain" hidden><svg class="i"><use href="#i-unlink"/></svg>Unpair</button></div>

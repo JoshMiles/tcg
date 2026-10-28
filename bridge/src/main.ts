@@ -21,6 +21,7 @@ import { BridgeService, type TrayLevel } from './service';
 import { cleanNotice, NOTICE_KINDS, type NoticeKind } from './notices';
 import { StaffTools } from './staff';
 import { cleanScenePause, ScenePause } from './scenepause';
+import { acceptStatMap, siteStats, STAT_IDS, STAT_LABELS, TextWriter, wantedTexts, type StatFacts } from './obsstats';
 import { FileSettingsStore, defaults, type Settings } from './settings';
 import { cleanSite, pair, SiteClient, Unauthorized, type QueueRow } from './site';
 import { Startup, type StartupEvent, type StartupStep } from './startup';
@@ -60,6 +61,11 @@ let paused: boolean | null = null; // pulls paused on the site; null until the s
 let pauseReason = ''; // why pulls are paused: "scene <name>" when a chosen OBS scene did it (57.2), else ''
 let happy: HappyFacts | null = null; // the site's running happy hour (57.3), as the site last said; never decided here
 let scenePause: ScenePause | null = null; // pauses pulls while a chosen OBS scene is on air (57.2)
+let statFacts: StatFacts | null = null; // what the site last said for the OBS text sources (57.4); null until it has answered
+let statWriter: TextWriter | null = null;
+let statsAt = 0;
+let statsObsUp = false;
+const STATS_MS = 5000; // how often the site is asked while a stat is mapped and OBS is connected
 let buffs: { id: string; name: string }[] = []; // the buffs switched on for the Stream Deck
 let staff = false; // the site says an admin switched "Staff tools on this PC" on (55.12)
 let tradingPaused = false;
@@ -103,6 +109,7 @@ const appState = (): object => demoState ?? ({
   checklist: lastChecklist,
   notices: settings.notices,
   scenePause: { ...settings.scenePause, obsScenes: sceneList() },
+  obsStats: { map: settings.obsStats, texts: service?.obs.textSources() ?? [], stats: STAT_IDS.map(id => ({ id, label: STAT_LABELS[id] })) },
   control: { error: control?.error ?? '', paused, reason: pauseReason, happy, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
   appVersion: app.getVersion(),
   about: aboutParts(app.getVersion(), build),
@@ -181,6 +188,26 @@ async function loadStatus(): Promise<void> {
   } catch { /* the next try is in 30 seconds */ }
 }
 
+/** Asks the site for the stats that are mapped to OBS text sources (57.4). Quiet when the site cannot be reached or is older than this app. */
+async function loadStats(): Promise<void> {
+  statsAt = Date.now();
+  try {
+    const r = await client?.action({ action: 'stats', stats: siteStats(settings.obsStats) });
+    if (!r?.stats) return;
+    statFacts = r.stats;
+    if (r.happyHour !== undefined && JSON.stringify(r.happyHour) !== JSON.stringify(happy)) { happy = r.happyHour; push(); }
+  } catch { /* asked again in a few seconds */ }
+}
+
+/** Once a second: write the mapped stats that changed (TextWriter keeps it to one write a second per source), and ask the site now and then. Nothing happens until a stat is mapped. */
+function tickStats(): void {
+  const up = !!client && !!service?.obs.state.connected && STAT_IDS.some(id => settings.obsStats[id]);
+  if (!up) { statsObsUp = false; return; }
+  if (!statsObsUp) { statsObsUp = true; statWriter?.reset(); statsAt = 0; } // OBS just came up: write everything again
+  statWriter?.push(wantedTexts(settings.obsStats, statFacts, happy, Date.now()));
+  if (Date.now() - statsAt >= STATS_MS) void loadStats();
+}
+
 /** Documents\TCG Bridge\backups: the Brie Bucks CSVs (ROADMAP 55.10). */
 const backupDir = () => join(app.getPath('documents'), 'TCG Bridge', 'backups');
 
@@ -203,6 +230,7 @@ function connect(): void {
     log(`Scene pause: ${scene ? `${scene} is on air` : 'left a chosen scene'}, ${r.message}`);
     push();
   });
+  statWriter = new TextWriter((source, text) => obs.setText(source, text));
   service.start();
   push();
   void loadStatus();
@@ -218,6 +246,9 @@ async function disconnect(): Promise<void> {
   pauseReason = '';
   scenePause?.stop();
   scenePause = null;
+  statWriter = null;
+  statFacts = null;
+  statsObsUp = false;
   lastChecklist = null;
   buffs = [];
   staff = false;
@@ -630,6 +661,13 @@ function setupIpc(): void {
     await store.save(settings);
     push();
   });
+  ipcMain.handle('set-obs-stats', async (_e, raw: unknown) => { // stats in OBS text sources (57.4): only text inputs OBS reported
+    settings = { ...settings, obsStats: acceptStatMap(raw, service?.obs.textSources() ?? [], settings.obsStats) };
+    await store.save(settings);
+    statWriter?.reset();
+    statsAt = 0;
+    push();
+  });
   ipcMain.handle('set-summary', async (_e, on: boolean) => {
     settings = { ...settings, summary: !!on };
     await store.save(settings);
@@ -738,6 +776,7 @@ async function launchApp(): Promise<void> {
   if (settings.token) connect();
   setInterval(() => void loadStatus(), 30_000); // the site's pause switch and happy hour can be changed elsewhere
   setInterval(tickHappy, 1000);
+  setInterval(tickStats, 1000);
   setInterval(tickAlerts, 5000); // the 15 seconds of "down" are counted here
   void startMixWithBridge();
   void startObsWithBridge();
