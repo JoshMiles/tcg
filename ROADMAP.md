@@ -22,12 +22,11 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 47 | Access hardening (47.11) | Blocked (Josh, from 2026-11-02) | S |
 | 50 | Swap finder trial (50.3) | Blocked (trial readout from 2026-11-24) | S |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
-| 57 | TCG Bridge features still to build: command check, errors on the dashboard, overlay preview, what's new, Stream Deck plugin (57.8 to 57.11, 57.13; 57.1 to 57.7 done, 57.12 dropped) | Ready | L |
-| 58 | Twitch through TCG Bridge: sign in to the app with Twitch, connect the channel, EventSub in the app, awards for existing channel points rewards, bits / subs / raids, chat commands replacing the Mix It Up ones (58.0 to 58.6) | Ready | L |
-| 59 | TCG Bridge redesign: bigger window, less clutter, layout by job (59.1 design pass, then build items) | After Track 58 | L |
+| 59 | TCG Bridge redesign: bigger window, less clutter, layout by job (59.1 design pass, then build items) | Ready (59.1 design first) | L |
+| 58 | Twitch through TCG Bridge: sign in to the app with Twitch, connect the channel, EventSub in the app, awards for existing channel points rewards, bits / subs / raids, chat commands replacing the Mix It Up ones (58.0 to 58.6) | After Track 59 | L |
 | 60 | Staff wiki refresh: every page brought up to date, new pages for TCG Bridge, Twitch and the Stream Deck plugin (60.1) | Last, after Track 59 | M |
 
-Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52 and 54 to 56 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
+Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52 and 54 to 57 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
 ## Track 35: home-screen app (2026-10-20)
 
@@ -59,35 +58,6 @@ Checked against the code on 2026-10-25, most of the 16 breaking changes need not
 
 ### 43.3 Rename `middleware.ts` to `proxy.ts` (Blocked: panel freeze, S)
 The file holds the extension's CORS rules, which stay as submitted while panel 0.0.2 is under review (Rules in force). Pick this up when the review is back. `proxy.ts` runs on Node only; today the file runs on edge and reads through `lib/admin-auth-edge` and `lib/access-edge`. Rename the file and its export (the codemod does both), then test the admin and mod gates, the access gate and the `/api/twitch/*` CORS answers (the panel's requests from the Twitch origin) on a preview deployment. Drop the `-edge` variants only if nothing else uses them.
-
-## Track 57: TCG Bridge features (2026-10-28)
-
-Josh picked all thirteen (2026-10-28); 57.1 to 57.7 are done and archived, 57.12 was dropped (Josh, not needed). Every item that changes bridge/ bumps the bridge minor and releases itself on merge (56.1). Read `bridge/README.md` and `docs/admin/mixitup.md` ("TCG Bridge") first. One PR per item, in this order unless an item says otherwise. Everything new is off by default and switched on in the app's Settings tab or on the site's Mix It Up page, like the 0.9.0 streamer tools. The app only acts on scene, source and command names it reported itself (the 0.6.0 rule).
-
-### 57.8 Mix It Up command check (Ready, S)
-The site already gets the app's enabled Mix It Up commands (0.4.0). Compare them with what the site expects (the `!pack` command, the switched-on chat commands, the Stream Deck buttons and event commands the setup cards describe, matched by the Web Request address the downloads put in, else by name): a missing or switched-off one shows on the Connection tab and in the app's Status tab with the name to fix. Never changes Mix It Up.
-
-### 57.9 Bridge errors on the dashboard (Ready, S)
-The app sends a short error report (time, part, message, app version and commit, redacted like Copy diagnostics) when something fails: a job, a reconnect giving up, an OBS or Mix It Up call. The site keeps the last 50 in KV and counts them per day; the admin data health card warns when there were any in the last 24 hours, linking to the list on the Connection tab. A burst (10 in 10 minutes) posts once to the System Discord channel; single errors never do.
-
-### 57.10 Overlay preview window (Ready, M)
-A **Preview overlay** window in the app shows the paired site's overlay page at the OBS canvas size (from OBS when connected, else 1920x1080), scaled to fit, with **Test pull** (the 55.14 test pull, never a real one) and **Show a card**. The site gives the app a preview address with its own short-lived key (staff only, read-only, never the OBS overlay key), so the window can never trigger real pulls.
-
-### 57.11 What's new screen (Ready, S)
-After an update the app opens a What's new tab once: the release notes of every version since the last one seen (from the GitHub releases 56.1 publishes, cached), newest first. The About tab keeps a link to all releases.
-
-### 57.13 Stream Deck plugin (Ready, L; two PRs)
-Josh (2026-10-28): installed from TCG Bridge; every action below; the Mix It Up Stream Deck commands keep working alongside; stream PC only.
-1. **Where it lives.** A new `streamdeck/` folder: an Elgato Stream Deck plugin (official `@elgato/streamdeck` Node SDK, plugin id `tv.cheesygidds.tcgbridge`), built and packed with the Elgato CLI into `TCG Bridge.streamDeckPlugin` by the bridge build and shipped inside the app (`extraResources`). Its version is always the bridge's (manifest `x.y.z.0`), and any change under `streamdeck/` counts as a bridge change for the 56.1 minor rule (`check-version.ts` covers both folders), so the release workflow ships them together.
-2. **Install.** Settings tab: **Install Stream Deck plugin** opens the packed file with the Stream Deck app (which installs or updates it); shows "Stream Deck app not found" when it is not installed. After a bridge update the app offers "Update the Stream Deck plugin" once when the installed plugin's version differs.
-3. **Local link, no typing.** The bridge listens on a WebSocket at `127.0.0.1` only (a fixed port with a fallback range) and writes `{ port, token }` to `%APPDATA%\TCG Bridge\streamdeck.json` (current user only). The plugin reads that file, connects and sends the token; anything else is refused. Off until the plugin is installed (or a switch in Settings). Connected / not connected shows on the app's Status tab and on every key (an alert icon when the bridge is closed).
-4. **Actions** (each runs through the app's existing `/api/bridge/action` calls, audited as "TCG Bridge"; a refusal shows the key's alert and the reason in the app log):
-   - **Buff**: pick any Stream Deck buff or quick action (55.2) in the key's settings; **Last buff again**. The key shows active / on cooldown.
-   - **Pause pulls** (toggle; the key shows paused, including a scene pause), **Happy hour** (pick a preset or custom minutes and kind; the key counts down; pressing while one runs ends it, after a long press to avoid accidents).
-   - **Test pull** (a test pull through the overlay) and **Show a card** (a viewer named in the key's settings, or the last puller).
-   - **Stat** keys (display only): queue length, packs this stream, pack goal progress (57.4 / 57.5 data, the same polling, only while such a key is on a deck). Pressing a queue key skips the next pull (asks for a second press within 3 seconds).
-5. **Mix It Up stays.** The Mix It Up Stream Deck commands and `/api/webhooks/buff` are unchanged; the setup cards say the plugin is the simpler way.
-6. **PRs.** 57.13a: the folder, packing, install button, local link and the Buff, Pause and Happy hour actions. 57.13b: Test pull, Show a card and the Stat keys. Checks: the token and 127.0.0.1-only refusal, the message shapes, the version match; the SDK is driven by a fake in `npm run check`. Not testable here without a Stream Deck: say so in each PR.
 
 ## Track 58: Twitch events through TCG Bridge (2026-10-28)
 
@@ -135,10 +105,10 @@ Josh (2026-10-28): replace the Mix It Up chat commands; reply as the channel acc
 
 ## Track 59: TCG Bridge redesign (2026-10-28)
 
-Josh: the app is cluttered and its UX is poor; the window is small (860 x 640, min 700 x 520) and can be much bigger. Do it after Track 58, so the Twitch parts are designed in rather than added on.
+Josh: the app is cluttered and its UX is poor; the window is small (860 x 640, min 700 x 520) and can be much bigger. Josh (2026-10-28): do it before Track 58. The design leaves room for the Twitch parts still to come (58.0 sign in with Twitch instead of pairing, the Twitch connection state, channel point awards pause, the event feed growing Twitch events), so Track 58 adds them into the new layout rather than around it.
 
 ### 59.1 Redesign pass (Needs design: Opus, then Josh)
-Walk every tab, card, banner, tray item and tool window as they stand after Track 58 (screenshots from `demo.ts`). Propose: a bigger default window (remembered size and position, sensible minimum), a layout that groups by job (going live, during the stream, setup, about) instead of by feature, what moves off the main screens into Settings, one status summary instead of many banners, and consistent cards, buttons and empty states. Mockups for Josh to pick from before any build; then split into build items (59.2 onward), one PR each, every one bumping the bridge minor.
+Walk every tab, card, banner, tray item and tool window as they stand now (screenshots from `demo.ts`). Propose: a bigger default window (remembered size and position, sensible minimum), a layout that groups by job (going live, during the stream, setup, about) instead of by feature, what moves off the main screens into Settings, one status summary instead of many banners, and consistent cards, buttons and empty states. Mockups for Josh to pick from before any build; then split into build items (59.2 onward), one PR each, every one bumping the bridge minor.
 
 ## Track 60: staff wiki refresh (2026-10-28)
 

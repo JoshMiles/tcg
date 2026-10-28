@@ -1559,9 +1559,9 @@ Josh: every PR that touches TCG Bridge bumps its minor; the app shows the commit
 - **56.3 README rewrite (Done, #624).** `README.md` rewritten for someone new; `bridge/README.md` brought to 0.12.0.
 - Also in this run: built-in `!pack` on the Commands tab (#622), after Josh found the status hint pointed at a tab without it.
 
-## Track 57: TCG Bridge features (2026-10-28, in progress)
+## Track 57: TCG Bridge features (2026-10-28)
 
-Josh picked all thirteen; 57.12 (beta channel and rollback) was dropped as not needed. Done so far (each bridge change bumped the minor and released itself):
+Josh picked all thirteen; 57.12 (beta channel and rollback) was dropped as not needed. Done (each bridge change bumped the minor and released itself):
 
 - **57.1 Pre-stream checklist (Done, #626).** Checklist button on the Status tab and tray; one line per check; the site's Overview tab shows the last result.
 - **57.2 Pause pulls on chosen scenes (Done, #627, 0.14.0).** Pause reason "scene <name>"; only a scene pause is lifted by a scene change, a hand pause never is.
@@ -1571,3 +1571,10 @@ Josh picked all thirteen; 57.12 (beta channel and rollback) was dropped as not n
 - **57.5 Community pack goal (Done, #631, 0.18.0).** Count starts when the goal is set (setting again restarts it); INCR plus SET NX gives the reward once; OBS stat and a `goal` overlay layer (drawn while the theater is on screen).
 - **57.6 Raid shout-out (Done, #632).** Off by default, minimum raid size (default 5), once per raider per stream; best card with "Raid from <name>" and one chat line; never affects the raid reward.
 - **57.7 Event feed in the app (Done, #633, 0.19.0).** Its own 30-entry list written with the Mix It Up log line; `events` action with `after`.
+- **57.8 Mix It Up command check (Done, #635, 0.20.0).** Matched by name only (the app reports enabled commands without their Web Request address), so missing and switched off read the same; a grey checklist line.
+- **57.9 Bridge errors on the dashboard (Done, #636, 0.21.0).** Per-part rate limit in the app; last 50 on the site, a per-day count, one System Discord post per burst of 10 in 10 minutes.
+- **57.10 Overlay preview window (Done, #638, 0.23.0).** Staff-only 2-hour preview key; the preview reads ticket-less copies of queued events and never pops the real queue. Test pull and Show a card also play on the live overlay.
+- **57.11 What's new screen (Done, #637, 0.22.0).** Followed by #643 (0.25.0): PRs that change bridge/ or streamdeck/ carry a required `## TCG Bridge` section, the release notes lead with it, the app shows only those bullets, a refetch when the cache lacks the running version, and Refresh / Clear cached release notes. Every older release and bridge PR was rewritten by hand to the same format.
+- **57.12 Beta channel and rollback.** Dropped (Josh, not needed).
+- **57.13 Stream Deck plugin (Done, #640 0.24.0, #644 0.26.0).** `streamdeck/` (Elgato Node SDK), packed into the installer, Install / Update from Settings, a 127.0.0.1 WebSocket with a token file, keys: Buff, Last buff again, Pause pulls, Happy hour, Test pull, Show a card (named viewer only), Stat (queue skips on a double press). The plugin's version is the bridge's. zod forced to 4.6.7 for Dependabot #23 (the SDK only imports `zod/v4-mini`). Not yet tried on a real Stream Deck.
+- Also in this run: the docs check on every PR (#641: `docs/doc-map.json`, wiki `covers:` lines, a required `## Docs` section with a reasoned opt-out, and the review bot checking accuracy).
