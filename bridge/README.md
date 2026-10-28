@@ -11,7 +11,7 @@ The current version is 0.26.0 (`package.json` is the source of truth, and the ap
 3. In Mix It Up switch the Developer API on: Services > Developer API > Connect.
 4. On the site press **Pair TCG Bridge** and type the code into the app (the site address is `https://cheesytcg.app`). The app turns green when the site and Mix It Up both answer.
 
-It starts with Windows and lives in the tray; closing the window keeps it running. Quit from the tray menu. The window has its own title bar: minimise, and close (which only hides it to the tray). A rail on the left switches between Status, Settings and About; the Site, Mix It Up and OBS links are cards, each with a coloured dot and a one-line state in words.
+It starts with Windows and lives in the tray; closing the window keeps it running. Quit from the tray menu. The window opens at 1280 x 800 (smallest 960 x 620) and remembers its size, place and maximised state in `settings.json` (`window`; the saved spot is used only if its title bar is still on a screen, otherwise it opens centred at the default, and the size is clamped to that screen; logic in `src/winstate.ts`). When it is wide, the cards on the Status, Control, Staff and Settings tabs sit in two columns. The window has its own title bar: minimise, and close (which only hides it to the tray). A rail on the left switches between Status, Settings and About; the Site, Mix It Up and OBS links are cards, each with a coloured dot and a one-line state in words.
 
 The three tray icons differ by badge shape as well as colour: a dot for connected, a half-filled ring for partly connected, a cross for offline.
 

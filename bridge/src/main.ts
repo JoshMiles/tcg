@@ -1,5 +1,5 @@
 // TCG Bridge, the Electron glue: one instance, a tray icon, a small window, auto start and updates. The logic is in the other modules.
-import { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, Menu, nativeImage, Notification, safeStorage, shell, Tray, type MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, Menu, nativeImage, Notification, safeStorage, screen, shell, Tray, type MenuItemConstructorOptions } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { existsSync, mkdirSync } from 'node:fs';
 import { hostname, release, tmpdir, version as osVersion } from 'node:os';
@@ -24,6 +24,7 @@ import { BridgeService, type TrayLevel } from './service';
 import { cleanNotice, NOTICE_KINDS, type NoticeKind } from './notices';
 import { StaffTools } from './staff';
 import { previewFrameAllowed } from './preview';
+import { MIN_SIZE, placeWindow } from './winstate';
 import { cleanScenePause, ScenePause } from './scenepause';
 import { eventsAfter, mergeEvents, type EventLine } from './events';
 import { acceptStatMap, statsPlan, STAT_IDS, STAT_LABELS, TextWriter, wantedTexts, type StatFacts } from './obsstats';
@@ -474,12 +475,31 @@ function showWindow(): void {
   win.focus();
 }
 
+/** Remember the main window's size, place and maximised state a moment after it stops changing (and on close). Not in the demo: its screenshots are always 1280 x 800. */
+function rememberWindow(w: BrowserWindow): void {
+  if (DEMO) return;
+  const keep = (): void => {
+    if (w.isDestroyed() || w.isMinimized() || w.isFullScreen()) return;
+    const b = w.getNormalBounds();
+    settings = { ...settings, window: { x: b.x, y: b.y, width: b.width, height: b.height, maximized: w.isMaximized() } };
+    void store.save(settings);
+  };
+  let timer: NodeJS.Timeout | undefined;
+  const later = (): void => { clearTimeout(timer); timer = setTimeout(keep, 600); };
+  w.on('resize', later); w.on('move', later); w.on('maximize', later); w.on('unmaximize', later);
+  w.on('close', () => { clearTimeout(timer); keep(); });
+}
+
 function createWindow(show: boolean): void {
+  const areas = screen.getAllDisplays().map(d => d.workArea);
+  const at = placeWindow(DEMO ? null : settings.window, areas, screen.getPrimaryDisplay().workArea);
   win = new BrowserWindow({
-    width: 860, height: 640, minWidth: 700, minHeight: 520, show, frame: false, backgroundColor: '#0a0f21', title: 'TCG Bridge', icon: join(RENDERER, 'icon.png'), autoHideMenuBar: true,
+    x: at.x, y: at.y, width: at.width, height: at.height, minWidth: MIN_SIZE.width, minHeight: MIN_SIZE.height, show, frame: false, backgroundColor: '#0a0f21', title: 'TCG Bridge', icon: join(RENDERER, 'icon.png'), autoHideMenuBar: true,
     webPreferences: { preload: join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   win.setMenu(null);
+  if (at.maximized) win.maximize();
+  rememberWindow(win);
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', e => e.preventDefault());
   win.once('show', () => { // the first time the window is really shown after an update: open What's new once and count it as seen
