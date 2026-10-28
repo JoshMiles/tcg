@@ -155,6 +155,10 @@ bad(body('Audience: players\nTitle:\nTags: new\n- Text.'), /Title:" is empty/, '
 bad(body('Audience: players\nTags: new\n- Text ' + EM + ' more.'), /em dash/, 'an em dash in a bullet fails');
 bad(body('Audience: players\nTags: new\n- Made with Claude.'), /tool or author/, 'a credit in a bullet fails');
 bad(body(good, '## Summary\n\n## Docs\nx\n\n## Test plan\nx'), /"## Summary" is empty/, 'an empty Summary fails');
+ok(prBodyProblems(body(good, '## Summary\nx\n\n## TCG Bridge\n- A new key.\n\n## Docs\nx\n\n## Test plan\nx'), '').length === 0, 'an optional TCG Bridge section after Summary passes');
+bad(body(good, '## Summary\nx\n\n## Docs\nx\n\n## TCG Bridge\n- A new key.\n\n## Test plan\nx'), /Headings must be/, 'TCG Bridge in the wrong place fails');
+bad(body(good, '## Summary\nx\n\n## TCG Bridge\nSome prose.\n\n## Docs\nx\n\n## Test plan\nx'), /holds only bullets/, 'TCG Bridge with prose fails');
+bad(body(good, '## Summary\nx\n\n## TCG Bridge\n\n## Docs\nx\n\n## Test plan\nx'), /"## TCG Bridge" is empty/, 'an empty TCG Bridge section fails');
 // PR #386 as it was written: Summary first, prose instead of a bullet
 const pr386 = '## Summary\n- Text tool.\n\n## Changelog\nAudience: admin\nTags: new\nThe Overlay Editor has a Text tool: click or drag.\n\n## Test plan\n- [x] npm run verify';
 bad(pr386, /Headings must be/, '#386 fails on heading order');

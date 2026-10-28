@@ -161,8 +161,11 @@ export function prBodyProblems(body, title) {
     else if (sections.length) sections[sections.length - 1].lines.push(line);
   }
   const names = sections.map(s => s.name);
-  if (names.join('|') !== REQUIRED_HEADINGS.join('|')) {
-    problems.push(`Headings must be exactly "## Changelog", "## Summary", "## Docs", "## Test plan" once each, in that order; found: ${names.map(n => `"## ${n}"`).join(', ') || 'none'}.`);
+  // An optional "## TCG Bridge" section (the app's What's new bullets) sits between Summary and Docs.
+  const bridgeAt = names.indexOf('TCG Bridge');
+  const bridgeOk = bridgeAt === -1 || (names[bridgeAt - 1] === 'Summary' && names.lastIndexOf('TCG Bridge') === bridgeAt);
+  if (!bridgeOk || names.filter(n => n !== 'TCG Bridge').join('|') !== REQUIRED_HEADINGS.join('|')) {
+    problems.push(`Headings must be exactly "## Changelog", "## Summary", "## Docs", "## Test plan" once each, in that order (with an optional "## TCG Bridge" after Summary); found: ${names.map(n => `"## ${n}"`).join(', ') || 'none'}.`);
   }
   const content = (name) => (sections.find(s => s.name === name)?.lines ?? []).map(l => l.trimEnd()).filter(l => l.trim() !== '');
 
@@ -173,9 +176,10 @@ export function prBodyProblems(body, title) {
       if (log.length > 1) problems.push('Changelog starts with "none" but has more lines; keep only the "none" line.');
     } else problems.push(...changelogProblems(log));
   }
-  for (const name of ['Summary', 'Docs', 'Test plan']) {
+  for (const name of ['Summary', 'TCG Bridge', 'Docs', 'Test plan']) {
     if (sections.some(s => s.name === name) && content(name).length === 0) problems.push(`"## ${name}" is empty.`);
   }
+  if (content('TCG Bridge').some(l => !/^[-*] +\S/.test(l.trim()))) problems.push('"## TCG Bridge" holds only bullets ("- ..."): what changed in the app, for the streamer.');
   return problems;
 }
 
