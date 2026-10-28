@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Goal
-Track 59 (bridge redesign, 59.2 to 59.5 done, 59.6 building), 61.1 (Stream Deck keys fix), then 58 (58.0a site half done), 61.2 to 61.5, 62 (native OBS plugin), then 60, then 60 (wiki); Track 57 done (Josh, 2026-10-28: keep going after 56): one fresh agent per item, Opus reviews, reads all comments, merges on green, next. 57.12 and 57.13 need an Opus design pass first; Track 58 needs Josh to connect a Twitch account (any account, 58.1) before 58.2 is tried for real.
+Track 59 (bridge redesign, 59.2 to 59.5 done, 59.6 building), 61.1 (Stream Deck keys fix), then 58 (58.0a site half done), 61.2 to 61.5, 62 (native OBS plugin), then 60 (wiki); Track 57 done (Josh, 2026-10-28: keep going after 56): one fresh agent per item, Opus reviews, reads all comments, merges on green, next. 57.12 and 57.13 need an Opus design pass first; Track 58 needs Josh to connect a Twitch account (any account, 58.1) before 58.2 is tried for real.
 
 ## Done
 - Track 45 (#480 to #483), 34.8 (#484, panel 0.0.2 submitted, under Twitch review).
