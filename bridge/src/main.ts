@@ -498,7 +498,7 @@ function createWindow(show: boolean): void {
     webPreferences: { preload: join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   win.setMenu(null);
-  if (at.maximized) win.maximize();
+  if (at.maximized) { if (show) win.maximize(); else win.once('show', () => win?.maximize()); } // maximize() would show a window that starts hidden in the tray
   rememberWindow(win);
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', e => e.preventDefault());
