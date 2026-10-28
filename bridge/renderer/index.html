@@ -72,6 +72,7 @@
         <p id="update-banner" class="banner info" hidden>
           <svg class="i"><use href="#i-download"/></svg>
           <span id="update-banner-text"></span>
+          <button id="update-banner-restart" type="button" class="btn plain">Restart to update</button>
         </p>
 
         <!-- Status -->
@@ -407,11 +408,12 @@
             <h2 class="plain-title">Updates</h2>
             <p id="update" class="muted"></p>
             <div class="row tools">
+              <button id="restart-update" type="button" class="btn plain" hidden><svg class="i"><use href="#i-download"/></svg>Restart to update</button>
               <button id="check-update" type="button" class="btn plain"><svg class="i"><use href="#i-refresh-cw"/></svg>Check for updates</button>
               <button id="open-release" type="button" class="btn plain"><svg class="i"><use href="#i-external-link"/></svg>Release notes</button>
             </div>
             <p id="update-result" class="result" role="status"></p>
-            <p class="muted small">TCG Bridge checks when it starts and every 6 hours, and installs an update when you quit it.</p>
+            <p class="muted small">TCG Bridge checks when it starts and every 6 hours. Updates install in the start-up window; restart to update.</p>
           </section>
         </section>
       </main>

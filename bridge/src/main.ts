@@ -107,6 +107,7 @@ const appState = (): object => demoState ?? ({
   appVersion: app.getVersion(),
   about: aboutParts(app.getVersion(), build),
   update: updateText(update),
+  updateVersion: update.stage === 'available' ? update.version : '',
   updatedTo: updatedNote,
   service: service?.state ?? null,
 });
@@ -139,7 +140,7 @@ function push(): void {
   if (win && !win.isDestroyed()) win.webContents.send('state', appState());
   tickAlerts();
   scenePause?.update(settings.scenePause, !!service?.state.obs.connected, service?.state.obs.scene ?? '');
-  const menu =`${paused}${!!client}${!!happy}${staff}${tradingPaused}${staff ? sceneList().join('|') : ''}`;
+  const menu =`${paused}${!!client}${!!happy}${staff}${tradingPaused}${staff ? sceneList().join('|') : ''}${update.stage === 'available' ? update.version : ''}`;
   if (menu !== menuFor) { menuFor = menu; tray?.setContextMenu(trayMenu()); }
   if (service?.state.site === 'revoked' && settings.token) { // the site revoked this PC: forget the token so a restart does not retry it
     log('The site revoked this PC');
@@ -386,6 +387,13 @@ async function setTrading(pause: boolean): Promise<{ ok: boolean; text: string }
   return { ok: r.ok, text: r.text };
 }
 
+/** Quit the normal way (before-quit closes the service, OBS and the link) and start again: the start-up window then downloads and installs the update. */
+function restartToUpdate(): void {
+  log('Restarting to update');
+  app.relaunch();
+  app.quit();
+}
+
 const trayMenu = () => Menu.buildFromTemplate([
   { label: 'Open TCG Bridge', click: showWindow },
   { label: 'Checklist', enabled: !!client, click: () => { void checklist().then(r => { if (Notification.isSupported()) new Notification({ title: 'Pre-stream checklist', body: r.text }).show(); }); } },
@@ -396,6 +404,7 @@ const trayMenu = () => Menu.buildFromTemplate([
     { label: 'End now', enabled: !!happy, click: () => { void runControl({ action: 'happy-hour-end' }); } },
   ] },
   ...staffMenu(),
+  ...(update.stage === 'available' ? [{ label: `Restart to update ${update.version}`, click: restartToUpdate }] : []),
   { label: 'Quit', click: () => app.quit() },
 ]);
 
@@ -411,7 +420,11 @@ function staffMenu(): MenuItemConstructorOptions[] {
 
 /** Every updater event goes through the start-up machine: it says what the start-up window shows, when to open the app, and what the window says about updates. */
 function feed(e: StartupEvent): void {
+  const checkingAtStart = startup.step.phase === 'checking';
   const step = startup.event(e, Date.now());
+  if (e.type === 'available' && checkingAtStart && !step.handover) { // only the start-up window downloads
+    autoUpdater.downloadUpdate().catch(() => undefined); // failures arrive as the 'error' event too
+  }
   update = step.update;
   startNote = step.note;
   if (step.install && !quitting) {
@@ -435,6 +448,8 @@ function afterStep(step: StartupStep): void {
 
 function setupUpdates(): void {
   if (!app.isPackaged) { feed({ type: 'none' }); return; } // nothing to update when run from source
+  autoUpdater.autoDownload = false; // the start-up window downloads, see feed()
+  autoUpdater.autoInstallOnAppQuit = false; // and installs: nothing installs on quit
   autoUpdater.on('checking-for-update', () => feed({ type: 'checking' }));
   autoUpdater.on('update-available', info => { log(`Update ${info.version} found`); feed({ type: 'available', version: info.version }); });
   autoUpdater.on('update-not-available', () => feed({ type: 'none' }));
@@ -658,11 +673,12 @@ function setupIpc(): void {
     if (!app.isPackaged) return { ok: false, text: 'Updates only work in the installed app' };
     try {
       const r = await autoUpdater.checkForUpdates();
-      return { ok: true, text: checkText(app.getVersion(), r?.isUpdateAvailable ? r.updateInfo.version : null, update) };
+      return { ok: true, text: checkText(app.getVersion(), r?.isUpdateAvailable ? r.updateInfo.version : null) };
     } catch {
       return { ok: false, text: 'Could not check for updates (offline, or no release yet)' };
     }
   });
+  ipcMain.handle('restart-to-update', () => { if (update.stage === 'available') restartToUpdate(); });
   ipcMain.handle('open-release', () => shell.openExternal(releaseUrl(app.getVersion())));
   ipcMain.handle('open-commit', () => (build ? shell.openExternal(commitUrl(build.full)) : undefined));
   ipcMain.handle('dismiss-updated', async () => {
