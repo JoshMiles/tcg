@@ -25,6 +25,7 @@ import { checklistChecks } from './check-checklist';
 import { scenePauseChecks } from './check-scenepause';
 import { happyHourChecks } from './check-happyhour';
 import { statsChecks } from './check-stats';
+import { eventsChecks } from './check-events';
 import { BridgeService } from '../src/service';
 import { cleanStaffAction, StaffTools } from '../src/staff';
 import { defaults, FileSettingsStore } from '../src/settings';
@@ -1051,6 +1052,7 @@ async function main() {
   await scenePauseChecks();
   await happyHourChecks();
   await statsChecks();
+  eventsChecks();
 
   miSrv.server.close();
   siSrv.server.close();

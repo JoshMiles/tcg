@@ -21,6 +21,7 @@ import { BridgeService, type TrayLevel } from './service';
 import { cleanNotice, NOTICE_KINDS, type NoticeKind } from './notices';
 import { StaffTools } from './staff';
 import { cleanScenePause, ScenePause } from './scenepause';
+import { eventsAfter, mergeEvents, type EventLine } from './events';
 import { acceptStatMap, siteStats, STAT_IDS, STAT_LABELS, TextWriter, wantedTexts, type StatFacts } from './obsstats';
 import { FileSettingsStore, defaults, type Settings } from './settings';
 import { cleanSite, pair, SiteClient, Unauthorized, type QueueRow } from './site';
@@ -66,6 +67,10 @@ let statWriter: TextWriter | null = null;
 let statsAt = 0;
 let statsObsUp = false;
 const STATS_MS = 5000; // how often the site is asked while a stat is mapped and OBS is connected
+let eventLines: EventLine[] = []; // the last event rewards the site sent (57.7), newest first
+let eventsAt = 0; // when the site was last asked for them
+const EVENTS_OPEN_MS = 5000; // while the window or the feed window is open
+const EVENTS_IDLE_MS = 30_000; // otherwise
 let buffs: { id: string; name: string }[] = []; // the buffs switched on for the Stream Deck
 let staff = false; // the site says an admin switched "Staff tools on this PC" on (55.12)
 let tradingPaused = false;
@@ -109,6 +114,7 @@ const appState = (): object => demoState ?? ({
   checklist: lastChecklist,
   notices: settings.notices,
   scenePause: { ...settings.scenePause, obsScenes: sceneList() },
+  events: eventLines,
   obsStats: { map: settings.obsStats, texts: service?.obs.textSources() ?? [], stats: STAT_IDS.map(id => ({ id, label: STAT_LABELS[id] })) },
   control: { error: control?.error ?? '', paused, reason: pauseReason, happy, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
   appVersion: app.getVersion(),
@@ -199,6 +205,25 @@ async function loadStats(): Promise<void> {
   } catch { /* asked again in a few seconds */ }
 }
 
+/** Asks the site for the event rewards newer than the ones held (57.7). Quiet when the site cannot be reached or is older than this app. */
+async function loadEvents(): Promise<void> {
+  eventsAt = Date.now();
+  try {
+    const r = await client?.action({ action: 'events', after: eventsAfter(eventLines) });
+    if (!r?.events?.length) return;
+    eventLines = mergeEvents(eventLines, r.events);
+    push();
+    if (feedWin && !feedWin.isDestroyed()) feedWin.webContents.send('feed-events', eventLines);
+  } catch { /* asked again in a few seconds */ }
+}
+
+/** Every 5 seconds: ask for events when the window or the feed window is open, else every 30 seconds. */
+function tickEvents(): void {
+  if (!client) return;
+  const open = !!feedWin || (!!win && !win.isDestroyed() && win.isVisible());
+  if (Date.now() - eventsAt >= (open ? EVENTS_OPEN_MS : EVENTS_IDLE_MS)) void loadEvents();
+}
+
 /** Once a second: write the mapped stats that changed (TextWriter keeps it to one write a second per source), and ask the site now and then. Nothing happens until a stat is mapped. */
 function tickStats(): void {
   const up = !!client && !!service?.obs.state.connected && STAT_IDS.some(id => settings.obsStats[id]);
@@ -249,6 +274,8 @@ async function disconnect(): Promise<void> {
   statWriter = null;
   statFacts = null;
   statsObsUp = false;
+  eventLines = [];
+  eventsAt = 0;
   lastChecklist = null;
   buffs = [];
   staff = false;
@@ -638,6 +665,7 @@ function setupIpc(): void {
   // ── Streamer tools (55.11): the feed window, the summary, starting OBS ──
   ipcMain.on('tools-ready', e => { // a tool window finished loading: give the summary window what it shows
     if (summaryWin && e.sender === summaryWin.webContents) sendSummary();
+    if (feedWin && e.sender === feedWin.webContents) feedWin.webContents.send('feed-events', eventLines);
   });
   ipcMain.handle('copy-summary', () => {
     if (!lastSummary) return { ok: false, text: 'No summary yet' };
@@ -777,6 +805,7 @@ async function launchApp(): Promise<void> {
   setInterval(() => void loadStatus(), 30_000); // the site's pause switch and happy hour can be changed elsewhere
   setInterval(tickHappy, 1000);
   setInterval(tickStats, 1000);
+  setInterval(tickEvents, 5000);
   setInterval(tickAlerts, 5000); // the 15 seconds of "down" are counted here
   void startMixWithBridge();
   void startObsWithBridge();

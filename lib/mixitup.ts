@@ -58,9 +58,20 @@ export async function firePullRules(pull: PullFacts, delayMs = 0, eventId?: stri
 // ── The request log (last 20) ──
 export interface MixItUpLogEntry { at: number; username: string; what: 'balance' | 'deduct' | 'add' | 'test' | 'revoked' | 'refused' | 'command' | 'watchdog' | 'check' | 'pull' | 'grant' | 'buff'; ok: boolean; detail: string }
 const LOG_KEEP = 50; // the site's calls out and Mix It Up's requests in (ROADMAP 55.3)
-export async function logMixItUp(e: Omit<MixItUpLogEntry, 'at'>): Promise<void> {
-  try { await kv.lpush(LOG, { ...e, at: Date.now() }); await kv.ltrim(LOG, 0, LOG_KEEP - 1); } catch { /* the log never breaks a pull */ }
+/** An event reward's log line with what the app's event feed (57.7) also shows: the event and its amount. The same `detail` as the log line. */
+export type MixItUpEvent = Pick<MixItUpLogEntry, 'at' | 'username' | 'ok' | 'detail'> & { event: string; amount?: number };
+const EVENTS = 'mixitup:events';
+export const EVENTS_KEEP = 30;
+export async function logMixItUp(e: Omit<MixItUpLogEntry, 'at'>, event?: { name: string; amount?: number }): Promise<void> {
+  const at = Date.now();
+  try { await kv.lpush(LOG, { ...e, at }); await kv.ltrim(LOG, 0, LOG_KEEP - 1); } catch { /* the log never breaks a pull */ }
+  // shortcut: the event feed is its own short list (the log's 50 lines are mostly chat pulls), written with the same line; upgrade if the two ever need to be one store.
+  if (event) try { await kv.lpush(EVENTS, { at, username: e.username, event: event.name, ...(event.amount ? { amount: event.amount } : {}), ok: e.ok, detail: e.detail } satisfies MixItUpEvent); await kv.ltrim(EVENTS, 0, EVENTS_KEEP - 1); } catch { /* never breaks a reward */ }
   if (e.what === 'refused') await noteRefusal(e.detail.split(':')[0].trim(), e.username); // a staff notice, throttled (55.13)
+}
+/** The last event rewards, newest first; only those after `after` (a time in ms) when given. */
+export async function getEventFeed(after = 0): Promise<MixItUpEvent[]> {
+  try { return ((await kv.lrange<MixItUpEvent>(EVENTS, 0, EVENTS_KEEP - 1)) ?? []).filter(e => e.at > after); } catch { return []; }
 }
 export async function getMixItUpLog(): Promise<MixItUpLogEntry[]> {
   try { return (await kv.lrange<MixItUpLogEntry>(LOG, 0, LOG_KEEP - 1)) ?? []; } catch { return []; }

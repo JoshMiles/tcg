@@ -48,6 +48,24 @@ function row(item) {
   return li;
 }
 
+// The event rewards (57.7): the app sends the whole list (newest first) whenever it changes; all text, set with textContent.
+const events = document.getElementById('events');
+const eventsEmpty = document.getElementById('events-empty');
+window.tools.onEvents(lines => {
+  const rows = Array.isArray(lines) ? lines : [];
+  eventsEmpty.hidden = rows.length > 0;
+  events.replaceChildren(...rows.map(e => {
+    const li = document.createElement('li');
+    li.className = 'event' + (e.ok ? '' : ' ignored');
+    const head = document.createElement('b');
+    head.textContent = [e.time, e.event, e.viewer, e.amount !== '-' ? e.amount : ''].filter(Boolean).join('  ');
+    const result = document.createElement('small');
+    result.textContent = e.result;
+    li.append(head, result);
+    return li;
+  }));
+});
+
 window.tools.onFeed(msg => {
   if (!msg || !msg.item) return;
   empty.hidden = true;
