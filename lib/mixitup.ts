@@ -194,7 +194,7 @@ export async function currentStreamKey(): Promise<string> {
 /**
  * Before a pull is queued: is the viewer under their limit and able to pay? On success the pull is reserved under `payId` (limit
  * and in-flight counts raised, until the pull is claimed or the reservation expires). A sandbox never calls out and never charges.
- * `packPrice` is the price of the pack the viewer asked for by name (55.4f); it sets the price before role price, base price and happy hour.
+ * `packPrice` is the price of the pack the pull opens (55.4f); it sets the price before role price, base price and happy hour.
  * `test` = a simulated pull (55.14): it never takes or holds the real viewer's first-free flag.
  */
 export async function reservePaidPull(s: MixItUpSettings, username: string, payId: string, doFetch?: Fetch, role?: unknown, packPrice?: number, test = false): Promise<Reservation> {

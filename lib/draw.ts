@@ -14,14 +14,21 @@ const ticketKey = (id: string) => `draw:${id}`;
 
 export interface DrawResult { pack: Pack; card: Card; variant: Variant }
 
-/** Rolls one pull from the given packs. Pure apart from `rng` (so a script can test the odds). Null when there is nothing to draw. */
-export function rollDraw(packs: { pack: Pack; cards: Card[] }[], rng: () => number = Math.random, rarityBoost = 1): DrawResult | null {
+/** Picks the pack a pull opens, by weight, among the packs that have cards (ROADMAP 55.4f). Null when none has. Pure apart from `rng`. */
+export function rollPack(packs: { pack: Pack; cards: Card[] }[], rng: () => number = Math.random): { pack: Pack; cards: Card[] } | null {
   const usable = packs.filter(p => p.cards.length > 0);
   if (usable.length === 0) return null;
   const totalWeight = usable.reduce((s, { pack }) => s + (pack.weight || 1), 0);
   let rw = rng() * totalWeight;
   let chosen = usable[usable.length - 1];
   for (const p of usable) { rw -= p.pack.weight || 1; if (rw <= 0) { chosen = p; break; } }
+  return chosen;
+}
+
+/** Rolls one pull from the given packs. Pure apart from `rng` (so a script can test the odds). Null when there is nothing to draw. */
+export function rollDraw(packs: { pack: Pack; cards: Card[] }[], rng: () => number = Math.random, rarityBoost = 1): DrawResult | null {
+  const chosen = rollPack(packs, rng);
+  if (!chosen) return null;
 
   // A rarity-boost buff multiplies the weight of 3+ star cards; the rest keep theirs, so their share drops.
   const cardWeight = (c: Card) => boostedWeight(c.probability, c.stars, rarityBoost);
@@ -70,7 +77,7 @@ export interface QueuedDraw { packId: string; cardNumber: number; variant: Varia
 /** Rolls a pull for a viewer and stores its ticket under `id`. Null when the active season has nothing to draw. */
 export async function issueDraw(id: string, username: string, paid = false, test?: { trace: string }, onlyPackId?: string): Promise<QueuedDraw | null> {
   const active = await getActiveSeasonWithPacks();
-  // `onlyPackId` (ROADMAP 55.4f, !pack <name>) opens that pack: the pack roll is then between one pack, the card and version rolls are as always.
+  // `onlyPackId` (ROADMAP 55.4f, the pack queuePull chose) opens that pack: the pack roll is then between one pack, the card and version rolls are as always.
   const rolled = active ? rollDraw(onlyPackId ? active.packs.filter(p => p.pack.id === onlyPackId) : active.packs, Math.random, await rarityBoostFor(username).catch(() => 1)) : null;
   if (!active || !rolled) return null;
   const { pack, card, variant } = rolled;

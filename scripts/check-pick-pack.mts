@@ -10,6 +10,7 @@ const m = await import('../lib/mixitup');
 const kvLib = await import('../lib/kv');
 const { kv } = await import('../lib/db');
 const { queuePull } = await import('../lib/pull-queue');
+const { rollPack, rollDraw } = await import('../lib/draw');
 const { peekQueue, clearQueue } = await import('../lib/webhooks');
 const { cleanPackInput, defaultPackInput } = await import('../lib/pack-clean');
 const { SEED_PACK, SEED_CARDS, SEED_SEASON } = await import('../lib/seed');
@@ -36,6 +37,15 @@ ok(c.pullPrice(s, { role: 'subscriber', packPrice: undefined }) === 30 && c.pull
 // ── The pack form (pure): whole number from 1, blank = none ──
 const withPrice = (price: unknown) => cleanPackInput({ ...defaultPackInput('P'), price: price as number }).price;
 ok(withPrice(40) === 40 && withPrice(40.9) === 40 && withPrice(0) === undefined && withPrice(-3) === undefined && withPrice(undefined) === undefined && withPrice('abc') === undefined, 'a pack price is a whole number from 1; anything else is none');
+
+// ── rollPack (pure): the same pack as the old in-draw roll for the same rng values ──
+const wp = (id: string, weight: number, cards = SEED_CARDS) => ({ pack: { ...SEED_PACK, id, weight }, cards });
+const table = [wp('a', 1), wp('empty', 50, []), wp('b', 3), wp('c', 1)];
+// total weight 5 (the empty pack does not count): a = [0, 0.2], b = (0.2, 0.8], c = (0.8, 1)
+const expect: [number, string][] = [[0, 'a'], [0.19, 'a'], [0.2, 'a'], [0.21, 'b'], [0.79, 'b'], [0.8, 'b'], [0.81, 'c'], [0.999, 'c']];
+for (const [r, id] of expect) ok(rollPack(table, () => r)?.pack.id === id, `rollPack at rng ${r} opens ${id}`);
+ok(rollPack([wp('empty', 1, [])]) === null && rollPack([]) === null && rollDraw([wp('empty', 1, [])]) === null, 'no pack with cards: nothing to roll');
+ok(rollDraw(table, () => 0.5)?.pack.id === 'b', 'rollDraw rolls its pack with rollPack');
 
 // ── A season with three packs that have cards and one without ──
 const pack = (id: string, name: string, price?: number) => ({ ...SEED_PACK, id, name, ...(price ? { price } : {}) });
@@ -98,5 +108,29 @@ await hh.endHappyHour('amy');
 balances.poor = 200;
 const dear = await m.reservePaidPull(mix, 'poor', 'k4', fake, 'regular', 250);
 ok(!dear.ok && dear.reason === 'insufficient_balance' && /costs 250/.test(dear.message), 'a viewer who cannot pay the pack price is refused with that price in the reply');
+
+// ── A plain !pack is charged the price of the pack it opens ──
+const { webhookDns } = await import('../lib/webhook-send');
+const realLookup = webhookDns.lookup;
+webhookDns.lookup = (async () => [{ address: '93.184.216.34', family: 4 }]) as typeof realLookup; // hook.example has no DNS
+const realFetch = globalThis.fetch;
+globalThis.fetch = (async (u: Parameters<typeof fetch>[0], i?: RequestInit) => String(u).startsWith('https://hook.example/') ? new Response(JSON.stringify({ balance: 100000 }), { status: 200 }) : realFetch(u, i)) as typeof fetch; // the KV client uses fetch too
+await m.saveMixItUpSettings(c.normalizeMixItUp({ enabled: true, connection: 'addresses', balanceUrl: 'https://hook.example/mix', cost: 100, secret: 's' }));
+await clearQueue();
+const seen = new Set<string>();
+for (let i = 0; i < 30; i++) {
+  const u = `plain${i}`;
+  const res = await queuePull(u, { chat: true });
+  ok(res.ok === true && !res.ignored, `plain pull ${i} queued: ${JSON.stringify(res)}`);
+  const e = (await peekQueue()).slice(-1)[0];
+  const packId = e?.draw?.packId as string;
+  seen.add(packId);
+  const want = packId === 'pack2' ? 250 : packId === 'pack3' ? 40 : 100; // pack4 (empty) never opens
+  ok(packId !== 'pack4' && (await m.claimPaidPull(e.id, u))?.amount === want, `a plain !pack that opened ${packId} was charged ${want}`);
+}
+ok(seen.has('pack2') || seen.has('pack3'), 'plain pulls opened more than the unpriced pack');
+globalThis.fetch = realFetch;
+webhookDns.lookup = realLookup;
+await m.saveMixItUpSettings(c.normalizeMixItUp({}));
 
 console.log('check-pick-pack: ok');
