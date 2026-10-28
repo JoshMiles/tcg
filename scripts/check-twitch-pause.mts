@@ -81,11 +81,11 @@ const feed = await mix.getEventFeed();
 ok(feed.some(e => e.event === 'redeem' && e.username === 'cardfan' && !e.ok && /awards paused/.test(e.detail)), 'the app feed has the redemption as a refused line');
 ok(feed.some(e => e.event === 'redeem' && e.ok && /redeemed Open a pack/.test(e.detail)), 'and the earlier award as a good one');
 
-// ── Twitch events without an award still reach the feed: stream online / offline ──
+// ── Stream online / offline of a spare test account (SpareAccount is not CHANNEL_LOGIN) stay out of the live channel's feed ──
 await ev.recordTwitchEvent({ messageId: 'msg-online-0001', type: 'stream.online', event: { broadcaster_user_id: '4242' } });
 await ev.recordTwitchEvent({ messageId: 'msg-offline-001', type: 'stream.offline', event: { broadcaster_user_id: '4242' } });
 const feed2 = await mix.getEventFeed();
-ok(feed2.some(e => e.event === 'stream-online' && e.ok) && feed2.some(e => e.event === 'stream-offline' && e.ok), 'stream online and offline are in the feed');
+ok(!feed2.some(e => e.event === 'stream-online' || e.event === 'stream-offline'), "a test account's stream online and offline are not in the feed");
 ok(!(await mix.getMixItUpLog()).some(x => /went (on|off)line/.test(x.detail)), 'but not in the Mix It Up request log');
 
 // ── Resume ──
