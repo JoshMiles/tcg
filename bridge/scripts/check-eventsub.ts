@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { Alerts, DOWN_FOR_MS, snapshotOf } from '../src/alerts';
 import { fixPlan, rowFor, testingLine, twitchProblem, type ConnFacts } from '../src/connections';
-import { EventSubClient, SUBSCRIPTIONS, failureText, keepaliveLimitMs, parseMessage, subscriptionBody, twitchSocketUrl, type EsStatus } from '../src/eventsub';
+import { EventSubClient, SUBSCRIPTIONS, failureText, keepaliveLimitMs, parseMessage, subscriptionBody, twitchReconnectUrl, type EsStatus } from '../src/eventsub';
 import { SiteClient } from '../src/site';
 import { attentionItems } from '../src/status';
 import { FakeTwitch } from './fake-eventsub';
@@ -66,9 +66,9 @@ function pureChecks(): void {
   assert.match(failureText(429), /limiting/);
   assert.equal(failureText(500), 'Twitch answered 500');
 
-  assert.ok(twitchSocketUrl('wss://eventsub.wss.twitch.tv/ws?challenge=1'));
-  assert.ok(twitchSocketUrl('wss://twitch.tv/x'));
-  for (const bad of ['ws://eventsub.wss.twitch.tv/ws', 'wss://evil.example/ws', 'wss://twitch.tv.evil.example/ws', 'wss://nottwitch.tv/ws', 'nope', '']) assert.equal(twitchSocketUrl(bad), false, `refused: ${bad}`);
+  assert.equal(twitchReconnectUrl('wss://eventsub.wss.twitch.tv/ws?challenge=1'), 'wss://eventsub.wss.twitch.tv/ws?challenge=1');
+  assert.equal(twitchReconnectUrl('wss://eventsub.wss.twitch.tv?challenge=1'), 'wss://eventsub.wss.twitch.tv/?challenge=1');
+  for (const bad of ['ws://eventsub.wss.twitch.tv/ws', 'wss://eventsub.wss.twitch.tv:8443/ws', 'wss://twitch.tv/x', 'wss://evil.example/ws', 'wss://eventsub.wss.twitch.tv.evil.example/ws', 'wss://user@evil.example/ws', 'nope', '']) assert.equal(twitchReconnectUrl(bad), null, `refused: ${bad}`);
 }
 
 /** Short timers so a whole session takes well under a second. */
@@ -78,7 +78,7 @@ async function withClient(fake: FakeTwitch, opts: Partial<ConstructorParameters<
   const s = await startSite();
   const log: string[] = [];
   const secrets: string[] = [];
-  const es = new EventSubClient(s.client, { ...FAST, wsUrl: fake.wsUrl, helixUrl: fake.helixUrl, allowUrl: () => true, log: l => log.push(l), secret: t => secrets.push(t), ...opts });
+  const es = new EventSubClient(s.client, { ...FAST, wsUrl: fake.wsUrl, helixUrl: fake.helixUrl, reconnectTo: () => `${fake.wsUrl}?reconnected=1`, log: l => log.push(l), secret: t => secrets.push(t), ...opts });
   try {
     es.start();
     await run({ es, site: s.site, log });
@@ -230,7 +230,7 @@ async function clientChecks(): Promise<void> {
     // A reconnect address the app does not trust is not followed: it starts over instead.
     const strict = new FakeTwitch();
     await strict.listen();
-    await withClient(strict, { allowUrl: twitchSocketUrl }, async ({ es, log }) => {
+    await withClient(strict, { reconnectTo: twitchReconnectUrl }, async ({ es, log }) => {
       await waitFor('first session', () => es.state.subs.length === 6);
       strict.reconnect('ws://127.0.0.1:1/evil');
       await waitFor('a fresh connection', () => strict.connections >= 2);

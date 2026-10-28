@@ -48,9 +48,13 @@ export function failureText(status: number): string {
   return `Twitch answered ${status}`;
 }
 
-/** Production only follows a reconnect_url that is a wss address on twitch.tv. */
-export const twitchSocketUrl = (raw: string): boolean => {
-  try { const u = new URL(raw); return u.protocol === 'wss:' && (u.hostname === 'twitch.tv' || u.hostname.endsWith('.twitch.tv')); } catch { return false; }
+/** Production only follows a reconnect_url on Twitch's EventSub host; the address is rebuilt on that fixed host so only its path and query come from the message. */
+export const twitchReconnectUrl = (raw: string): string | null => {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== 'wss:' || u.hostname !== 'eventsub.wss.twitch.tv' || u.port) return null;
+    return 'wss://eventsub.wss.twitch.tv/' + u.pathname.replace(/^\/+/, '') + u.search;
+  } catch { return null; }
 };
 
 export const OFF_TEXT: Record<'none' | 'forbidden' | 'ended' | 'site' | 'unauthorized', string> = {
@@ -64,8 +68,8 @@ export const OFF_TEXT: Record<'none' | 'forbidden' | 'ended' | 'site' | 'unautho
 export interface EventSubOptions {
   wsUrl: string;
   helixUrl: string;
-  /** Whether a reconnect_url may be followed (the checks point it at a local server). */
-  allowUrl: (url: string) => boolean;
+  /** The address to follow for a reconnect_url, or null to refuse it (the checks point it at a local server). */
+  reconnectTo: (url: string) => string | null;
   /** Added to Twitch's keepalive timeout before a silent socket is dropped. */
   keepaliveMarginS: number;
   /** How often the site is asked whether a channel is still connected, which also renews the token. */
@@ -116,7 +120,7 @@ export class EventSubClient {
 
   constructor(private client: Pick<SiteClient, 'twitchToken' | 'twitchEvent' | 'report'>, opts: Partial<EventSubOptions> = {}) {
     this.o = {
-      wsUrl: EVENTSUB_URL, helixUrl: HELIX_SUBSCRIPTIONS_URL, allowUrl: twitchSocketUrl, keepaliveMarginS: 10, recheckMs: 300_000, refreshLeadMs: 120_000,
+      wsUrl: EVENTSUB_URL, helixUrl: HELIX_SUBSCRIPTIONS_URL, reconnectTo: twitchReconnectUrl, keepaliveMarginS: 10, recheckMs: 300_000, refreshLeadMs: 120_000,
       backoffMs: { min: 1000, max: 30_000 }, reportMs: 60_000, retryMs: 1000, log: () => undefined, onChange: () => undefined, secret: () => undefined, ...opts,
     };
   }
@@ -291,9 +295,10 @@ export class EventSubClient {
         this.arm(ws);
         const url = session?.reconnect_url;
         if (ws !== this.sock || this.pending) break;
-        if (typeof url !== 'string' || !this.o.allowUrl(url)) { this.o.log('Twitch events: refused a reconnect address'); this.end?.({ kind: 'lost', welcomed: this.welcomed }); break; }
+        const next = typeof url === 'string' ? this.o.reconnectTo(url) : null;
+        if (!next) { this.o.log('Twitch events: refused a reconnect address'); this.end?.({ kind: 'lost', welcomed: this.welcomed }); break; }
         this.o.log('Twitch events: Twitch asked for a reconnect');
-        this.open(url, true); // the old socket stays until the new one says welcome
+        this.open(next, true); // the old socket stays until the new one says welcome
         break;
       }
       case 'revocation': {
