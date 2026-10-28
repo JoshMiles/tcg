@@ -178,7 +178,7 @@ ROADMAP 55.12. TCG Bridge 0.10.0 has a Staff tab (and tray items) for the stream
 - **Pause trading** is `TradeSettings.enabled === false`; the app confirms with a native dialog first.
 - **Scene.** The overlay has no active scene, so the app switches the OBS program scene on the PC and only posts an audit line (`action: scene`).
 - **Panels** read only while their tab is open, at most every 5 s. Brie Bucks in the viewer lookup are read on the PC from Mix It Up, never through the site.
-- **Preview overlay** (ROADMAP 57.10, TCG Bridge 0.22.0). Actions `preview-url` (a read-only preview key and path, expiring after 2 hours) and `test-pull` (the 55.14 simulated free pull; `username` optional, else the first test viewer; `force` queues it with no overlay connected). Details: docs/overlay.md, Overlay preview. Check: `scripts/check-overlay-preview.mts`.
+- **Preview overlay** (ROADMAP 57.10, TCG Bridge 0.23.0). Actions `preview-url` (a read-only preview key and path, expiring after 2 hours) and `test-pull` (the 55.14 simulated free pull; `username` optional, else the first test viewer; `force` queues it with no overlay connected). Details: docs/overlay.md, Overlay preview. Check: `scripts/check-overlay-preview.mts`.
 - **Check.** `scripts/check-bridge-staff.mts` (403 without the switch, an audit line per action, blocks, sandbox, revocation).
 
 ### Staff notices and shortcuts (ROADMAP 55.13, TCG Bridge 0.11.0)
