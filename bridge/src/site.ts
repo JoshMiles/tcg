@@ -1,12 +1,13 @@
 // The TCG site's bridge API (app/api/bridge/*). The only address this file ever fetches is the paired site.
 import type { SiteFacts } from './checklist';
+import { cleanStatFacts, type StatFacts } from './obsstats';
 export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command' | 'pull-event' | 'backup' | 'ledger' | 'summary';
 /** `pull-event` (ROADMAP 55.8): `phase` 'start' shows `source` for `holdMs`; 'reveal' says `text` in chat, switches to `scene` for `secs` and/or saves a clip. `backup` (55.10): `phase` is 'start' or 'end'. */
 export interface BridgeJob { id: string; kind: string; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; delayMs?: number; phase?: string; source?: string; holdMs?: number; scene?: string; secs?: number; clip?: boolean; feed?: unknown; summary?: unknown; notice?: unknown; at?: number }
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeCurrency { id: string; name: string }
 export interface BridgeCommand { id: string; name: string }
-export interface SiteAction { ok: boolean; message: string; paused?: boolean; /** "scene <name>" when a chosen OBS scene paused pulls (57.2). */ reason?: string; buffs?: { id: string; name: string }[]; staff?: boolean; tradingPaused?: boolean; /** 57.3: present on `status` and the happy hour actions; null = none running. */ happyHour?: { what: string; endsAt: number } | null }
+export interface SiteAction { ok: boolean; message: string; paused?: boolean; /** "scene <name>" when a chosen OBS scene paused pulls (57.2). */ reason?: string; buffs?: { id: string; name: string }[]; staff?: boolean; tradingPaused?: boolean; /** 57.3: present on `status` and the happy hour actions; null = none running. */ happyHour?: { what: string; endsAt: number } | null; /** 57.4: the answer to `stats`. */ stats?: StatFacts }
 /** What /api/bridge/staff answers to an action (ROADMAP 55.12). */
 export interface StaffReply { ok: boolean; message: string; needsForce?: boolean }
 export interface QueueRow { id: string; kind: string; username: string; pack: string; waitedS: number }
@@ -83,7 +84,7 @@ export class SiteClient {
   async action(body: Record<string, unknown>): Promise<SiteAction> {
     const r = await this.call('/api/bridge/action', body, AbortSignal.timeout(15_000));
     if (r.status !== 200) throw new SiteError(r.status, `The site answered ${r.status}`);
-    return { ok: r.json.ok === true, message: typeof r.json.message === 'string' ? r.json.message : '', ...(typeof r.json.paused === 'boolean' ? { paused: r.json.paused } : {}), ...(typeof r.json.reason === 'string' ? { reason: r.json.reason.slice(0, 200) } : {}), ...(typeof r.json.staff === 'boolean' ? { staff: r.json.staff } : {}), ...(typeof r.json.tradingPaused === 'boolean' ? { tradingPaused: r.json.tradingPaused } : {}), ...(happyHourOf(r.json.happyHour)), ...(Array.isArray(r.json.buffs) ? { buffs: (r.json.buffs as SiteAction['buffs'])!.filter(b => typeof b?.id === 'string' && typeof b?.name === 'string') } : {}) };
+    return { ok: r.json.ok === true, message: typeof r.json.message === 'string' ? r.json.message : '', ...(typeof r.json.paused === 'boolean' ? { paused: r.json.paused } : {}), ...(typeof r.json.reason === 'string' ? { reason: r.json.reason.slice(0, 200) } : {}), ...(typeof r.json.staff === 'boolean' ? { staff: r.json.staff } : {}), ...(typeof r.json.tradingPaused === 'boolean' ? { tradingPaused: r.json.tradingPaused } : {}), ...(happyHourOf(r.json.happyHour)), ...(r.json.stats && typeof r.json.stats === 'object' ? { stats: cleanStatFacts(r.json.stats) } : {}), ...(Array.isArray(r.json.buffs) ? { buffs: (r.json.buffs as SiteAction['buffs'])!.filter(b => typeof b?.id === 'string' && typeof b?.name === 'string') } : {}) };
   }
 
   /** One staff action (ROADMAP 55.12). A 403 means the admin has not switched staff tools on for this PC. */

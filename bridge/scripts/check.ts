@@ -24,6 +24,7 @@ import { checkObs, sendTestChat, testMixItUp, TEST_CHAT_MESSAGE } from '../src/s
 import { checklistChecks } from './check-checklist';
 import { scenePauseChecks } from './check-scenepause';
 import { happyHourChecks } from './check-happyhour';
+import { statsChecks } from './check-stats';
 import { BridgeService } from '../src/service';
 import { cleanStaffAction, StaffTools } from '../src/staff';
 import { defaults, FileSettingsStore } from '../src/settings';
@@ -889,7 +890,7 @@ async function main() {
   assert.equal((await store.load()).site, 'https://cheesytcg.app');
   assert.equal((await store.load()).startWithWindows, true);
   assert.deepEqual([(await store.load()).alerts, (await store.load()).startMixItUp, (await store.load()).mixItUpPath, defaults().lastSeenVersion], [true, false, '', ''], 'alerts on, starting Mix It Up off');
-  const full = { site: 'https://example.test', token: 'secret-token', pairedAs: 'PC', startWithWindows: false, obsEnabled: true, obsAddress: 'ws://localhost:4456', obsPassword: 'obs-secret', obsStartReplay: true, alerts: false, startMixItUp: true, mixItUpPath: 'C:\\Mix\\MixItUp.exe', lastSeenVersion: '0.2.0', controlKey: 'abcdefghij0123456789', hotkeys: { refresh: 'Ctrl+Alt+R', pause: '', lastBuff: 'Ctrl+Alt+B' }, feed: { on: true, minStars: 3, volume: 0.25, muted: true, onTop: true }, summary: true, startObs: true, obsPath: 'C:\\Obs\\obs64.exe', notices: { attention: true, feedback: false, refusal: false, deploy: true }, scenePause: { on: true, scenes: ['Just Chatting', 'BRB'] } };
+  const full = { site: 'https://example.test', token: 'secret-token', pairedAs: 'PC', startWithWindows: false, obsEnabled: true, obsAddress: 'ws://localhost:4456', obsPassword: 'obs-secret', obsStartReplay: true, alerts: false, startMixItUp: true, mixItUpPath: 'C:\\Mix\\MixItUp.exe', lastSeenVersion: '0.2.0', controlKey: 'abcdefghij0123456789', hotkeys: { refresh: 'Ctrl+Alt+R', pause: '', lastBuff: 'Ctrl+Alt+B' }, feed: { on: true, minStars: 3, volume: 0.25, muted: true, onTop: true }, summary: true, startObs: true, obsPath: 'C:\\Obs\\obs64.exe', notices: { attention: true, feedback: false, refusal: false, deploy: true }, scenePause: { on: true, scenes: ['Just Chatting', 'BRB'] }, obsStats: { packs: 'Pack count', lastBig: '', topPuller: 'Top', happyHour: '', queue: 'Queue text' } };
   assert.deepEqual((await store.load()).notices, defaultNotices(), 'every notice kind is on before anything is saved');
   await store.save(full);
   const saved = readFileSync(join(dir, 'settings.json'), 'utf8');
@@ -1049,6 +1050,7 @@ async function main() {
   await checklistChecks();
   await scenePauseChecks();
   await happyHourChecks();
+  await statsChecks();
 
   miSrv.server.close();
   siSrv.server.close();
