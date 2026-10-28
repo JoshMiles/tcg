@@ -201,6 +201,22 @@ function customShape(l) {
   if (fl.length) svg.style.filter = fl.join(' ');
   return svg;
 }
+// The pack goal's progress: { label, count, target }, or null when no goal is set. The editor preview shows a sample.
+let GOAL = null;
+const goalNow = () => (PREVIEW ? { label: 'Pack goal', count: 37, target: 50 } : GOAL);
+function paintGoal(d) {
+  const g = goalNow(), p = d._goal;
+  if (!p) return;
+  d.style.visibility = g ? '' : 'hidden';   // no goal, nothing drawn
+  if (!g) return;
+  p.fill.style.width = (g.target > 0 ? Math.min(100, (g.count / g.target) * 100) : 0) + '%';
+  p.tx.textContent = g.label + ': ' + Math.min(g.count, g.target) + ' / ' + g.target;
+}
+function setGoal(g) {
+  GOAL = g && typeof g.target === 'number' && typeof g.count === 'number' ? { label: String(g.label || ''), count: g.count, target: g.target } : null;
+  for (const d of document.querySelectorAll('[data-goal]')) paintGoal(d);
+}
+function hasGoalLayer() { return [].concat(CUSTOM.pack, CUSTOM.collection).some(l => l && l.kind === 'goal' && l.visible !== false); }
 function customLayerEl(l, ctx, accent) {
   const d = document.createElement('div');
   d.className = 'custom-layer';
@@ -226,7 +242,19 @@ function customLayerEl(l, ctx, accent) {
     if (fl.length) img.style.filter = fl.join(' ');
     d.appendChild(img);
   } else if (l.kind === 'shape') d.appendChild(customShape(l));
-  else if (l.kind === 'text') {
+  else if (l.kind === 'goal') {
+    // The community pack goal bar (57.5): a track, a fill and the words, painted from GOAL (the heartbeat answer; a sample in the editor).
+    d.dataset.goal = '1';
+    st.background = l.track; st.overflow = 'hidden'; st.borderRadius = Math.round(l.h / 2) + 'px';
+    const fill = document.createElement('div');
+    fill.style.cssText = 'position:absolute;left:0;top:0;bottom:0;width:0;background:' + l.color + ';transition:width 600ms ease';
+    d.appendChild(fill);
+    const tx = document.createElement('div');
+    tx.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;white-space:nowrap;font-size:' + l.size + 'px;color:' + l.textColor + (l.showText ? '' : ';display:none');
+    d.appendChild(tx);
+    d._goal = { fill, tx };
+    paintGoal(d);
+  } else if (l.kind === 'text') {
     st.fontSize = l.size + 'px'; st.color = l.color; st.overflow = 'hidden';
     // A column box so the words can sit at the top, middle or bottom; the words go in their own child (a flex parent would split the coloured runs).
     st.display = 'flex'; st.flexDirection = 'column'; st.justifyContent = l.valign === 'middle' ? 'center' : l.valign === 'bottom' ? 'flex-end' : 'flex-start';
@@ -2441,8 +2469,9 @@ async function sendHeartbeat() {
       recording: obs ? obs.recording : null,
       obs: !!window.obsstudio || /OBS\//i.test(navigator.userAgent),
       dev: new URLSearchParams(window.location.search).has('dev'),
+      goal: hasGoalLayer(), // asks for the community pack goal (57.5) only when a Pack goal layer exists
     }),
-  }).then(r => (r.ok ? r.json() : null)).then(j => checkReload(j && j.reload)).catch(() => {}); // never let a failed ping affect the overlay
+  }).then(r => (r.ok ? r.json() : null)).then(j => { checkReload(j && j.reload); if (j && 'goal' in j) setGoal(j.goal); }).catch(() => {}); // never let a failed ping affect the overlay
 }
 
 // The admin can ask every open overlay to refresh (Overlay Editor). The first heartbeat records the current token; a later

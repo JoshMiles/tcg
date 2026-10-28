@@ -64,6 +64,22 @@ export function CustomLayerPanel({ view, layerId }: { view: Mode; layerId: strin
         </>
       )}
       {layer.kind === 'shape' && <ShapeFields spec={layer} fx={layer.fx} set={set} />}
+      {layer.kind === 'goal' && (
+        <>
+          <p className="text-xs text-gray-500">Shows the community pack goal (Mix It Up, Paid pulls). Nothing is drawn while no goal is set. It updates about every 10 seconds, and shows with the pack and collection views like any layer. The editor shows a sample.</p>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+            {([['color', 'Bar'], ['track', 'Track'], ['textColor', 'Words']] as const).map(([k, label]) => (
+              <label key={k} className="flex items-center gap-1.5">{label}
+                <input type="color" aria-label={`${label} colour`} value={layer[k]} onChange={e => set({ [k]: e.target.value })} className="h-8 w-10 rounded-sm bg-transparent border border-gray-700 cursor-pointer" />
+              </label>
+            ))}
+          </div>
+          <label className="flex items-center gap-2 text-xs text-gray-400">
+            <input type="checkbox" checked={layer.showText} onChange={e => set({ showText: e.target.checked })} className="toggle toggle-sm" /> Show the words
+          </label>
+          <Num label="Words size" value={layer.size} min={6} max={200} onChange={v => set({ size: v })} />
+        </>
+      )}
     </section>
   );
 }

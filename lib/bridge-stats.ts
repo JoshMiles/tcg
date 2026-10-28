@@ -5,16 +5,19 @@
 import { getActivity, type ActivityEvent } from './activity';
 import { asPullEvent } from './activity-view';
 import { currentStreamKey } from './mixitup';
+import { packGoalText } from './pack-goal';
 import { buildStreamRecap } from './stream-recap';
 import { queueLength } from './webhooks';
 
 /** The stats the site can answer. The happy hour countdown is not here: the app counts it down from `happyHour.endsAt`. */
-export const STAT_KEYS = ['packs', 'lastBig', 'topPuller', 'queue'] as const;
+export const STAT_KEYS = ['packs', 'lastBig', 'topPuller', 'goal', 'queue'] as const;
 export type StatKey = (typeof STAT_KEYS)[number];
 export interface BridgeStats {
   packs?: number;
   lastBig?: { username: string; cardName: string } | null;
   topPuller?: { username: string; packs: number } | null;
+  /** The pack goal's finished text ("Label: 37 / 50"), or null when no goal is set for this stream (ROADMAP 57.5). */
+  goal?: string | null;
   queue?: number;
 }
 
@@ -39,10 +42,12 @@ export function statsFromEvents(events: ActivityEvent[], since: number, now = Da
 export async function readBridgeStats(want: readonly StatKey[]): Promise<BridgeStats> {
   const out: BridgeStats = {};
   if (want.includes('queue')) out.queue = await queueLength();
-  if (want.some(k => k !== 'queue')) {
+  if (want.includes('goal')) out.goal = await packGoalText(); // ROADMAP 57.5: counted per pull, not read from the log
+  const fromLog = want.filter((k): k is 'packs' | 'lastBig' | 'topPuller' => k !== 'queue' && k !== 'goal');
+  if (fromLog.length) {
     const [{ events }, key] = await Promise.all([getActivity({ limit: 500 }), currentStreamKey()]);
     const s = statsFromEvents(events, streamStart(key));
-    for (const k of want) if (k !== 'queue') Object.assign(out, { [k]: s[k] });
+    for (const k of fromLog) Object.assign(out, { [k]: s[k] });
   }
   return out;
 }

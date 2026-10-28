@@ -26,6 +26,7 @@ import { StreamDeckTab } from './StreamDeckTab';
 import { EventsTab } from './EventsTab';
 import { getBuffDefs } from '@/lib/buffs';
 import { getHappyHour, happyHourWhat } from '@/lib/happyhour';
+import { readPackGoal } from '@/lib/pack-goal';
 import { Overview, CHIP_STYLE } from './Overview';
 import { PullRules } from './PullRules';
 import { ChatBucks } from './ChatBucks';
@@ -54,6 +55,15 @@ const TABS: (PageTab & { hint: string })[] = [
   { id: 'events', label: 'Events', icon: 'gift', hint: 'Free packs or a buff for gifted subs, bits, raids and channel point redeems' },
   { id: 'log', label: 'Log', icon: 'list', hint: 'The last requests to and refusals for Mix It Up' },
 ];
+
+/** The community pack goal (57.5) for its box, and the community buffs it can give. */
+async function packGoalView() {
+  const [cur, defs] = await Promise.all([readPackGoal(), getBuffDefs()]);
+  const buffs = defs.filter(b => b.scope === 'community' && b.type !== 'grant-achievement').map(b => ({ id: b.id, name: b.name }));
+  const r = cur?.goal.reward;
+  const reward = !r || r.type === 'none' ? 'none' : r.type === 'pulls' ? `${r.amount} extra pull${r.amount === 1 ? '' : 's'} each this stream` : `community buff ${buffs.find(b => b.id === r.buffId)?.name ?? '(missing)'}`;
+  return { buffs, running: cur ? { label: cur.goal.label, target: cur.goal.target, count: cur.count, reward, by: cur.goal.by } : null };
+}
 
 async function happyHourView(now: number) {
   const h = await getHappyHour(now);
@@ -116,7 +126,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
           <ConnectionTab settings={settings} bridge={bridge} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never', staff: !!b.staff, by: b.by ?? '' }))} blocks={blocks.map(b => ({ username: b.username, by: b.by, scope: b.streamKey ? 'this stream' : 'until lifted' }))} />
         </div>
       )}
-      {tab === 'paid' && <MixItUpConfig settings={settings} happyHour={await happyHourView(now)} packs={((await getActiveSeasonWithPacks())?.packs ?? []).filter(p => p.cards.length > 0).map(p => ({ id: p.pack.id, name: p.pack.name, price: p.pack.price }))} />}
+      {tab === 'paid' && <MixItUpConfig settings={settings} happyHour={await happyHourView(now)} packGoal={await packGoalView()}packs={((await getActiveSeasonWithPacks())?.packs ?? []).filter(p => p.cards.length > 0).map(p => ({ id: p.pack.id, name: p.pack.name, price: p.pack.price }))} />}
       {tab === 'bigpulls' && <PullRules rules={settings.pullRules} commands={bridge.commands} obs={{ scenes: obs?.scenes ?? [], sources: obs?.sources ?? [] }} watchdog={settings.overlayWatchdog} />}
       {tab === 'chat' && <ChatBucks chat={settings.chat} check={await readLedgerCheck()} when={timeAgo} />}
       {tab === 'commands' &&<CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} pack={packSetup(SITE_URL, (await getWebhookSettings()).incomingSecret)} />}
