@@ -92,8 +92,8 @@ let buttonsKey = '';
 
 function renderControl() {
   const c = state.control;
-  $('control-unpaired').hidden = state.paired;
-  $('control').hidden = !state.paired || !c;
+  for (const id of ['control-unpaired', 'buttons-unpaired']) $(id).hidden = state.paired;
+  for (const id of ['control', 'buttons-wrap']) $(id).hidden = !state.paired || !c;
   if (!c) return;
   $('control-pause').checked = !!c.paused;
   $('control-pause').disabled = c.paused === null;
@@ -134,7 +134,7 @@ function renderControl() {
   }));
 }
 
-// What's new: the tab exists for the run after an update; main says when the window was first shown, and the tab then opens once.
+// What's new: a card on the About page for the run after an update; main says when the window was first shown, and the page then opens once at that card.
 let whatsNewDone = false; // the notes were loaded
 let whatsNewOpened = false;
 async function loadWhatsNew() {
@@ -174,8 +174,8 @@ async function loadWhatsNew() {
 }
 
 function renderBanners() {
-  $('rail-whatsnew').hidden = !state.whatsNew;
-  if (state.whatsNew && state.whatsNew.open && !whatsNewOpened) { whatsNewOpened = true; showTab('whatsnew'); }
+  $('whatsnew-card').hidden = !state.whatsNew;
+  if (state.whatsNew && state.whatsNew.open && !whatsNewOpened) { whatsNewOpened = true; goToCard('whatsnew-card'); }
   renderPill();
   renderToast();
 }
@@ -265,7 +265,7 @@ function renderToast() {
   if (!toastTimer && !document.hidden) toastTimer = setTimeout(endToast, 8000);
 }
 document.addEventListener('visibilitychange', () => { if (state) renderToast(); });
-$('toast-link').addEventListener('click', () => { if (state && state.whatsNew) showTab('whatsnew'); else window.bridge.openRelease(); endToast(); });
+$('toast-link').addEventListener('click', () => { if (state && state.whatsNew) goToCard('whatsnew-card'); else window.bridge.openRelease(); endToast(); });
 
 // Pause pulls on scenes (57.2): the scenes OBS reported, plus any saved one OBS no longer lists, each with a checkbox.
 let scenePauseKey = '';
@@ -279,7 +279,7 @@ function renderScenePause() {
   $('scene-pause-on').checked = sp.on;
   const names = [...new Set([...sp.obsScenes, ...sp.scenes])];
   $('scene-pause-empty').hidden = names.length > 0;
-  $('scene-pause-empty').textContent = 'No scenes yet. Connect TCG Bridge to OBS (Status page) and they appear here.';
+  $('scene-pause-empty').textContent = 'No scenes yet. Connect TCG Bridge to OBS (Connections page) and they appear here.';
   const key = JSON.stringify([names, sp.scenes, sp.obsScenes]);
   if (key === scenePauseKey) return;
   scenePauseKey = key;
@@ -309,7 +309,7 @@ function renderObsStats() {
   const os = state.obsStats;
   if (!os) return;
   $('obs-stats-empty').hidden = os.texts.length > 0;
-  $('obs-stats-empty').textContent = 'No text sources yet. Connect TCG Bridge to OBS (Status page) and add a text source to a scene, and they appear here.';
+  $('obs-stats-empty').textContent = 'No text sources yet. Connect TCG Bridge to OBS (Connections page) and add a text source to a scene, and they appear here.';
   const key = JSON.stringify([os.texts, os.map]);
   if (key === obsStatsKey) return;
   obsStatsKey = key;
@@ -333,13 +333,13 @@ function renderObsStats() {
   }));
 }
 
-// The Stream Deck plugin (57.13): connected or not on the Status tab; the switch, Install and the once-only update offer in Settings.
+// The Stream Deck plugin (57.13): connected or not, the switch, Install and the once-only update offer, all on the Connections page.
 function renderDeck() {
   const d = state.deck;
   if (!d) return;
   const up = d.on && !d.error && d.connected;
   setDot('deck-dot', up ? 'ok' : d.on && !d.error ? 'warn' : d.error ? '' : 'off');
-  $('deck-state').textContent = d.error ? d.error : !d.on ? 'Off. Switch it on in Settings.' : up ? 'Plugin connected' : d.installed ? 'Not connected. Open the Stream Deck app.' : 'Not connected. The plugin is not installed yet.';
+  $('deck-state').textContent = d.error ? d.error : !d.on ? 'Off. Switch it on below.' : up ? 'Plugin connected' : d.installed ? 'Not connected. Open the Stream Deck app.' : 'Not connected. The plugin is not installed yet.';
   $('deck-on').checked = d.on;
   $('deck-error').textContent = d.error;
   $('deck-offer').hidden = !d.offer;
@@ -368,7 +368,7 @@ function render() {
   $('pairing').hidden = state.paired;
   $('status').hidden = !state.paired;
   $('unpair').hidden = !state.paired;
-  $('account-text').textContent = state.paired ? `Paired with ${state.site} as ${state.pairedAs}.` : 'Not paired yet. Pair on the Status page.';
+  $('account-text').textContent = state.paired ? `Paired with ${state.site} as ${state.pairedAs}.` : 'Not paired yet. Pair on the Home page.';
   $('autostart').checked = state.startWithWindows;
   $('update').textContent = state.update || 'No update waiting.';
   $('restart-update').hidden = !state.updateVersion;
@@ -390,6 +390,8 @@ function render() {
   const level = svc ? svc.tray : 'offline';
   setDot('rail-dot', level === 'connected' ? 'ok' : level === 'partly' ? 'warn' : '');
   $('rail-text').textContent = state.paired ? TRAY_TEXT[level] : 'Not paired';
+  const pc = state.pcName && state.pcName !== state.pairedAs ? `PC: ${state.pcName}` : '';
+  $('rail-pc').textContent = state.paired ? [`Paired as ${state.pairedAs}`, pc].filter(Boolean).join(', ') : pc;
   if (!state.paired) {
     if (!$('site').value) $('site').value = state.site;
     $('pair-note').textContent = svc && svc.site === 'revoked'
@@ -442,13 +444,13 @@ function render() {
   }));
 }
 
-// The left rail: one panel at a time. More tabs (Staff, Activity) are a button with data-tab and a section with data-panel.
+// The sidebar (59.4): one page at a time. A page is a button with data-tab and a section with the same data-panel.
 function showTab(name) {
   for (const b of document.querySelectorAll('.rail-btn')) {
     if (b.dataset.tab === name) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   }
   for (const p of document.querySelectorAll('[data-panel]')) p.hidden = p.dataset.panel !== name;
-  if (name === 'whatsnew') void loadWhatsNew();
+  if (name === 'about' && state && state.whatsNew) void loadWhatsNew();
 }
 for (const b of document.querySelectorAll('.rail-btn')) b.addEventListener('click', () => showTab(b.dataset.tab));
 $('win-min').addEventListener('click', () => window.bridge.minimize());
@@ -590,15 +592,15 @@ action('queue-clear', 'queue-result', async () => { const r = await window.bridg
 // ── Staff tab (55.12): shown only when the site says this PC has staff tools; reads only while the tab is open, at most every 5 seconds ──
 let staffState = null;
 let staffUsersAt = 0;
-const staffTabOpen = () => !!state && state.staff && document.querySelector('[data-panel="staff"]').hidden === false && !document.hidden;
+const staffTabOpen = () => !!state && state.staff && ['viewers', 'stream'].some(p => document.querySelector(`[data-panel="${p}"]`).hidden === false) && !document.hidden;
 const staffAsk = req => window.bridge.staff(req);
 const staffName = () => $('staff-name').value;
 const fill = (list, items) => list.replaceChildren(...items.map(text => { const o = document.createElement('option'); o.value = text; return o; }));
 
 function renderStaff() {
-  $('rail-staff').hidden = !(state && state.staff);
+  $('rail-staff-group').hidden = !(state && state.staff);
   $('preview-card').hidden = !(state && state.staff);
-  if (state && !state.staff && !document.querySelector('[data-panel="staff"]').hidden) showTab('status');
+  if (state && !state.staff && ['viewers', 'stream'].some(p => !document.querySelector(`[data-panel="${p}"]`).hidden)) showTab('home');
   const s = staffState;
   if (!s) return;
   $('staff-extra-now').textContent = s.extra > 0 ? `Everyone gets ${s.extra} extra this stream.` : 'No extra pulls right now.';
@@ -707,7 +709,7 @@ $('staff-search').addEventListener('input', () => {
   }, 300);
 });
 
-const activityTabOpen = () => !!state && state.staff && document.querySelector('[data-panel="activity"]').hidden === false && !document.hidden;
+const activityTabOpen = () => !!state && state.staff && document.querySelector('[data-panel="feed"]').hidden === false && !document.hidden;
 async function loadActivity() {
   if (!activityTabOpen()) return;
   const r = await staffAsk({ op: 'activity' });
@@ -723,8 +725,8 @@ setInterval(() => { void loadActivity(); }, 5000);
 for (const kind of ['attention', 'feedback', 'refusal', 'deploy']) $('notice-' + kind).addEventListener('change', e => window.bridge.setNotice(kind, e.target.checked));
 function renderNotices() {
   $('notice-card').hidden = !(state && state.staff);
-  $('rail-activity').hidden = !(state && state.staff);
-  if (state && !state.staff && !document.querySelector('[data-panel="activity"]').hidden) showTab('status');
+  $('rail-feed').hidden = !(state && state.staff);
+  if (state && !state.staff && !document.querySelector('[data-panel="feed"]').hidden) showTab('home');
   if (state && state.notices) for (const kind of Object.keys(state.notices)) if ($('notice-' + kind)) $('notice-' + kind).checked = state.notices[kind];
 }
 
