@@ -433,6 +433,8 @@ function renderTwitch() {
   const clock = ms => (ms ? new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'none yet');
   $('twitch-testing').hidden = !(t && t.testingLine);
   $('twitch-testing').textContent = t ? t.testingLine : '';
+  $('twitch-chat').hidden = !(t && t.chatLine);
+  $('twitch-chat').textContent = t ? t.chatLine || '' : '';
   $('twitch-login').textContent = t && t.login ? t.login : 'Not connected';
   $('twitch-since').textContent = t && t.state === 'connected' ? clock(t.since) : 'Not listening';
   $('twitch-last').textContent = t ? clock(t.lastEventAt) : 'none yet';

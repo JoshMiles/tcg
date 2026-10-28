@@ -125,6 +125,15 @@ export class SiteClient {
     throw new SiteError(r.status, `twitch-event: the site answered ${r.status}`);
   }
 
+  /** The chat commands the site knows (58.6): lowercased first words with "!", and whether the channel was connected with the chat scopes. 403/404 = chat is off. Anything else throws. */
+  async chatCommands(): Promise<{ commands: string[]; chat: boolean }> {
+    const r = await this.call('/api/bridge/chat-commands', {}, AbortSignal.timeout(10_000));
+    if (r.status === 403 || r.status === 404) return { commands: [], chat: false };
+    if (r.status !== 200) throw new SiteError(r.status, `chat-commands: the site answered ${r.status}`);
+    const list = Array.isArray(r.json.commands) ? r.json.commands : [];
+    return { commands: list.filter((c): c is string => typeof c === 'string').map(c => c.toLowerCase()), chat: r.json.chat === true };
+  }
+
   /** Holds up to 25 s on the site's side. */
   async poll(signal: AbortSignal): Promise<BridgeJob[]> {
     const r = await this.call('/api/bridge/poll', { version: this.version }, AbortSignal.any([signal, AbortSignal.timeout(45_000)]));

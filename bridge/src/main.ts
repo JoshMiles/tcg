@@ -35,6 +35,7 @@ import { Startup, type StartupEvent, type StartupStep } from './startup';
 import { clearReleaseCache, loadReleases, releaseBlocks, RELEASES_API, RELEASES_URL, releasesBetween, type Note } from './releases';
 import { checkText, releaseUrl, updatedTo, updateText, type UpdateStage } from './update';
 import { attentionItems } from './status';
+import { chatLine } from './eventsub';
 import { connectionRows, deckReason, testingLine, twitchProblem } from './connections';
 import { FEED_FILTERS, FEED_KEEP, filterFeed, keepPull, mergeFeed, pullEntry, readySummary, streamNumbers, type FeedFilter, type PullEntry } from './home';
 
@@ -159,7 +160,7 @@ function connectionsView() {
 function twitchView() {
   const t = service?.state.twitch;
   if (!t) return null;
-  return { state: t.state, why: t.why, reason: t.reason, login: t.login, testing: t.testing, testingLine: t.testing ? testingLine(t.login) : '', subs: t.subs, lastEventAt: t.lastEventAt, since: t.since };
+  return { state: t.state, why: t.why, reason: t.reason, login: t.login, testing: t.testing, testingLine: t.testing ? testingLine(t.login) : '', subs: t.subs, lastEventAt: t.lastEventAt, since: t.since, chatLine: chatLine(t) };
 }
 const pluginFile = (): string => (app.isPackaged ? join(process.resourcesPath, PLUGIN_FILE) : join(__dirname, '..', '..', 'streamdeck', 'dist', PLUGIN_FILE));
 const appState = (): object => demoState ?? ({

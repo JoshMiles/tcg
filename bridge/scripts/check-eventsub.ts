@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { Alerts, DOWN_FOR_MS, snapshotOf } from '../src/alerts';
 import { fixPlan, rowFor, testingLine, twitchProblem, type ConnFacts } from '../src/connections';
-import { EventSubClient, SUBSCRIPTIONS, failureText, keepaliveLimitMs, parseMessage, subscriptionBody, twitchReconnectUrl, type EsStatus } from '../src/eventsub';
+import { CHAT_SUBSCRIPTION, EventSubClient, SUBSCRIPTIONS, chatLine, chatWord, failureText, keepaliveLimitMs, parseMessage, subscriptionBody, twitchReconnectUrl, type EsStatus } from '../src/eventsub';
 import { SiteClient } from '../src/site';
 import { attentionItems } from '../src/status';
 import { FakeTwitch } from './fake-eventsub';
@@ -18,11 +18,11 @@ const waitFor = async (what: string, cond: () => boolean, ms = 5000) => {
 };
 const pause = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-interface FakeSite { status: number; testing: boolean; issued: number; events: { messageId: string; type: string; event: unknown }[]; reports: Record<string, unknown>[]; eventStatus: number }
+interface FakeSite { status: number; testing: boolean; issued: number; events: { messageId: string; type: string; event: unknown }[]; reports: Record<string, unknown>[]; eventStatus: number; chat: { status: number; on: boolean; commands: string[]; calls: number } }
 
 /** A fake site with the three routes the client uses. Every token it hands out is numbered: tok-1, tok-2 ... */
 async function startSite() {
-  const site: FakeSite = { status: 200, testing: true, issued: 0, events: [], reports: [], eventStatus: 200 };
+  const site: FakeSite = { status: 200, testing: true, issued: 0, events: [], reports: [], eventStatus: 200, chat: { status: 404, on: false, commands: [], calls: 0 } };
   const server = createServer((req, res) => {
     let body = '';
     req.on('data', c => { body += c; });
@@ -34,6 +34,7 @@ async function startSite() {
         return send(200, { accessToken: `tok-${++site.issued}`, expiresAt: Date.now() + 3_600_000, userId: '4242', login: 'spare_account', clientId: 'client-abc', testing: site.testing });
       }
       if (req.url === '/api/bridge/twitch-event') { if (site.eventStatus === 200) site.events.push(json); return send(site.eventStatus, {}); }
+      if (req.url === '/api/bridge/chat-commands') { site.chat.calls++; return send(site.chat.status, site.chat.status === 200 ? { commands: site.chat.commands, chat: site.chat.on } : {}); }
       if (req.url === '/api/bridge/report') { site.reports.push(json); return send(200, {}); }
       return send(404, {});
     });
@@ -51,6 +52,20 @@ function pureChecks(): void {
   const raid = SUBSCRIPTIONS.find(s => s.type === 'channel.raid')!;
   assert.deepEqual(subscriptionBody(raid, '77', 'S1'), { type: 'channel.raid', version: '1', condition: { to_broadcaster_user_id: '77' }, transport: { method: 'websocket', session_id: 'S1' } }, 'a raid is one coming TO the channel');
   assert.deepEqual(subscriptionBody(SUBSCRIPTIONS[1], '77', 'S1').condition, { broadcaster_user_id: '77' });
+  assert.deepEqual(subscriptionBody(CHAT_SUBSCRIPTION, '77', 'S1'), { type: 'channel.chat.message', version: '1', condition: { broadcaster_user_id: '77', user_id: '77' }, transport: { method: 'websocket', session_id: 'S1' } }, 'the chat subscription listens as the channel');
+
+  const msg = (text: unknown) => ({ message: { text } });
+  assert.equal(chatWord(msg('  !PACK  somebody ')), '!pack', 'first word, lowercased, spaces ignored');
+  assert.equal(chatWord(msg('!showoff\tx')), '!showoff');
+  for (const bad of [msg(''), msg('   '), msg(5), {}, null, undefined, 'x']) assert.equal(chatWord(bad), '', 'no word');
+  const on = { state: 'connected' as const, chat: { on: true, commands: 3 }, subs: [{ type: 'channel.chat.message', status: 'enabled' as const }] };
+  assert.equal(chatLine(on), 'Chat commands: 3 commands, through TCG Bridge');
+  assert.equal(chatLine({ ...on, chat: { on: true, commands: 1 } }), 'Chat commands: 1 command, through TCG Bridge');
+  assert.equal(chatLine({ ...on, chat: { on: false, commands: 0 }, subs: [] }), 'Chat commands: reconnect the channel on the site to allow chat');
+  assert.equal(chatLine({ ...on, subs: [] }), '', 'allowed but not subscribed (failed): the subscription list says so');
+  assert.equal(chatLine({ ...on, chat: null }), '');
+  assert.equal(chatLine({ ...on, state: 'reconnecting' }), '');
+  assert.equal(chatLine(null), '');
 
   assert.deepEqual(parseMessage(JSON.stringify({ metadata: { message_id: 'm1', message_type: 'session_keepalive' }, payload: {} })), { type: 'session_keepalive', id: 'm1', payload: {} });
   for (const bad of ['not json', '{}', '[]', 'null', JSON.stringify({ metadata: { message_id: 1, message_type: 'x' } }), JSON.stringify({ metadata: { message_type: 'x' } })]) assert.equal(parseMessage(bad), null, `not a message: ${bad}`);
@@ -74,8 +89,9 @@ function pureChecks(): void {
 /** Short timers so a whole session takes well under a second. */
 const FAST = { keepaliveMarginS: 0, recheckMs: 60, refreshLeadMs: 120_000, backoffMs: { min: 20, max: 80 }, reportMs: 60_000, retryMs: 20 };
 
-async function withClient(fake: FakeTwitch, opts: Partial<ConstructorParameters<typeof EventSubClient>[1]>, run: (c: { es: EventSubClient; site: FakeSite; log: string[] }) => Promise<void>): Promise<void> {
+async function withClient(fake: FakeTwitch, { prep, ...opts }: Partial<ConstructorParameters<typeof EventSubClient>[1]> & { prep?: (site: FakeSite) => void }, run: (c: { es: EventSubClient; site: FakeSite; log: string[] }) => Promise<void>): Promise<void> {
   const s = await startSite();
+  prep?.(s.site);
   const log: string[] = [];
   const secrets: string[] = [];
   const es = new EventSubClient(s.client, { ...FAST, wsUrl: fake.wsUrl, helixUrl: fake.helixUrl, reconnectTo: () => `${fake.wsUrl}?reconnected=1`, log: l => log.push(l), secret: t => secrets.push(t), ...opts });
@@ -323,6 +339,122 @@ async function clientChecks(): Promise<void> {
       fake.dropAll();
       await waitFor('reconnecting or connected again', () => fake.connections >= 2);
       await waitFor('connected again', () => es.state.state === 'connected' && fake.calls.length >= 12);
+    });
+    await fake.close();
+  }
+
+  await chatChecks();
+}
+
+const chatEvent = (text: string) => ({ chatter_user_login: 'viewer', chatter_user_id: '9', message: { text }, badges: [] });
+const chatCalls = (fake: FakeTwitch) => fake.calls.filter(c => c.body.type === 'channel.chat.message');
+const chatSent = (site: FakeSite) => site.events.filter(e => e.type === 'channel.chat.message');
+
+/** Chat commands through the app (58.6b): the subscription only with chat on, the filter, and the list refresh. */
+async function chatChecks(): Promise<void> {
+  // 1. chat: true. Seven subscriptions, the chat one with the channel as listener; only known commands go on, any case; other chat is dropped and never logged.
+  {
+    const fake = new FakeTwitch();
+    await fake.listen();
+    await withClient(fake, { prep: s => { s.chat = { status: 200, on: true, commands: ['!pack', '!showoff'], calls: 0 }; } }, async ({ es, site, log }) => {
+      await waitFor('seven subscriptions', () => es.state.subs.length === 7);
+      assert.deepEqual(es.state.subs.map(s => s.status), Array(7).fill('enabled'));
+      assert.equal(es.state.why, '');
+      assert.deepEqual(es.state.chat, { on: true, commands: 2 });
+      const c = chatCalls(fake);
+      assert.equal(c.length, 1);
+      assert.deepEqual([c[0].body.version, c[0].body.condition], ['1', { broadcaster_user_id: '4242', user_id: '4242' }]);
+      assert.equal(chatLine(es.state), 'Chat commands: 2 commands, through TCG Bridge');
+
+      fake.notify('channel.chat.message', chatEvent('!PACK  Some Name'), 'chat-1');
+      fake.notify('channel.chat.message', chatEvent('hello there stream secret-words'), 'chat-2');
+      fake.notify('channel.chat.message', chatEvent('!unknown thing'), 'chat-3');
+      fake.notify('channel.chat.message', chatEvent('   '), 'chat-4');
+      fake.notify('channel.chat.message', { message: {} }, 'chat-5');
+      fake.notify('channel.chat.message', chatEvent('!showoff'), 'chat-6');
+      fake.notify('channel.cheer', { bits: 5 }, 'cheer-after'); // a marker: it comes after the chat messages, in order
+      await waitFor('the marker', () => site.events.some(e => e.messageId === 'cheer-after'));
+      assert.deepEqual(site.events.map(e => e.messageId), ['chat-1', 'chat-6', 'cheer-after'], 'only the two commands, in order');
+      assert.deepEqual(site.events[0], { messageId: 'chat-1', type: 'channel.chat.message', event: chatEvent('!PACK  Some Name') }, 'the event goes on unchanged');
+      assert.ok(log.some(l => l.includes('command !pack') && l.includes('chat-1')), 'the command word and message id are logged');
+      assert.ok(!log.some(l => l.includes('secret-words') || l.includes('Some Name') || l.includes('hello there')), 'no chat text in the log');
+    });
+    await fake.close();
+  }
+
+  // 2. The list refreshes, keeps the old list when a fetch fails, and chat going off hangs up and does not subscribe again.
+  {
+    const fake = new FakeTwitch();
+    await fake.listen();
+    await withClient(fake, { chatMs: 40, prep: s => { s.chat = { status: 200, on: true, commands: ['!pack'], calls: 0 }; } }, async ({ es, site, log }) => {
+      await waitFor('seven subscriptions', () => es.state.subs.length === 7);
+      fake.notify('channel.chat.message', chatEvent('!hello'), 'late-1');
+      fake.notify('channel.cheer', { bits: 1 }, 'm-1');
+      await waitFor('the marker', () => site.events.some(e => e.messageId === 'm-1'));
+      assert.equal(chatSent(site).length, 0, '!hello is not known yet');
+
+      site.chat.commands = ['!pack', '!hello'];
+      await waitFor('the new list', () => es.state.chat?.commands === 2);
+      fake.notify('channel.chat.message', chatEvent('!Hello'), 'late-2');
+      await waitFor('the new command goes on', () => chatSent(site).some(e => e.messageId === 'late-2'));
+
+      site.chat.status = 500; // a failing fetch keeps the last good list
+      const before = site.chat.calls;
+      await waitFor('failed fetches', () => site.chat.calls >= before + 2);
+      assert.ok(log.some(l => l.includes('keeping the last one')));
+      assert.equal(es.state.chat?.commands, 2);
+      fake.notify('channel.chat.message', chatEvent('!pack x'), 'kept-1');
+      await waitFor('still forwarded', () => chatSent(site).some(e => e.messageId === 'kept-1'));
+      assert.equal(fake.connections, 1, 'no reconnect for a failed fetch');
+
+      site.chat.status = 403; // the site now says chat is off: hang up, subscribe again without chat
+      await waitFor('a new session', () => fake.connections >= 2);
+      await waitFor('six subscriptions', () => es.state.state === 'connected' && es.state.subs.length === 6);
+      assert.equal(chatCalls(fake).length, 1, 'no chat subscription in the new session');
+      assert.deepEqual(es.state.chat, { on: false, commands: 0 });
+      assert.match(chatLine(es.state), /reconnect the channel on the site/);
+      fake.notify('channel.chat.message', chatEvent('!pack y'), 'off-1'); // even if Twitch still sent one
+      fake.notify('channel.cheer', { bits: 2 }, 'm-2');
+      await waitFor('the marker', () => site.events.some(e => e.messageId === 'm-2'));
+      assert.ok(!site.events.some(e => e.messageId === 'off-1'), 'chat off: nothing forwarded');
+    });
+    await fake.close();
+  }
+
+  // 3. chat: false. No chat subscription and nothing reported as failed; the six others work. Then chat turns on: a new session subscribes to chat.
+  {
+    const fake = new FakeTwitch();
+    await fake.listen();
+    await withClient(fake, { chatMs: 40, prep: s => { s.chat = { status: 200, on: false, commands: ['!pack'], calls: 0 }; } }, async ({ es, site }) => {
+      await waitFor('six subscriptions', () => es.state.subs.length === 6);
+      assert.equal(chatCalls(fake).length, 0, 'no chat subscription');
+      assert.equal(es.state.why, '', 'not a failure');
+      assert.deepEqual(es.state.subs.map(s => s.status), Array(6).fill('enabled'));
+      assert.match(chatLine(es.state), /reconnect the channel on the site/);
+      fake.notify('channel.chat.message', chatEvent('!pack z'), 'nochat-1');
+      fake.notify('channel.cheer', { bits: 3 }, 'cheer-ok');
+      await waitFor('the other types still go', () => site.events.some(e => e.messageId === 'cheer-ok'));
+      assert.ok(!site.events.some(e => e.messageId === 'nochat-1'));
+
+      site.chat.on = true; // the streamer reconnected the channel on the site
+      await waitFor('a new session with chat', () => fake.connections >= 2 && es.state.subs.length === 7 && es.state.subs.every(s => s.status === 'enabled'));
+      assert.equal(chatCalls(fake).length, 1);
+      fake.notify('channel.chat.message', chatEvent('!pack z'), 'chat-ok');
+      await waitFor('now forwarded', () => chatSent(site).some(e => e.messageId === 'chat-ok'));
+    });
+    await fake.close();
+  }
+
+  // 4. A site that cannot give the list at first: no chat subscription, the others work; the first good answer with chat on brings the chat session.
+  {
+    const fake = new FakeTwitch();
+    await fake.listen();
+    await withClient(fake, { chatMs: 40, prep: s => { s.chat.status = 500; } }, async ({ es, site }) => {
+      await waitFor('six subscriptions', () => es.state.subs.length === 6);
+      assert.equal(es.state.chat ?? null, null, 'no answer yet');
+      assert.equal(chatLine(es.state), '', 'no line while unknown');
+      site.chat.status = 200; site.chat.on = true; site.chat.commands = ['!pack'];
+      await waitFor('chat subscribed', () => es.state.subs.length === 7);
     });
     await fake.close();
   }

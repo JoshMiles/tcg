@@ -10,7 +10,8 @@ export type EsState = 'off' | 'connecting' | 'connected' | 'reconnecting';
  *  site = no token from the site, twitch = Twitch not reachable, subs = a subscription failed or was revoked. '' = all good. */
 export type EsWhy = '' | 'none' | 'forbidden' | 'ended' | 'site' | 'twitch' | 'subs';
 export interface EsSub { type: string; status: 'enabled' | 'failed' | 'revoked'; error?: string }
-export interface EsStatus { state: EsState; why: EsWhy; reason: string; login: string; testing: boolean; subs: EsSub[]; lastEventAt: number | null; since: number | null }
+/** chat: null until the site has answered once; on = the channel has the chat scopes; commands = how many the site listed. */
+export interface EsStatus { state: EsState; why: EsWhy; reason: string; login: string; testing: boolean; subs: EsSub[]; lastEventAt: number | null; since: number | null; chat?: { on: boolean; commands: number } | null }
 
 export const EVENTSUB_URL = 'wss://eventsub.wss.twitch.tv/ws';
 export const HELIX_SUBSCRIPTIONS_URL = 'https://api.twitch.tv/helix/eventsub/subscriptions';
@@ -22,6 +23,22 @@ export const SUBSCRIPTIONS: { type: string; version: string; condition: (id: str
   { type: 'stream.online', version: '1', condition: id => ({ broadcaster_user_id: id }) },
   { type: 'stream.offline', version: '1', condition: id => ({ broadcaster_user_id: id }) },
 ];
+/** The seventh subscription (58.6b): created only when the site says the token has the chat scopes. Kept out of SUBSCRIPTIONS so "all subscriptions on" stays true without it. */
+export const CHAT_TYPE = 'channel.chat.message';
+export const CHAT_SUBSCRIPTION: (typeof SUBSCRIPTIONS)[number] = { type: CHAT_TYPE, version: '1', condition: id => ({ broadcaster_user_id: id, user_id: id }) };
+
+/** The first word of a chat message, lowercased ('' when there is none). */
+export function chatWord(event: unknown): string {
+  const text = (event as { message?: { text?: unknown } } | null)?.message?.text;
+  return typeof text === 'string' ? (text.trim().split(/\s+/)[0] ?? '').toLowerCase() : '';
+}
+
+/** The one line on the Twitch connection about chat ('' = say nothing). */
+export function chatLine(t: Pick<EsStatus, 'state' | 'subs' | 'chat'> | null | undefined): string {
+  if (!t || t.state !== 'connected' || !t.chat) return '';
+  if (t.subs.some(s => s.type === CHAT_TYPE && s.status === 'enabled')) return `Chat commands: ${t.chat.commands} ${t.chat.commands === 1 ? 'command' : 'commands'}, through TCG Bridge`;
+  return t.chat.on ? '' : 'Chat commands: reconnect the channel on the site to allow chat';
+}
 
 export interface EsMessage { type: string; id: string; payload: Record<string, unknown> }
 /** One WebSocket frame, or null when it is not an EventSub message. */
@@ -74,6 +91,8 @@ export interface EventSubOptions {
   keepaliveMarginS: number;
   /** How often the site is asked whether a channel is still connected, which also renews the token. */
   recheckMs: number;
+  /** How often the site's chat command list is fetched while connected (58.6b). */
+  chatMs: number;
   /** The token is renewed this long before it expires. */
   refreshLeadMs: number;
   backoffMs: { min: number; max: number };
@@ -112,15 +131,18 @@ export class EventSubClient {
   private welcomed = false;
   private recheckTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeat: ReturnType<typeof setInterval> | null = null;
+  private chatTimer: ReturnType<typeof setInterval> | null = null;
+  private chatList = new Set<string>();
+  private chatSubscribed = false; // whether this session's subscriptions include the chat one
   private queue: { messageId: string; type: string; event: unknown; tries: number }[] = [];
   private flushing = false;
   private reportKey = '';
   private reportAt = 0;
   private reported: EsState | null = null;
 
-  constructor(private client: Pick<SiteClient, 'twitchToken' | 'twitchEvent' | 'report'>, opts: Partial<EventSubOptions> = {}) {
+  constructor(private client: Pick<SiteClient, 'twitchToken' | 'twitchEvent' | 'report' | 'chatCommands'>, opts: Partial<EventSubOptions> = {}) {
     this.o = {
-      wsUrl: EVENTSUB_URL, helixUrl: HELIX_SUBSCRIPTIONS_URL, reconnectTo: twitchReconnectUrl, keepaliveMarginS: 10, recheckMs: 300_000, refreshLeadMs: 120_000,
+      wsUrl: EVENTSUB_URL, helixUrl: HELIX_SUBSCRIPTIONS_URL, reconnectTo: twitchReconnectUrl, keepaliveMarginS: 10, recheckMs: 300_000, chatMs: 300_000, refreshLeadMs: 120_000,
       backoffMs: { min: 1000, max: 30_000 }, reportMs: 60_000, retryMs: 1000, log: () => undefined, onChange: () => undefined, secret: () => undefined, ...opts,
     };
   }
@@ -218,6 +240,8 @@ export class EventSubClient {
   private teardown(): void {
     if (this.recheckTimer) clearTimeout(this.recheckTimer);
     this.recheckTimer = null;
+    if (this.chatTimer) clearInterval(this.chatTimer);
+    this.chatTimer = null;
     for (const ws of [this.sock, this.pending]) if (ws) this.retire(ws);
     this.sock = null;
     this.pending = null;
@@ -279,6 +303,7 @@ export class EventSubClient {
           this.pending = null;
           if (old) this.retire(old);
           this.o.log('Twitch events: switched to the new connection');
+          void this.refreshChat();
           break;
         }
         if (typeof session?.id !== 'string') break;
@@ -315,6 +340,11 @@ export class EventSubClient {
         this.arm(ws);
         const type = (m.payload.subscription as { type?: unknown } | undefined)?.type;
         if (typeof type !== 'string') break;
+        if (type === CHAT_TYPE) { // only a command the site knows leaves the PC; no other chat is kept, forwarded or logged
+          const word = chatWord(m.payload.event);
+          if (!this.state.chat?.on || !word || !this.chatList.has(word)) break;
+          this.o.log(`Twitch chat: command ${word} (${m.id})`);
+        }
         this.state.lastEventAt = Date.now();
         this.enqueue({ messageId: m.id, type, event: m.payload.event ?? {}, tries: 0 });
         this.changed();
@@ -351,8 +381,24 @@ export class EventSubClient {
 
   // ── Helix subscriptions, once per new session ──
 
+  /** Fetches the chat command list. A failed fetch keeps the last list; 403/404 turns chat off. If chat flipped since this session subscribed, the session ends so the next one subscribes right. */
+  private async refreshChat(watch = true): Promise<void> {
+    try {
+      const r = await this.client.chatCommands();
+      if (!this.end) return;
+      this.chatList = new Set(r.commands);
+      this.state.chat = { on: r.chat, commands: r.commands.length };
+      this.changed();
+      if (watch && r.chat !== this.chatSubscribed) { this.o.log(`Twitch chat: ${r.chat ? 'now allowed' : 'no longer allowed'}, reconnecting`); this.end({ kind: 'lost', welcomed: true }); }
+    } catch { this.o.log('Twitch chat: could not fetch the command list, keeping the last one'); }
+  }
+
   private async subscribe(sessionId: string, ws: WebSocket): Promise<void> {
-    const subs = await Promise.all(SUBSCRIPTIONS.map(s => this.createSub(s, sessionId)));
+    await this.refreshChat(false); // this session has not subscribed yet, so a change now is simply what it subscribes to
+    if (this.sock !== ws && this.pending !== ws) return;
+    this.chatSubscribed = this.state.chat?.on === true;
+    if (!this.chatTimer) { this.chatTimer = setInterval(() => void this.refreshChat(), this.o.chatMs); this.chatTimer.unref?.(); }
+    const subs = await Promise.all((this.chatSubscribed ? [...SUBSCRIPTIONS, CHAT_SUBSCRIPTION] : SUBSCRIPTIONS).map(s => this.createSub(s, sessionId)));
     if (this.sock !== ws && this.pending !== ws) return;
     const failed = subs.filter(s => s.status === 'failed');
     this.o.log(`Twitch events: ${subs.length - failed.length} of ${subs.length} subscriptions on${failed.length ? `, failed: ${failed.map(f => `${f.type} (${f.error})`).join(', ')}` : ''}`);
