@@ -61,6 +61,7 @@ let hotkeyErrors: Partial<Record<HotkeyName, string>> = {};
 let paused: boolean | null = null; // pulls paused on the site; null until the site has said
 let pauseReason = ''; // why pulls are paused: "scene <name>" when a chosen OBS scene did it (57.2), else ''
 let happy: HappyFacts | null = null; // the site's running happy hour (57.3), as the site last said; never decided here
+let commandsMissing: string[] | null = null; // the Mix It Up commands the site expects and does not find (57.8); null until the site has said. Shown only, nothing in Mix It Up is changed
 let scenePause: ScenePause | null = null; // pauses pulls while a chosen OBS scene is on air (57.2)
 let statFacts: StatFacts | null = null; // what the site last said for the OBS text sources (57.4); null until it has answered
 let statWriter: TextWriter | null = null;
@@ -115,6 +116,7 @@ const appState = (): object => demoState ?? ({
   notices: settings.notices,
   scenePause: { ...settings.scenePause, obsScenes: sceneList() },
   events: eventLines,
+  commandsMissing,
   obsStats: { map: settings.obsStats, texts: service?.obs.textSources() ?? [], stats: STAT_IDS.map(id => ({ id, label: STAT_LABELS[id] })) },
   control: { error: control?.error ?? '', paused, reason: pauseReason, happy, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
   appVersion: app.getVersion(),
@@ -188,6 +190,7 @@ async function loadStatus(): Promise<void> {
     if (typeof r.paused === 'boolean') pauseReason = r.reason ?? '';
     buffs = r.buffs ?? buffs;
     if (r.happyHour !== undefined) happy = r.happyHour;
+    commandsMissing = r.commandsMissing ?? commandsMissing;
     staff = r.staff === true;
     tradingPaused = staff && (r.tradingPaused ?? tradingPaused);
     push();
@@ -268,6 +271,7 @@ async function disconnect(): Promise<void> {
   client = null;
   paused = null;
   happy = null;
+  commandsMissing = null;
   pauseReason = '';
   scenePause?.stop();
   scenePause = null;

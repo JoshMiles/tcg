@@ -53,6 +53,12 @@ export async function checklistChecks(): Promise<void> {
   const hh = f({ happyHour: { what: 'free packs', endsAt: NOW + 12 * 60_000 } })[4];
   assert.ok(hh.tone === 'muted' && hh.text === 'Running: free packs, 12 minutes left.', 'a running happy hour is shown, never red');
   assert.equal(overall(f({ happyHour: { what: 'free packs', endsAt: NOW + 60_000 } })).ready, true);
+  // the Mix It Up command check (57.8): no line until the site has the commands, grey (never red) when some are missing
+  assert.equal(f({}).length, 5, 'no commands line before the site says');
+  const cm = f({ commandsMissing: ['!pack', 'Bits'] }).find(l => l.label === 'Commands')!;
+  assert.ok(cm.tone === 'muted' && cm.text === '2 Mix It Up commands missing or switched off: !pack, Bits.', cm.text);
+  assert.equal(f({ commandsMissing: [] }).find(l => l.label === 'Commands')!.tone, 'ok');
+  assert.equal(overall(f({ commandsMissing: ['!pack'] })).ready, true);
 
   // the site does not answer: red, and the lines that need it say so (the other parts still answer)
   r = await runChecklist(parts({ facts: async () => { throw new Error('The site answered 500'); } }));

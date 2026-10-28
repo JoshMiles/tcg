@@ -8,7 +8,7 @@ export type Tone = 'ok' | 'bad' | 'muted';
 export interface ChecklistLine { label: string; tone: Tone; text: string }
 export interface ChecklistResult { lines: ChecklistLine[]; ready: boolean; summary: string }
 /** What the site answers at /api/bridge/checklist. */
-export interface SiteFacts { season: { name: string } | null; openablePacks: number; queueLength: number; paused: boolean; happyHour: { what: string; endsAt: number } | null }
+export interface SiteFacts { season: { name: string } | null; openablePacks: number; queueLength: number; paused: boolean; happyHour: { what: string; endsAt: number } | null; /** 57.8: absent until the site has the app's Mix It Up commands. */ commandsMissing?: string[] }
 
 export const CHECK_TIMEOUT_MS = 5000;
 
@@ -38,6 +38,7 @@ export function siteLines(f: SiteFacts, now: number): ChecklistLine[] {
     f.openablePacks > 0 ? ok('Packs', `${plural(f.openablePacks, 'pack', 'packs')} can be opened.`) : bad('Packs', 'No pack with cards can be opened, so every pull would fail.'),
     f.queueLength === 0 ? ok('Pull queue', 'The queue is empty.') : bad('Pull queue', `${plural(f.queueLength, 'pull is', 'pulls are')} still waiting in the overlay queue.`),
     f.paused ? bad('Pulls', 'Pulls are paused. Resume them before going live.') : ok('Pulls', 'Pulls are open.'),
+    ...(f.commandsMissing ? [f.commandsMissing.length === 0 ? ok('Commands', 'Every Mix It Up command the site expects was found.') : muted('Commands', `${plural(f.commandsMissing.length, 'Mix It Up command', 'Mix It Up commands')} missing or switched off: ${f.commandsMissing.join(', ')}.`)] : []),
     f.happyHour ? muted('Happy hour', `Running: ${f.happyHour.what}, ${plural(mins, 'minute', 'minutes')} left.`) : muted('Happy hour', 'Not running.'),
   ];
 }

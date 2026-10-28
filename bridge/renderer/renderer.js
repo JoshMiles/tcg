@@ -59,6 +59,15 @@ function renderChecklist(c) {
 }
 setInterval(() => { if (state) renderChecklist(state.checklist); }, 15_000); // keeps "N seconds ago" honest
 
+// The Mix It Up command check (57.8): one line, and the names to fix. null = the site has not said yet. Site text goes in with textContent only.
+function renderCommands(missing) {
+  const n = Array.isArray(missing) ? missing.length : -1;
+  setDot('commands-dot', n < 0 ? 'off' : n === 0 ? 'ok' : 'warn');
+  $('commands-state').textContent = n < 0 ? 'Not checked yet' : n === 0 ? 'Every command the site expects was found' : `${n} Mix It Up command${n === 1 ? '' : 's'} missing`;
+  $('commands-names').hidden = n < 1;
+  $('commands-names').textContent = n < 1 ? '' : missing.join(', ');
+}
+
 // The event feed (57.7): the last event rewards from the site, newest first. The app sends ready-made text lines.
 function renderEvents(lines) {
   const rows = Array.isArray(lines) ? lines : [];
@@ -273,6 +282,7 @@ function render() {
   renderObs(svc && svc.obs, state.obsSettings);
   renderChecklist(state.checklist);
   renderEvents(state.events);
+  renderCommands(state.commandsMissing);
   const jobs = svc ? svc.jobs : [];
   $('no-jobs').hidden = jobs.length > 0;
   $('jobs').hidden = jobs.length === 0;

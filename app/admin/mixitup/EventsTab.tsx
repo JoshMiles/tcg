@@ -74,7 +74,7 @@ export function EventsTab({ rewards, buffs, url, secret }: { rewards: EventRewar
       <section className="space-y-3">
         <h2 className="font-semibold text-white">Copy setup</h2>
         <p className="text-sm text-gray-300">
-          Make a Mix It Up event command for each event you switch on (Web Request action: POST, JSON, then a Chat Message that says the <code>message</code> field; an empty message means nothing to say).
+          Make a Mix It Up event command for each event you switch on (Web Request action: POST, JSON, then a Chat Message that says the <code>message</code> field; an empty message means nothing to say). Name each command exactly like its card, so the check on the Connection tab can find it.
           The special identifiers come from Mix It Up&rsquo;s source code and have not been tried against a live Mix It Up, so test each command once. Add <code>&quot;requestId&quot;</code> with a value that differs on every run to make a retry safe.
         </p>
         {EVENT_SETUP.map(s => <CopyCard key={s.title} title={s.title} note={s.note} {...incomingSetup(url, secret, s.fields)} />)}
