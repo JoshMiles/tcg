@@ -66,7 +66,7 @@
         <div class="rail-group" role="group" aria-labelledby="rg-tools">
           <p id="rg-tools" class="rail-head">Stream tools</p>
           <button type="button" class="rail-btn" data-tab="controls" title="Controls"><svg class="i"><use href="#i-sliders-horizontal"/></svg><span class="rail-label">Controls</span></button>
-          <button type="button" id="rail-feed" class="rail-btn" data-tab="feed" title="Feed and history" hidden><svg class="i"><use href="#i-message-square"/></svg><span class="rail-label">Feed and history</span></button>
+          <button type="button" class="rail-btn" data-tab="feed" title="Feed and history"><svg class="i"><use href="#i-message-square"/></svg><span class="rail-label">Feed and history</span></button>
         </div>
         <div id="rail-staff-group" class="rail-group" role="group" aria-labelledby="rg-staff" hidden>
           <p id="rg-staff" class="rail-head">Staff</p>
@@ -106,58 +106,107 @@
             </form>
           </section>
 
-          <div id="status" class="cols" hidden>
-            <section class="card">
-              <div class="card-head">
-                <h2>Pre-stream checklist</h2><p class="line"><span id="checklist-dot" class="dot off"></span><span id="checklist-state">Not run yet</span></p>
-              </div>
-              <ul id="checklist-lines" class="checklist"></ul>
-              <div class="row tools">
-                <button type="button" id="checklist-run" class="btn"><svg class="i"><use href="#i-flask-conical"/></svg>Checklist</button>
-              </div>
-              <p class="note muted">Looks at everything at once and changes nothing: no chat message is sent and nobody is charged.</p>
-            </section>
+          <!-- The dashboard (59.5): chips on top; the left column is for doing (pulls, happy hour, queue), the right for watching (numbers, feed, ready to go live). -->
+          <div id="status" class="home" hidden>
+            <div class="chips" role="group" aria-label="Connections, press one to open its card">
+              <button type="button" id="chip-site" class="chip"><span class="dot off"></span><b>TCG site</b><span class="chip-state"></span></button>
+              <button type="button" id="chip-mix" class="chip"><span class="dot off"></span><b>Mix It Up</b><span class="chip-state"></span></button>
+              <button type="button" id="chip-obs" class="chip" hidden><span class="dot off"></span><b>OBS</b><span class="chip-state"></span></button>
+              <button type="button" id="chip-deck" class="chip" hidden><span class="dot off"></span><b>Stream Deck plugin</b><span class="chip-state"></span></button>
+            </div>
 
-            <section class="card">
-              <h2 class="plain-title">Pause pulls</h2>
-              <label class="switch-row"><span><b>Pulls are paused</b><small id="control-last">Paid pulls and !pack answer "Packs are paused, back soon".</small></span><input id="control-pause" class="switch" type="checkbox"></label>
-              <p id="control-reason" class="muted small" hidden></p>
-              <p id="control-pause-result" class="result" role="status"></p>
-            </section>
+            <div class="home-cols">
+              <div class="home-left">
+                <section id="card-pulls" class="card">
+                  <div class="card-head">
+                    <h2>Pulls</h2><p class="line"><span id="pulls-dot" class="dot off"></span><span id="pulls-state">Not known yet</span></p>
+                  </div>
+                  <button type="button" id="control-pause" class="btn big">Pause pulls</button>
+                  <p id="control-reason" class="muted small" hidden></p>
+                  <p id="control-last" class="muted small">Paused: viewers get "Packs are paused".</p>
+                  <p id="control-pause-result" class="result" role="status"></p>
+                </section>
 
-            <section class="card">
-              <div class="card-head">
-                <h2>Events</h2><p class="line">The last 30 event rewards, newest first</p>
+                <section id="card-happy" class="card">
+                  <div class="card-head">
+                    <h2>Happy hour</h2><p id="home-happy-now" class="line" role="status">No happy hour is running.</p>
+                  </div>
+                  <div class="row">
+                    <button type="button" class="btn plain happy-preset" data-minutes="15" data-kind="free" data-percent="25">15 min free</button>
+                    <button type="button" class="btn plain happy-preset" data-minutes="30" data-kind="discount" data-percent="50">30 min 50%</button>
+                    <button type="button" class="btn plain happy-preset" data-minutes="60" data-kind="discount" data-percent="25">60 min 25%</button>
+                  </div>
+                  <div class="row tools">
+                    <button type="button" id="happy-custom-go" class="btn plain">Custom...</button>
+                    <button type="button" id="home-happy-end" class="btn plain">End now</button>
+                  </div>
+                  <p id="home-happy-result" class="result" role="status"></p>
+                </section>
+
+                <section id="card-queue" class="card">
+                  <div class="card-head">
+                    <h2>Pull queue</h2><p id="queue-count" class="line">Nothing waiting</p>
+                  </div>
+                  <p id="queue-empty" class="empty">Nothing waiting.</p>
+                  <table id="queue" hidden>
+                    <thead><tr><th>Who</th><th>Pack</th><th>Waiting</th></tr></thead>
+                    <tbody></tbody>
+                  </table>
+                  <p id="queue-more" class="muted small" hidden></p>
+                  <div class="row tools">
+                    <button type="button" id="queue-skip" class="btn plain">Skip next</button>
+                    <button type="button" id="queue-clear" class="btn plain">Clear queue</button>
+                  </div>
+                  <p id="queue-result" class="result" role="status"></p>
+                  <p class="muted small">A skipped or cleared paid pull is refunded.</p>
+                </section>
               </div>
-              <p id="events-empty" class="empty">No events yet this session</p>
-              <ul id="events-lines" class="checklist events-list"></ul>
-            </section>
 
-            <section class="card">
-              <div class="card-head">
-                <h2>Mix It Up commands</h2><p class="line"><span id="commands-dot" class="dot off"></span><span id="commands-state">Not checked yet</span></p>
+              <div class="home-right">
+                <section id="card-numbers" class="card numbers" aria-label="This stream">
+                  <div><b id="num-pulls">0</b><span>Pulls this stream</span></div>
+                  <div><b id="num-big">0</b><span>Big pulls, 4 stars and up</span></div>
+                  <div><b id="num-spent">0</b><span>Brie Bucks spent</span></div>
+                  <div><b id="num-top">-</b><span id="num-top-label">Top puller</span></div>
+                </section>
+
+                <section id="card-feed" class="card feed-card">
+                  <div class="feed-head">
+                    <h2>Live feed</h2>
+                    <!-- Filter chips: a Twitch filter (58.x) is one more button here, left out until Twitch events exist. -->
+                    <div class="chips filters" role="group" aria-label="Filter the feed" data-feed="home">
+                      <button type="button" class="chip" data-filter="all" aria-pressed="true">All</button>
+                      <button type="button" class="chip" data-filter="pulls" aria-pressed="false">Pulls</button>
+                      <button type="button" class="chip" data-filter="events" aria-pressed="false">Events</button>
+                      <button type="button" class="chip" data-filter="jobs" aria-pressed="false">Jobs</button>
+                    </div>
+                  </div>
+                  <p class="feed-empty empty" data-feed="home">Nothing yet. Pulls, event rewards and Mix It Up jobs appear here as they happen.</p>
+                  <ul class="feed-list" data-feed="home" aria-label="Live feed, newest first"></ul>
+                </section>
+
+                <section id="card-ready" class="card ready">
+                  <div class="ready-one">
+                    <span id="checklist-dot" class="dot off"></span>
+                    <div><h2>Ready to go live</h2><p id="checklist-state" class="muted">Not run yet</p></div>
+                    <button type="button" id="checklist-run" class="btn plain"><svg class="i"><use href="#i-flask-conical"/></svg><span id="checklist-run-label">Run</span></button>
+                  </div>
+                  <ul id="checklist-lines" class="checklist"></ul>
+                  <p class="ready-commands"><span id="commands-dot" class="dot off"></span><span id="commands-state">Mix It Up commands: not checked yet</span></p>
+                  <p id="commands-names" class="note muted" hidden></p>
+                  <details class="more how"><summary>How?</summary><p class="small">The check looks at everything at once and changes nothing: no chat message is sent and nobody is charged. The command line compares the commands the site expects with the ones switched on in Mix It Up, by name; a missing command and a switched-off one look the same.</p></details>
+                </section>
               </div>
-              <p id="commands-names" class="note muted" hidden></p>
-              <details class="more how"><summary>How?</summary><p class="small">Compares the commands the site expects with the ones switched on in Mix It Up, by name. A missing command and a switched-off one look the same. Nothing in Mix It Up is changed.</p></details>
-            </section>
-
-            <section class="card wide">
-              <h2 class="plain-title">Last jobs</h2>
-              <p id="no-jobs" class="empty">Nothing yet. Jobs appear here when the site asks Mix It Up for something.</p>
-              <table id="jobs" hidden>
-                <thead><tr><th>Time</th><th>Job</th><th>Viewer</th><th>Result</th></tr></thead>
-                <tbody></tbody>
-              </table>
-            </section>
+            </div>
           </div>
         </section>
 
-        <!-- Controls: used during a stream -->
+        <!-- Controls: the less used controls. Happy hour presets, Pulls and the queue are on Home (59.5); the custom happy hour stays here, and Home's Custom... jumps to it. -->
         <section data-panel="controls" hidden>
           <p id="control-unpaired" class="empty" hidden>Pair TCG Bridge first (Home page).</p>
           <div id="control" class="cols" hidden>
-            <section class="card">
-              <h2 class="plain-title">Happy hour</h2>
+            <section id="card-happy-custom" class="card">
+              <h2 class="plain-title">Custom happy hour</h2>
               <p id="happy-now" class="muted" role="status">No happy hour is running.</p>
               <form id="happy-form" class="row" style="align-items:end">
                 <label>Minutes <input id="happy-minutes" type="number" min="1" max="240" value="30"></label>
@@ -169,28 +218,26 @@
               <p class="muted small">Starting while one runs replaces it. The site keeps the time; this window only shows it.</p>
               <p id="happy-result" class="result" role="status"></p>
             </section>
-            <section class="card">
-              <details id="queue-box" class="more">
-                <summary>Pull queue</summary>
-                <p id="queue-empty" class="empty">Nothing waiting.</p>
-                <table id="queue" hidden>
-                  <thead><tr><th>Who</th><th>Pack</th><th>Waiting</th></tr></thead>
-                  <tbody></tbody>
-                </table>
-                <div class="row tools">
-                  <button type="button" id="queue-skip" class="btn plain">Skip next pull</button>
-                  <button type="button" id="queue-clear" class="btn plain">Clear queue</button>
-                </div>
-                <p id="queue-result" class="result" role="status"></p>
-                <p class="muted small">A skipped or cleared paid pull is refunded.</p>
-              </details>
-            </section>
           </div>
         </section>
 
-        <!-- Feed and history (55.13): the dashboard's recent pulls, grants and trades, read only while this page is open; staff PCs only -->
+        <!-- Feed and history (59.5): the full feed for everyone (the same rows and filters as Home, a longer list); the dashboard's activity (55.13) below it on staff PCs only -->
         <section data-panel="feed" hidden>
-          <section class="card">
+          <section id="card-history" class="card feed-card">
+            <div class="feed-head">
+              <h2>History</h2>
+              <div class="chips filters" role="group" aria-label="Filter the history" data-feed="history">
+                <button type="button" class="chip" data-filter="all" aria-pressed="true">All</button>
+                <button type="button" class="chip" data-filter="pulls" aria-pressed="false">Pulls</button>
+                <button type="button" class="chip" data-filter="events" aria-pressed="false">Events</button>
+                <button type="button" class="chip" data-filter="jobs" aria-pressed="false">Jobs</button>
+              </div>
+            </div>
+            <p class="feed-empty empty" data-feed="history">Nothing yet. Pulls, event rewards and Mix It Up jobs appear here as they happen.</p>
+            <ul class="feed-list" data-feed="history" aria-label="History, newest first"></ul>
+            <details class="more how"><summary>How?</summary><p class="small">Pulls, event rewards and Mix It Up jobs since this app started, newest first, up to the last 100. Pulls reach this app only while it is running with its window open or the live pull feed window on; one sent while it was closed or offline is not shown later.</p></details>
+          </section>
+          <section id="card-activity" class="card" hidden>
             <h2 class="plain-title">Recent activity</h2>
             <details class="more how"><summary>How?</summary><p class="small">Pulls, grants and trades, newest first. Notices only reach this app while it is running: one sent while it was closed or offline is dropped, and is not shown later.</p></details>
             <p id="activity-empty" class="empty" hidden>Nothing yet.</p>
@@ -355,7 +402,7 @@
             </details>
           </section>
 
-          <section class="card">
+          <section id="card-deck" class="card">
             <div class="card-head">
               <h2>Stream Deck plugin</h2><p class="line"><span id="deck-dot" class="dot off"></span><span id="deck-state"></span></p>
             </div>

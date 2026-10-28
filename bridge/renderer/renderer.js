@@ -3,7 +3,6 @@ const $ = id => document.getElementById(id);
 const SITE_TEXT = { connecting: 'Connecting', connected: 'Connected', offline: 'Cannot reach the site, trying again', revoked: 'Pair again' };
 const TRAY_TEXT = { connected: 'All connected', partly: 'Partly connected', offline: 'Not connected' };
 
-const time = ms => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 const ago = ms => {
   const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
   return s < 5 ? 'just now' : s < 60 ? `${s} seconds ago` : `${Math.round(s / 60)} minutes ago`;
@@ -41,10 +40,12 @@ function renderObs(obs, saved) {
 
 // The pre-stream checklist (57.1): one line per check, a dot for green, red or grey.
 const CHECK_DOT = { ok: 'ok', bad: '', muted: 'off' };
-function renderChecklist(c) {
-  setDot('checklist-dot', c ? (c.ready ? 'ok' : '') : 'off');
-  $('checklist-state').textContent = c ? `${c.summary} (${ago(c.at)})` : 'Not run yet';
-  $('checklist-lines').replaceChildren(...(c ? c.lines : []).map(l => {
+// The Ready to go live card (59.5): the app sends the summary (src/home.ts readySummary): all green = one line, else only the red lines.
+function renderChecklist(r) {
+  setDot('checklist-dot', r.done ? 'ok' : r.lines.length ? '' : 'off');
+  $('checklist-state').textContent = r.text;
+  $('checklist-run-label').textContent = r.done || r.lines.length ? 'Run again' : 'Run';
+  $('checklist-lines').replaceChildren(...r.lines.map(l => {
     const li = document.createElement('li');
     const dot = document.createElement('span');
     dot.className = 'dot' + (CHECK_DOT[l.tone] ? ' ' + CHECK_DOT[l.tone] : '');
@@ -56,35 +57,90 @@ function renderChecklist(c) {
     return li;
   }));
 }
-setInterval(() => { if (state) renderChecklist(state.checklist); }, 15_000); // keeps "N seconds ago" honest
 
 // The Mix It Up command check (57.8): one line, and the names to fix. null = the site has not said yet. Site text goes in with textContent only.
 function renderCommands(missing) {
   const n = Array.isArray(missing) ? missing.length : -1;
   setDot('commands-dot', n < 0 ? 'off' : n === 0 ? 'ok' : 'warn');
-  $('commands-state').textContent = n < 0 ? 'Not checked yet' : n === 0 ? 'Every command the site expects was found' : `${n} Mix It Up command${n === 1 ? '' : 's'} missing`;
+  $('commands-state').textContent = n < 0 ? 'Mix It Up commands: not checked yet' : n === 0 ? 'Every Mix It Up command the site expects was found' : `${n} Mix It Up command${n === 1 ? '' : 's'} missing`;
   $('commands-names').hidden = n < 1;
   $('commands-names').textContent = n < 1 ? '' : missing.join(', ');
 }
 
-// The event feed (57.7): the last event rewards from the site, newest first. The app sends ready-made text lines.
-function renderEvents(lines) {
-  const rows = Array.isArray(lines) ? lines : [];
-  $('events-empty').hidden = rows.length > 0;
-  $('events-lines').replaceChildren(...rows.map(e => {
+// The live feed (59.5): the app sends the merged rows (src/home.ts mergeFeed), newest first. Home and Feed and history each keep their own filter.
+const FILTER_KIND = { all: null, pulls: 'pull', events: 'event', jobs: 'job' }; // the same table as FEED_FILTERS in src/home.ts
+const HOME_ROWS = 9; // what fits the dashboard at 1280 x 800
+const feedFilter = { home: 'all', history: 'all' };
+const BADGE_TITLE = { P: 'Pull', E: 'Event reward', J: 'Mix It Up job', '!': 'Refused or failed' };
+function renderFeed(which) {
+  const rows = ((state.home && state.home.feed) || []).filter(r => !FILTER_KIND[feedFilter[which]] || r.kind === FILTER_KIND[feedFilter[which]]).slice(0, which === 'home' ? HOME_ROWS : 100);
+  const list = document.querySelector(`.feed-list[data-feed="${which}"]`);
+  document.querySelector(`.feed-empty[data-feed="${which}"]`).hidden = rows.length > 0;
+  list.hidden = rows.length === 0;
+  list.replaceChildren(...rows.map(r => {
     const li = document.createElement('li');
+    li.className = 'feed-row ' + r.tone;
     const when = document.createElement('span');
-    when.textContent = e.time;
-    const what = document.createElement('strong');
-    what.textContent = e.event;
-    const who = document.createElement('span');
-    who.textContent = e.amount !== '-' ? `${e.viewer}, ${e.amount}` : e.viewer;
-    const result = document.createElement('span');
-    result.textContent = e.result;
-    li.append(when, what, who, result);
+    when.className = 'feed-time';
+    when.textContent = r.time;
+    const badge = document.createElement('span');
+    badge.className = 'feed-badge';
+    badge.textContent = r.badge;
+    badge.title = BADGE_TITLE[r.badge];
+    const who = document.createElement('b');
+    who.textContent = r.viewer;
+    const text = document.createElement('span');
+    text.className = 'feed-text';
+    text.textContent = r.text;
+    const tag = document.createElement('span');
+    tag.className = 'feed-tag';
+    tag.textContent = r.tag;
+    li.append(when, badge, who, text, tag);
     return li;
   }));
 }
+for (const group of document.querySelectorAll('.filters')) {
+  group.addEventListener('click', e => {
+    const b = e.target.closest('[data-filter]');
+    if (!b) return;
+    feedFilter[group.dataset.feed] = b.dataset.filter;
+    for (const o of group.querySelectorAll('[data-filter]')) o.setAttribute('aria-pressed', String(o === b));
+    if (state) renderFeed(group.dataset.feed);
+  });
+}
+
+// "This stream" numbers: ready-made by the app (src/home.ts streamNumbers).
+function renderNumbers() {
+  const n = state.home && state.home.numbers;
+  if (!n) return;
+  $('num-pulls').textContent = n.pulls.toLocaleString('en-US');
+  $('num-big').textContent = n.big.toLocaleString('en-US');
+  $('num-spent').textContent = n.spent.toLocaleString('en-US');
+  $('num-top').textContent = n.top ? n.top.viewer : '-';
+  $('num-top-label').textContent = n.top ? `Top puller, ${n.top.pulls} pull${n.top.pulls === 1 ? '' : 's'}` : 'Top puller';
+}
+
+// The connection chips (59.5): a dot and a short state; a chip opens its Connections card. OBS and Stream Deck show only when in use.
+const shortAgo = ms => { const s = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s < 60 ? `${s} s ago` : `${Math.round(s / 60)} min ago`; };
+function setChip(id, kind, text) {
+  const chip = $(id);
+  chip.firstElementChild.className = 'dot' + (kind ? ' ' + kind : '');
+  chip.lastElementChild.textContent = text;
+}
+function renderChips() {
+  const svc = state.service;
+  const site = svc ? svc.site : 'connecting';
+  setChip('chip-site', site === 'connected' ? 'ok' : site === 'connecting' ? 'warn' : '', site === 'connected' ? (svc.lastPollAt ? shortAgo(svc.lastPollAt) : 'Connected') : site === 'revoked' ? 'Pair again' : site === 'offline' ? 'Offline' : 'Connecting');
+  const found = !!(svc && svc.mix.found);
+  setChip('chip-mix', found ? 'ok' : '', found ? 'Connected' : 'API off');
+  const obs = svc && svc.obs;
+  $('chip-obs').hidden = !(obs && obs.enabled);
+  if (obs && obs.enabled) setChip('chip-obs', obs.connected ? 'ok' : '', obs.connected ? (obs.streaming ? 'Live' : 'Connected') : 'Not connected');
+  const d = state.deck;
+  $('chip-deck').hidden = !(d && d.installed);
+  if (d && d.installed) setChip('chip-deck', d.connected && d.on ? 'ok' : d.on ? 'warn' : 'off', d.connected && d.on ? 'Connected' : d.on ? 'Not connected' : 'Off');
+}
+for (const [chip, card] of [['chip-site', 'card-site'], ['chip-mix', 'card-mix'], ['chip-obs', 'card-obs'], ['chip-deck', 'card-deck']]) $(chip).addEventListener('click', () => goToCard(card));
 
 const HOTKEYS = ['refresh', 'pause', 'lastBuff'];
 let hotkeysFilled = false;
@@ -95,7 +151,9 @@ function renderControl() {
   for (const id of ['control-unpaired', 'buttons-unpaired']) $(id).hidden = state.paired;
   for (const id of ['control', 'buttons-wrap']) $(id).hidden = !state.paired || !c;
   if (!c) return;
-  $('control-pause').checked = !!c.paused;
+  setDot('pulls-dot', c.paused === null ? 'off' : c.paused ? 'warn' : 'ok');
+  $('pulls-state').textContent = c.paused === null ? 'Not known yet' : c.paused ? 'Paused' : 'Open';
+  $('control-pause').textContent = c.paused ? 'Resume pulls' : 'Pause pulls';
   $('control-pause').disabled = c.paused === null;
   const byScene = c.paused && typeof c.reason === 'string' && c.reason.startsWith('scene ');
   $('control-reason').hidden = !byScene;
@@ -383,6 +441,7 @@ function render() {
   $('obs-autostart').checked = state.tools.startObs;
   $('obs-path').textContent = state.tools.obsPath;
   renderBanners();
+  renderFeed('history');
   renderControl();
   renderDeck();
   renderScenePause();
@@ -419,29 +478,10 @@ function render() {
   }
   renderObs(svc && svc.obs, state.obsSettings);
   renderChecklist(state.checklist);
-  renderEvents(state.events);
   renderCommands(state.commandsMissing);
-  const jobs = svc ? svc.jobs : [];
-  $('no-jobs').hidden = jobs.length > 0;
-  $('jobs').hidden = jobs.length === 0;
-  const body = document.querySelector('#jobs tbody');
-  body.replaceChildren(...jobs.map(j => {
-    const tr = document.createElement('tr');
-    for (const [text, cls] of [[time(j.at)], [j.kind, 'pill'], [j.username || '-'], [j.detail, j.ok ? '' : 'fail']]) {
-      const td = document.createElement('td');
-      if (cls === 'pill') {
-        const pill = document.createElement('span');
-        pill.className = 'pill';
-        pill.textContent = text;
-        td.append(pill);
-      } else {
-        td.textContent = text;
-        if (cls) td.className = cls;
-      }
-      tr.append(td);
-    }
-    return tr;
-  }));
+  renderChips();
+  renderNumbers();
+  renderFeed('home');
 }
 
 // The sidebar (59.4): one page at a time. A page is a button with data-tab and a section with the same data-panel.
@@ -539,27 +579,37 @@ $('whatsnew-refresh').addEventListener('click', async () => {
 });
 action('deck-install', 'deck-install-result', () => window.bridge.installStreamDeck());
 
-$('control-pause').addEventListener('change', async e => {
-  const r = await window.bridge.setPause(e.target.checked);
+$('control-pause').addEventListener('click', async () => {
+  const c = state && state.control;
+  if (!c || c.paused === null) return;
+  $('control-pause').disabled = true;
+  const r = await window.bridge.setPause(!c.paused);
+  $('control-pause').disabled = false;
   $('control-pause-result').textContent = r.text;
   $('control-pause-result').className = 'result ' + (r.ok ? 'ok' : 'fail');
 });
-// Happy hour (57.3): the site keeps the end time; this only counts down to the `endsAt` it last sent.
+// Happy hour (57.3): the site keeps the end time; this only counts down to the `endsAt` it last sent. Home has the presets, Controls the custom form.
 const clockText = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 function renderHappy() {
   const h = state && state.control && state.control.happy;
   const left = h ? h.endsAt - Date.now() : 0;
-  $('happy-now').textContent = h && left > 0 ? `Happy hour: ${h.what}, ${clockText(left)} left` : 'No happy hour is running.';
-  $('happy-end').disabled = !(h && left > 0);
+  const text = h && left > 0 ? `${h.what}, ${clockText(left)} left` : 'No happy hour is running.';
+  $('happy-now').textContent = h && left > 0 ? `Happy hour: ${text}` : text;
+  $('home-happy-now').textContent = text;
+  $('happy-end').disabled = $('home-happy-end').disabled = !(h && left > 0);
 }
 setInterval(renderHappy, 1000);
 $('happy-kind').addEventListener('change', () => { $('happy-percent-label').hidden = $('happy-kind').value !== 'discount'; });
-const happyResult = r => { $('happy-result').textContent = r.text; $('happy-result').className = 'result ' + (r.ok ? 'ok' : 'fail'); };
+const happyResult = r => {
+  for (const id of ['happy-result', 'home-happy-result']) { $(id).textContent = r.text; $(id).className = 'result ' + (r.ok ? 'ok' : 'fail'); }
+};
 $('happy-form').addEventListener('submit', async e => {
   e.preventDefault();
   happyResult(await window.bridge.happyStart($('happy-minutes').value, $('happy-kind').value, $('happy-percent').value));
 });
-$('happy-end').addEventListener('click', async () => happyResult(await window.bridge.happyEnd()));
+for (const id of ['happy-end', 'home-happy-end']) $(id).addEventListener('click', async () => happyResult(await window.bridge.happyEnd()));
+for (const b of document.querySelectorAll('.happy-preset')) b.addEventListener('click', async () => happyResult(await window.bridge.happyStart(b.dataset.minutes, b.dataset.kind, b.dataset.percent)));
+$('happy-custom-go').addEventListener('click', () => goToCard('card-happy-custom'));
 $('hotkey-form').addEventListener('submit', e => {
   e.preventDefault();
   const map = {};
@@ -567,14 +617,18 @@ $('hotkey-form').addEventListener('submit', e => {
   void window.bridge.setHotkeys(map);
 });
 
-// The queue is read only while its section is open (at most every 5 seconds; the app throttles too).
+// The queue card (59.5) is read while Home is on screen (at most every 5 seconds; the app throttles too). It shows the first rows and "and N more".
+const QUEUE_ROWS = 4;
 async function loadQueue() {
-  if (!$('queue-box').open || document.hidden) return;
+  if (document.hidden || !state || !state.paired || $('status').hidden || document.querySelector('[data-panel="home"]').hidden) return;
   const r = await window.bridge.getQueue();
   if (!r.ok) { $('queue-result').textContent = r.text; $('queue-result').className = 'result fail'; }
   $('queue-empty').hidden = r.rows.length > 0;
   $('queue').hidden = r.rows.length === 0;
-  $('queue').querySelector('tbody').replaceChildren(...r.rows.map(row => {
+  $('queue-count').textContent = r.rows.length ? `${r.rows.length} waiting` : 'Nothing waiting';
+  $('queue-more').hidden = r.rows.length <= QUEUE_ROWS;
+  $('queue-more').textContent = `and ${r.rows.length - QUEUE_ROWS} more`;
+  $('queue').querySelector('tbody').replaceChildren(...r.rows.slice(0, QUEUE_ROWS).map(row => {
     const tr = document.createElement('tr');
     for (const text of [row.username, row.pack, `${row.waitedS} s`]) {
       const td = document.createElement('td');
@@ -584,7 +638,6 @@ async function loadQueue() {
     return tr;
   }));
 }
-$('queue-box').addEventListener('toggle', () => { void loadQueue(); });
 setInterval(() => { void loadQueue(); }, 5000);
 action('queue-skip', 'queue-result', async () => { const r = await window.bridge.queueDo('skip'); void loadQueue(); return r; });
 action('queue-clear', 'queue-result', async () => { const r = await window.bridge.queueDo('clear'); void loadQueue(); return r; });
@@ -719,14 +772,13 @@ async function loadActivity() {
   $('activity-empty').hidden = r.data.events.length > 0;
   listOf($('activity-list'), r.data.events.map(e => { const li = document.createElement('li'); li.textContent = e.text; return li; }));
 }
-for (const b of document.querySelectorAll('.rail-btn')) b.addEventListener('click', () => { void loadActivity(); });
+for (const b of document.querySelectorAll('.rail-btn')) b.addEventListener('click', () => { void loadActivity(); void loadQueue(); });
 setInterval(() => { void loadActivity(); }, 5000);
 
 for (const kind of ['attention', 'feedback', 'refusal', 'deploy']) $('notice-' + kind).addEventListener('change', e => window.bridge.setNotice(kind, e.target.checked));
 function renderNotices() {
   $('notice-card').hidden = !(state && state.staff);
-  $('rail-feed').hidden = !(state && state.staff);
-  if (state && !state.staff && !document.querySelector('[data-panel="feed"]').hidden) showTab('home');
+  $('card-activity').hidden = !(state && state.staff); // the history is for everyone; only the staff activity is not
   if (state && state.notices) for (const kind of Object.keys(state.notices)) if ($('notice-' + kind)) $('notice-' + kind).checked = state.notices[kind];
 }
 

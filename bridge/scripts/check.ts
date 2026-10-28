@@ -31,6 +31,7 @@ import { errorsChecks } from './check-errors';
 import { releasesChecks } from './check-releases';
 import { winStateChecks } from './check-winstate';
 import { statusChecks } from './check-status';
+import { homeChecks } from './check-home';
 import { BridgeService } from '../src/service';
 import { cleanStaffAction, StaffTools } from '../src/staff';
 import { cleanCanvas, previewAddress, previewFrameAllowed } from '../src/preview';
@@ -1087,6 +1088,7 @@ async function main() {
   await releasesChecks();
   winStateChecks();
   statusChecks();
+  homeChecks();
 
   miSrv.server.close();
   siSrv.server.close();

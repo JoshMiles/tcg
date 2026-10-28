@@ -5,6 +5,9 @@ import { join } from 'node:path';
 import type { BrowserWindow } from 'electron';
 import { Startup, type StartupEvent, type StartupStep } from './startup';
 import { attentionItems } from './status';
+import { clock, type EventLine } from './events';
+import type { ChecklistLine } from './checklist';
+import { FEED_KEEP, mergeFeed, readySummary, streamNumbers, type PullEntry } from './home';
 
 export interface DemoContext {
   shots: string;
@@ -59,9 +62,29 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
     job(400, 'deduct', 'newviewer', false, 'Not enough Brie Bucks'),
     job(900, 'add', 'cheesehead', true, 'Gave 100 Brie Bucks'),
   ];
+  // A busy stream for the Home dashboard (59.5): pulls, event rewards and jobs mixed, a queue, a happy hour running.
+  const pull = (ago: number, viewer: string, card: string, rarity: string, stars: number, variant = 'Regular'): PullEntry => ({ at: now - ago * 1000, viewer, card, rarity, stars, variant });
+  const pulls = [
+    pull(8, 'brie_fan', 'Gouda Goat', 'Legendary', 5, 'Holo'), pull(30, 'cheesehead', 'Brie Bear', 'Common', 1), pull(55, 'newviewer', 'Cheddar Chick', 'Rare', 3),
+    pull(95, 'brie_fan', 'Swiss Sloth', 'Epic', 4), pull(140, 'curdnerd', 'Gouda Goat', 'Common', 1), pull(210, 'cheesehead', 'Feta Fox', 'Uncommon', 2),
+    pull(300, 'brie_fan', 'Brie Bear', 'Common', 1), pull(420, 'wheelwatch', 'Cheddar Chick', 'Rare', 3),
+  ];
+  const ev = (ago: number, event: string, viewer: string, amount: string, ok: boolean, result: string): EventLine => ({ at: now - ago * 1000, time: clock(now - ago * 1000), event, viewer, amount, ok, result });
+  const events = [
+    ev(12, 'Bits', 'curdnerd', '500', true, '1 pack'), ev(70, 'Subscription', 'wheelwatch', 'Tier 1', true, '3 packs'),
+    ev(160, 'Bits', 'newviewer', '50', false, 'Ignored: under the minimum'), ev(260, 'Raid', 'cheesefriend', '40 viewers', true, '2 packs'),
+  ];
+  const home = { feed: mergeFeed(pulls, events, jobs, FEED_KEEP), numbers: streamNumbers(pulls, [{ id: '1', user: 'brie_fan', amount: -50, at: now - 65_000, answer: 'ok' }, { id: '2', user: 'cheesehead', amount: -100, at: now - 500_000, answer: 'ok' }], now - 3_600_000) };
+  const queue = [
+    { username: 'brie_fan', pack: 'Cheese Classic', waitedS: 4 }, { username: 'curdnerd', pack: 'Cheese Classic', waitedS: 9 }, { username: 'newviewer', pack: 'Holo Rush', waitedS: 15 },
+    { username: 'cheesehead', pack: 'Cheese Classic', waitedS: 22 }, { username: 'wheelwatch', pack: 'Cheese Classic', waitedS: 31 }, { username: 'cheesefriend', pack: 'Holo Rush', waitedS: 40 }, { username: 'brie_fan', pack: 'Cheese Classic', waitedS: 48 },
+  ];
+  const checklistLines: ChecklistLine[] = [
+    { label: 'Site', tone: 'ok', text: 'Connected' }, { label: 'Mix It Up', tone: 'ok', text: 'Connected' }, { label: 'Pulls', tone: 'ok', text: 'Open' }, { label: 'Happy hour', tone: 'muted', text: 'Not running.' },
+  ];
   const obs = { enabled: true, connected: true, error: '', scene: 'Main scene', streaming: true, overlay: { found: true, inProgram: true, visible: true, sourceName: 'TCG Overlay' } };
   const control = {
-    error: '', paused: false, reason: '', happy: null, last: '',
+    error: '', paused: false, reason: '', happy: { what: 'half price packs', endsAt: now + 18 * 60_000 + 42_000 }, last: '',
     hotkeys: { refresh: 'Ctrl+Alt+R', pause: '', lastBuff: '' }, hotkeyErrors: {},
     buttons: [{ label: 'Pause or resume pulls', url: 'http://127.0.0.1:47653/k/pause' }, { label: 'Refresh the overlay', url: 'http://127.0.0.1:47653/k/refresh' }],
   };
@@ -69,7 +92,8 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
   const obsStats = { map: {}, texts: ['Pulls text'], stats: [{ id: 'packs', label: 'Packs this stream' }] };
   const notices = { attention: true, feedback: true, refusal: true, deploy: true };
   const state = (mixFound: boolean, extra: { startNote?: string; update?: string; updateVersion?: string; updatedTo?: string; staff?: boolean; whatsNew?: { open: boolean } } = {}): object => ({
-    control, scenePause, obsStats, notices, pcName: 'STREAM-PC', staff: false, whatsNew: null,
+    control, scenePause, obsStats, notices, pcName: 'STREAM-PC', staff: false, whatsNew: null, home, queue, events: [], commandsMissing: mixFound ? [] : null,
+    checklist: readySummary({ ready: mixFound, at: now - 120_000, lines: mixFound ? checklistLines : checklistLines.map(l => (l.label === 'Mix It Up' ? { ...l, tone: 'bad' as const, text: 'Not answering. Open Mix It Up and switch its Developer API on.' } : l)) }),
     attention: attentionItems({ paired: true, updateVersion: extra.updateVersion ?? '', startNote: extra.startNote ?? '', site: 'connected', mixFound, obsEnabled: true, obsConnected: true }),
     startNote: '', paired: true, site: 'https://cheesytcg.app', pairedAs: 'STREAM-PC', startWithWindows: true, alerts: true,
     obsSettings: { enabled: true, address: 'ws://127.0.0.1:4455', hasPassword: true },
@@ -83,7 +107,8 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
   const notes = { startNote: "Couldn't check for updates", update: 'Version 0.5.1 is available. Restart TCG Bridge to install it.', updateVersion: '0.5.1' };
   const openPill = `document.getElementById('status-pill').click()`;
   const shots: [string, object, string, string?][] = [
-    ['main-1-home-connected', state(true), 'home'],
+    ['main-1-home-connected', state(true), 'home'], // the busy dashboard at 1280 x 800: chips, pulls, happy hour, queue, numbers, feed
+    ['main-1b-home-staff', state(true, { staff: true }), 'home'],
     ['main-2-home-mixitup-missing', state(false), 'home'],
     ['main-3-status-pill-open', state(false, notes), 'home', openPill], // the pill's list open: update ready, couldn't check, Mix It Up
     ['main-3b-updated-toast', state(true, { updatedTo: ctx.version }), 'home'], // "Updated to x" as a toast
@@ -97,9 +122,12 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
     ['main-11-about-whats-new', state(true, { whatsNew: { open: true } }), 'about'], // after an update: the What's new card
     ['main-12-staff-viewers-and-cards', state(true, { staff: true }), 'viewers'], // the Staff group shows on a staff PC only
     ['main-13-staff-this-stream', state(true, { staff: true }), 'stream'],
-    ['main-14-feed-and-history', state(true, { staff: true }), 'feed'],
+    ['main-14-feed-and-history', state(false), 'feed'], // everyone: the history only
+    ['main-14b-feed-and-history-staff', state(true, { staff: true }), 'feed'], // a staff PC: the activity part as well
     ['main-15-pairing', { ...state(false), paired: false, site: 'https://cheesytcg.app', pairedAs: '', service: null, attention: attentionItems({ paired: false, updateVersion: '', startNote: '', site: null, mixFound: false, obsEnabled: false, obsConnected: false }) }, 'home'],
   ];
+  if (w.isMaximized()) w.unmaximize();
+  w.setSize(1280, 800); // the size the Home dashboard is made to fit
   for (const [name, s, t, js] of shots) {
     await w.webContents.executeJavaScript(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`); // closes the pill's list from the shot before
     ctx.setState(s);
