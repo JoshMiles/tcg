@@ -22,6 +22,8 @@ import { isPullsPaused, pauseChatOn, pauseReason } from '@/lib/pull-pause';
 import { CommandsPanel } from './CommandsPanel';
 import { ConnectionTab } from './ConnectionTab';
 import { channelConnectReady, readChannelStatus } from '@/lib/twitch-channel';
+import { readEventSub, recentTwitchEvents } from '@/lib/twitch-events';
+import { listeningLine } from '@/lib/twitch-events-core';
 import { testingLine } from '@/lib/twitch-channel-core';
 import { MixItUpConfig } from './MixItUpConfig';
 import { MixItUpLog } from './MixItUpLog';
@@ -73,7 +75,16 @@ async function packGoalView() {
 /** The connected Twitch channel (58.1) for the Connection tab; null when none. */
 async function twitchView() {
   const c = await readChannelStatus();
-  return c ? { login: c.login, scopes: c.scopes, since: timeAgo(c.connectedAt), by: c.by, testing: c.testing, testingLine: testingLine(c.login) } : null;
+  if (!c) return null;
+  // 58.2: what TCG Bridge says about its EventSub connection, and the newest events it forwarded.
+  const [sub, events] = await Promise.all([readEventSub(), recentTwitchEvents(8)]);
+  const listening = listeningLine(sub, events[0] ?? null, Date.now(), timeAgo);
+  const off = sub && sub.state !== 'connected' ? sub.reason || (sub.state === 'off' ? 'TCG Bridge is not listening' : 'TCG Bridge is reconnecting to Twitch') : '';
+  return {
+    login: c.login, scopes: c.scopes, since: timeAgo(c.connectedAt), by: c.by, testing: c.testing, testingLine: testingLine(c.login),
+    listening, problem: listening ? '' : off || (sub ? 'TCG Bridge has not reported lately' : 'TCG Bridge has not reported a Twitch connection yet'),
+    events: events.map(e => ({ text: e.text, ago: timeAgo(e.at) })),
+  };
 }
 
 async function happyHourView(now: number) {

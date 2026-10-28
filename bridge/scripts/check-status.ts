@@ -81,7 +81,7 @@ function connectionChecks(): void {
   const ok: ConnFacts = { paired: true, pairedAs: 'Josh', site: 'connected', siteError: '', mixFound: true, obsEnabled: true, obsConnected: true, obsStreaming: false, obsError: '', deckInstalled: true, deckOn: true, deckConnected: true, deckError: '', deckSeen: true };
   const line = (id: ConnId, o: Partial<ConnFacts> = {}): string => rowFor(id, { ...ok, ...o }).line;
   const tone = (id: ConnId, o: Partial<ConnFacts> = {}): string => rowFor(id, { ...ok, ...o }).tone;
-  assert.deepEqual(CONN_ORDER, ['account', 'mix', 'obs', 'deck'], 'the list order');
+  assert.deepEqual(CONN_ORDER, ['account', 'mix', 'obs', 'deck', 'twitch'], 'the list order');
 
   assert.deepEqual([line('account'), tone('account')], ['Paired as Josh', 'ok']);
   assert.deepEqual([line('account', { site: 'offline' }), tone('account', { site: 'offline' })], ['Cannot reach the site', 'bad']);
@@ -130,7 +130,7 @@ function connectionChecks(): void {
   assert.equal(goFor('obs'), 'conn-obs');
   assert.equal(connOf('conn-mix'), 'mix');
   assert.equal(connOf('connect'), null);
-  assert.equal(connectionRows(ok).length, 4);
+  assert.equal(connectionRows(ok).length, 5);
 
   // No long dash anywhere in what the window shows.
   const bad = { ...ok, site: 'offline' as const, mixFound: false, obsConnected: false, deckConnected: false };

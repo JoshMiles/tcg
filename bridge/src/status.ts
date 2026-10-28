@@ -3,7 +3,7 @@
 import { GO_CONNECT, goFor } from './connections';
 
 export interface AttentionItem {
-  id: 'update' | 'check' | 'pair' | 'site' | 'mix' | 'obs' | 'deck';
+  id: 'update' | 'check' | 'pair' | 'site' | 'mix' | 'obs' | 'deck' | 'twitch';
   text: string;
   detail: string;
   button: string;
@@ -22,6 +22,8 @@ export interface AttentionFacts {
   obsConnected: boolean;
   /** Why an installed Stream Deck plugin is not linked (deckReason in connections.ts); '' = it is linked, not installed, or the app has only just started. */
   deckReason: string;
+  /** Why the Twitch events need fixing (twitchProblem in connections.ts); '' or absent = fine or nothing connected. */
+  twitchProblem?: string;
 }
 
 export function attentionItems(f: AttentionFacts): AttentionItem[] {
@@ -37,5 +39,6 @@ export function attentionItems(f: AttentionFacts): AttentionItem[] {
   if (f.site && !f.mixFound) out.push({ id: 'mix', text: 'Mix It Up is not connected', detail: 'Mix It Up is closed, or its Developer API is off.', button: 'Fix', fix: 'goto', go: goFor('mix') });
   if (f.site && f.obsEnabled && !f.obsConnected) out.push({ id: 'obs', text: 'OBS is not connected', detail: 'OBS is closed, or its WebSocket server is off.', button: 'Fix', fix: 'goto', go: goFor('obs') });
   if (f.deckReason) out.push({ id: 'deck', text: 'Stream Deck plugin installed but not linked', detail: f.deckReason, button: 'Fix', fix: 'goto', go: goFor('deck') });
+  if (f.twitchProblem) out.push({ id: 'twitch', text: 'Twitch events need attention', detail: f.twitchProblem, button: 'Fix', fix: 'goto', go: goFor('twitch') });
   return out;
 }

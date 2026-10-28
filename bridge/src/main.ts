@@ -35,7 +35,7 @@ import { Startup, type StartupEvent, type StartupStep } from './startup';
 import { clearReleaseCache, loadReleases, releaseBlocks, RELEASES_API, RELEASES_URL, releasesBetween, type Note } from './releases';
 import { checkText, releaseUrl, updatedTo, updateText, type UpdateStage } from './update';
 import { attentionItems } from './status';
-import { connectionRows, deckReason } from './connections';
+import { connectionRows, deckReason, testingLine, twitchProblem } from './connections';
 import { FEED_FILTERS, FEED_KEEP, filterFeed, keepPull, mergeFeed, pullEntry, readySummary, streamNumbers, type FeedFilter, type PullEntry } from './home';
 
 // Development only: `npm start -- --demo-startup [--shots=<folder>]` walks the start-up window through its states and then shows the
@@ -151,13 +151,20 @@ function connectionsView() {
   return connectionRows({
     paired: !!settings.token, pairedAs: settings.pairedAs, login: settings.login, role: settings.role, site: s?.site ?? null, siteError: s?.siteError ?? '',
     mixFound: !!s?.mix.found, obsEnabled: settings.obsEnabled, obsConnected: !!s?.obs.connected, obsStreaming: s?.obs.streaming ?? null, obsError: s?.obs.error ?? '',
-    ...deckLink(),
+    ...deckLink(), twitch: s?.twitch ?? null,
   });
+}
+/** The Twitch channel row's detail (58.2): what TCG Bridge hears and the subscriptions. Null until the service runs. */
+function twitchView() {
+  const t = service?.state.twitch;
+  if (!t) return null;
+  return { state: t.state, why: t.why, reason: t.reason, login: t.login, testing: t.testing, testingLine: t.testing ? testingLine(t.login) : '', subs: t.subs, lastEventAt: t.lastEventAt, since: t.since };
 }
 const pluginFile = (): string => (app.isPackaged ? join(process.resourcesPath, PLUGIN_FILE) : join(__dirname, '..', '..', 'streamdeck', 'dist', PLUGIN_FILE));
 const appState = (): object => demoState ?? ({
   deck: deckInfo(),
   connections: connectionsView(),
+  twitch: twitchView(),
   liveSince: wasLive ? streamSince : 0, // when OBS went live (as this app saw it), for the OBS detail's "Live for"
   startNote,
   paired: !!settings.token,
@@ -191,6 +198,7 @@ const appState = (): object => demoState ?? ({
     paired: !!settings.token, updateVersion: update.stage === 'available' ? update.version : '', startNote,
     site: service?.state.site ?? null, mixFound: !!service?.state.mix.found, obsEnabled: settings.obsEnabled, obsConnected: !!service?.state.obs.connected,
     deckReason: Date.now() - deckUpAt < DECK_GRACE_MS ? '' : deckReason(deckLink()),
+    twitchProblem: service?.state.site === 'connected' ? twitchProblem(service.state.twitch) : '', // a site that is down has its own item
   }),
   whatsNew: whatsNewFrom ? { open: whatsNewOpen } : null,
   service: service?.state ?? null,
@@ -391,7 +399,7 @@ function connect(): void {
   const obs = new ObsWatcher({ site: settings.site, report: body => site.report(body) }, obsConfig());
   alerts = new Alerts();
   ledger ??= new Ledger(join(app.getPath('userData'), 'ledger.json'));
-  service = new BridgeService({ client: site, mix: new MixItUpClient(), obs, onChange: push, log, ledger, backupDir: backupDir(), sinks: { feed: showPull, summary: showSummary, notice: showNotice }, version: app.getVersion(), commit: build?.commit, redact: text => (logger ? logger.redact(text) : redact(text)) });
+  service = new BridgeService({ client: site, mix: new MixItUpClient(), obs, onChange: push, log, ledger, backupDir: backupDir(), sinks: { feed: showPull, summary: showSummary, notice: showNotice }, version: app.getVersion(), commit: build?.commit, redact: text => (logger ? logger.redact(text) : redact(text)), eventsub: { secret: token => logger?.addSecret(token) } });
   staffTools = new StaffTools({ client: site, mix: new MixItUpClient(), obs, currencyId: () => service?.state.currencyId ?? '', openExternal: url => shell.openExternal(url) });
   scenePause = new ScenePause(async scene => {
     const r = await site.action({ action: 'scene-pause', scene });

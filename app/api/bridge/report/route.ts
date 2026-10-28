@@ -4,7 +4,9 @@ import { noteUptime } from '@/lib/bridge-uptime';
 import { storeChecklist } from '@/lib/bridge-checklist';
 import { storeError } from '@/lib/bridge-errors';
 import { setLiveFromBridge } from '@/lib/twitch-live';
-import { cleanObs } from '@/lib/bridge-core';
+import { cleanObs, isStaffPc, staffRefusal } from '@/lib/bridge-core';
+import { storeEventSub } from '@/lib/twitch-events';
+import { cleanEventSubReport } from '@/lib/twitch-events-core';
 import { overlayWatchdog } from '@/lib/overlay-watchdog';
 
 /**
@@ -35,5 +37,11 @@ export async function POST(req: Request) {
   }
   if (body?.type === 'checklist' && (await storeChecklist(body))) return NextResponse.json({ ok: true }); // the pre-stream checklist's result (57.1)
   if (body?.type === 'error' && (await storeError(body, g.pc.name))) return NextResponse.json({ ok: true }); // a failure in the app (57.9)
-  return NextResponse.json({ error: 'Send { type: "stream", live }, { type: "obs", connected, scene, overlay }, { type: "mix", found }, { type: "feed", on }, { type: "checklist", lines } or { type: "error", part, message }.' }, { status: 400 });
+  // The app's EventSub WebSocket state (58.2). Only an admin PC listens, so only one can say it does (the same rule as twitch-event).
+  if (body?.type === 'twitch') {
+    if (!isStaffPc(g.pc) || staffRefusal(g.pc, 'twitch-event')) return NextResponse.json({ error: 'Only an admin PC reports the Twitch connection.' }, { status: 403 });
+    const r = cleanEventSubReport(body);
+    if (r) { await storeEventSub(r, g.pc.name); return NextResponse.json({ ok: true }); }
+  }
+  return NextResponse.json({ error: 'Send { type: "stream", live }, { type: "obs", connected, scene, overlay }, { type: "mix", found }, { type: "feed", on }, { type: "checklist", lines }, { type: "error", part, message } or { type: "twitch", state, reason, login, testing, since, subs }.' }, { status: 400 });
 }

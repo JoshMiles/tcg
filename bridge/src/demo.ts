@@ -5,7 +5,8 @@ import { join } from 'node:path';
 import type { BrowserWindow } from 'electron';
 import { Startup, type StartupEvent, type StartupStep } from './startup';
 import { attentionItems } from './status';
-import { connectionRows } from './connections';
+import { connectionRows, testingLine } from './connections';
+import type { EsStatus } from './eventsub';
 import { clock, type EventLine } from './events';
 import type { ChecklistLine } from './checklist';
 import { staffActionsFor, viewerFacts } from './staffpages';
@@ -95,11 +96,13 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
   const scenePause = { on: true, scenes: ['Be right back'], obsScenes: ['Main scene', 'Be right back'] };
   const obsStats = { map: {}, texts: ['Pulls text'], stats: [{ id: 'packs', label: 'Packs this stream' }] };
   const notices = { attention: true, feedback: true, refusal: true, deploy: true };
+  const tw: EsStatus = { state: 'connected', why: '', reason: '', login: 'spareaccount', testing: true, lastEventAt: now - 90_000, since: now - 47 * 60_000, subs: ['channel.channel_points_custom_reward_redemption.add', 'channel.cheer', 'channel.subscription.gift', 'channel.raid', 'stream.online', 'stream.offline'].map(type => ({ type, status: 'enabled' as const })) };
   const state = (mixFound: boolean, extra: { startNote?: string; update?: string; updateVersion?: string; updatedTo?: string; staff?: boolean; staffCan?: string[]; account?: string; whatsNew?: { open: boolean } } = {}): object => ({
     control, scenePause, obsStats, notices, pcName: 'STREAM-PC', staff: false, whatsNew: null, home, queue, events: [], commandsMissing: mixFound ? [] : null,
     checklist: readySummary({ ready: mixFound, at: now - 120_000, lines: mixFound ? checklistLines : checklistLines.map(l => (l.label === 'Mix It Up' ? { ...l, tone: 'bad' as const, text: 'Not answering. Open Mix It Up and switch its Developer API on.' } : l)) }),
     attention: attentionItems({ paired: true, updateVersion: extra.updateVersion ?? '', startNote: extra.startNote ?? '', site: 'connected', mixFound, obsEnabled: true, obsConnected: true, deckReason: '' }),
-    connections: connectionRows({ paired: true, pairedAs: 'STREAM-PC', login: 'cheesygidds', role: 'admin', site: 'connected', siteError: '', mixFound, obsEnabled: true, obsConnected: true, obsStreaming: true, obsError: '', deckInstalled: true, deckOn: true, deckConnected: true, deckError: '', deckSeen: true }),
+    connections: connectionRows({ paired: true, pairedAs: 'STREAM-PC', login: 'cheesygidds', role: 'admin', site: 'connected', siteError: '', mixFound, obsEnabled: true, obsConnected: true, obsStreaming: true, obsError: '', deckInstalled: true, deckOn: true, deckConnected: true, deckError: '', deckSeen: true, twitch: tw }),
+    twitch: { ...tw, testingLine: testingLine(tw.login) },
     liveSince: now - 47 * 60_000,
     deck: { on: true, error: '', connected: true, found: true, installed: ctx.version, offer: false },
     startNote: '', paired: true, site: 'https://cheesytcg.app', pairedAs: 'STREAM-PC', account: accountLabel({ login: 'cheesygidds', role: 'admin', pairedAs: 'STREAM-PC' }), linked: true, staffCan: null, signIn: null, startWithWindows: true, alerts: true,

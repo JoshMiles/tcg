@@ -5,7 +5,8 @@ import { ArmedButton } from '@/app/components/ArmedButton';
 import { Panel } from '../components/ui';
 import { disconnectTwitchChannelAction } from './bridge-actions';
 
-export interface TwitchChannelView { login: string; scopes: string[]; since: string; by: string; testing: boolean; testingLine: string }
+/** `listening`: "TCG Bridge listening on STREAM-PC since ..., last event ..." (58.2), null when the app is not; `problem` says why not; `events` are the newest forwarded events. */
+export interface TwitchChannelView { login: string; scopes: string[]; since: string; by: string; testing: boolean; testingLine: string; listening: string | null; problem: string; events: { text: string; ago: string }[] }
 
 /** Connection → Twitch channel (ROADMAP 58.1): connect the channel TCG Bridge reads Twitch events from, see who it is, disconnect. Never shows a token. */
 export function TwitchChannelCard({ channel, ready }: { channel: TwitchChannelView | null; ready: boolean }) {
@@ -18,6 +19,12 @@ export function TwitchChannelCard({ channel, ready }: { channel: TwitchChannelVi
           <p className="text-gray-200">Connected as <strong>{channel.login}</strong> since {channel.since}, by {channel.by}.</p>
           {channel.testing && <p role="status" className="text-amber-300">{channel.testingLine}</p>}
           <p className="text-xs text-gray-500">Allowed: {channel.scopes.join(', ')}.</p>
+          {channel.listening ? <p className="text-emerald-300">{channel.listening}.</p> : <p className="text-amber-300">{channel.problem}.</p>}
+          {channel.events.length > 0 && (
+            <ul className="text-xs text-gray-400 space-y-0.5" aria-label="Recent Twitch events">
+              {channel.events.map((e, i) => <li key={i}>{e.text} <span className="text-gray-600">({e.ago})</span></li>)}
+            </ul>
+          )}
           <div className="flex flex-wrap gap-2">
             <a href="/admin/mixitup/twitch" className="btn btn-sm btn-outline">Connect another account</a>
             <ArmedButton

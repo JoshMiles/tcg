@@ -79,6 +79,10 @@ export async function pollLink(site: string, id: string, secret: string, signal?
   throw new SiteError(status, 'The site sent an answer this app does not know');
 }
 
+/** What the site says about the connected Twitch channel (58.1/58.2). `none` = no channel connected (quiet), `forbidden` = this PC may not listen, `ended` = Twitch ended the connection. */
+export interface TwitchToken { accessToken: string; expiresAt: number; userId: string; login: string; clientId: string; testing: boolean }
+export type TwitchTokenAnswer = { kind: 'ok'; token: TwitchToken } | { kind: 'none' | 'forbidden' | 'ended' | 'unavailable' };
+
 export class SiteClient {
   constructor(readonly base: string, private token: string, private version: string, private commit = '') {}
 
@@ -99,6 +103,26 @@ export class SiteClient {
   async report(body: Record<string, unknown>): Promise<void> {
     const r = await this.call('/api/bridge/report', body, AbortSignal.timeout(10_000));
     if (r.status !== 200) throw new SiteError(r.status, `report: the site answered ${r.status}`);
+  }
+
+  /** A fresh access token for the connected Twitch channel (58.2). 404 none connected, 409 Twitch ended it, 403 this PC may not listen. Never logged. */
+  async twitchToken(): Promise<TwitchTokenAnswer> {
+    const r = await this.call('/api/bridge/twitch-token', {}, AbortSignal.timeout(15_000));
+    if (r.status === 404) return { kind: 'none' };
+    if (r.status === 403) return { kind: 'forbidden' };
+    if (r.status === 409) return { kind: 'ended' };
+    const j = r.json;
+    if (r.status === 200 && typeof j.accessToken === 'string' && j.accessToken && typeof j.clientId === 'string' && typeof j.userId === 'string' && typeof j.login === 'string')
+      return { kind: 'ok', token: { accessToken: j.accessToken, expiresAt: Number(j.expiresAt) || 0, userId: j.userId, login: j.login.slice(0, 40), clientId: j.clientId, testing: j.testing === true } };
+    return { kind: 'unavailable' };
+  }
+
+  /** One EventSub notification for the site to record. 'sent' = stored or a repeat; 'refused' = the site will not take it (do not retry); anything else throws. */
+  async twitchEvent(body: { messageId: string; type: string; event: unknown }): Promise<'sent' | 'refused'> {
+    const r = await this.call('/api/bridge/twitch-event', body, AbortSignal.timeout(10_000));
+    if (r.status === 200) return 'sent';
+    if (r.status === 400 || r.status === 403) return 'refused';
+    throw new SiteError(r.status, `twitch-event: the site answered ${r.status}`);
   }
 
   /** Holds up to 25 s on the site's side. */

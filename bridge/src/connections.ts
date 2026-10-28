@@ -1,10 +1,11 @@
 // The Connections page (ROADMAP 59.6): the list on the left (one row per connection) and what the detail on the right says first.
 // Plain TypeScript, no Electron. The window shows these strings with textContent only.
-// A Twitch channel row (58.1) joins CONN_ORDER and rowFor() later. The account row says "Signed in with Twitch as <login> (<role>)" for a linked PC (58.0b).
+// The account row says "Signed in with Twitch as <login> (<role>)" for a linked PC (58.0b). The Twitch channel row (58.2) is the EventSub connection.
+import type { EsStatus } from './eventsub';
 import { accountLabel } from './signin';
 
-export type ConnId = 'account' | 'mix' | 'obs' | 'deck';
-export const CONN_ORDER: ConnId[] = ['account', 'mix', 'obs', 'deck'];
+export type ConnId = 'account' | 'mix' | 'obs' | 'deck' | 'twitch';
+export const CONN_ORDER: ConnId[] = ['account', 'mix', 'obs', 'deck', 'twitch'];
 /** green, amber, red or grey (not used); the window maps it to the dot's class. */
 export type ConnTone = 'ok' | 'warn' | 'bad' | 'off';
 
@@ -28,6 +29,19 @@ export interface ConnFacts {
   deckError: string;
   /** A plugin has connected since the app started. */
   deckSeen: boolean;
+  /** The Twitch EventSub connection (58.2); absent = the service is not running yet. */
+  twitch?: EsStatus | null;
+}
+
+/** The flag that a spare account is connected instead of the live channel. */
+export const testingLine = (login: string): string => `Testing on ${login}, not the live channel`;
+
+/** Why the Twitch events need the streamer, in words ('' = fine, quiet, or only a moment of reconnecting). Feeds the status pill. */
+export function twitchProblem(t: EsStatus | null | undefined): string {
+  if (!t) return '';
+  if (t.state === 'off' && (t.why === 'ended' || t.why === 'site')) return t.reason;
+  if (t.state === 'connected' && t.why === 'subs') return t.reason;
+  return '';
 }
 
 /** Why the plugin is not linked, in words ('' = it is linked, or nothing is installed to link). */
@@ -55,7 +69,7 @@ export interface FixPlan {
   again: boolean;
 }
 
-export const CONN_NAMES: Record<ConnId, string> = { account: 'TCG account', mix: 'Mix It Up', obs: 'OBS', deck: 'Stream Deck plugin' };
+export const CONN_NAMES: Record<ConnId, string> = { account: 'TCG account', mix: 'Mix It Up', obs: 'OBS', deck: 'Stream Deck plugin', twitch: 'Twitch channel' };
 
 export function rowFor(id: ConnId, f: ConnFacts): ConnRow {
   const name = CONN_NAMES[id];
@@ -75,6 +89,16 @@ export function rowFor(id: ConnId, f: ConnFacts): ConnRow {
     if (!f.obsEnabled) return row('off', 'Off', 'OBS is off');
     if (f.obsConnected) return row('ok', f.obsStreaming ? 'Connected, the stream is live' : 'Connected', 'OBS is connected');
     return row('bad', 'Not connected', 'OBS is not connected');
+  }
+  if (id === 'twitch') {
+    const t = f.twitch;
+    if (!t || (t.state === 'off' && t.why === 'none')) return row('off', 'No channel connected', 'No Twitch channel is connected on the site');
+    const who = t.login ? (t.testing ? `${t.login} (testing)` : t.login) : '';
+    if (t.state === 'off') return t.why === 'forbidden' ? row('warn', 'Not allowed on this PC', t.reason) : row('bad', t.why === 'ended' ? 'Twitch ended the connection' : 'No token from the site', t.reason);
+    if (t.state === 'connecting') return row('warn', 'Connecting', 'Connecting to Twitch');
+    if (t.state === 'reconnecting') return row('warn', 'Reconnecting', 'The Twitch events connection dropped and TCG Bridge is connecting again');
+    const base = t.testing ? testingLine(t.login) : `Listening to Twitch events for ${t.login}`;
+    return t.why === 'subs' ? row('warn', `Listening, ${t.subs.filter(s => s.status !== 'enabled').length} subscription(s) need attention`, base) : row('ok', `Listening as ${who}`, base);
   }
   if (f.deckError) return row('bad', 'Needs attention', 'The Stream Deck link has a problem');
   if (!f.deckOn) return row(f.deckInstalled ? 'warn' : 'off', 'Off', f.deckInstalled ? 'The Stream Deck plugin is installed but not linked: the link is switched off' : 'The Stream Deck plugin is off');
@@ -103,6 +127,16 @@ export function fixPlan(id: ConnId, f: ConnFacts): FixPlan {
       steps: ['Open OBS (28 or newer).', 'Go to Tools > WebSocket Server Settings and tick Enable WebSocket server.', 'Copy the Server Password into Password below, check the address and press Save.'],
       again: true,
     } : { steps: [], again: false };
+  }
+  if (id === 'twitch') {
+    const t = f.twitch;
+    const connect = ['Open the site, Mix It Up, Connection tab.', 'Under Twitch channel press Connect Twitch channel and allow every permission it asks for.', 'TCG Bridge listens again within a few minutes by itself.'];
+    if (!t) return { steps: [], again: false };
+    if (t.state === 'off' && t.why === 'ended') return { steps: connect, again: false };
+    if (t.state === 'off' && t.why === 'site') return { steps: ['Check that this PC is online.', 'TCG Bridge keeps trying by itself; this page updates when the site answers.'], again: false };
+    if (t.state === 'off' && t.why === 'forbidden') return { steps: ['Sign out of TCG Bridge and sign in with Twitch as an admin.', 'Or, on an old paired PC, ask an admin to switch Staff tools on for this PC (Mix It Up, Connection).'], again: false };
+    if (t.state === 'connected' && t.why === 'subs') return { steps: connect, again: false };
+    return { steps: [], again: false };
   }
   if (f.deckOn && !f.deckConnected && !f.deckError) {
     if (!f.deckInstalled) return { steps: ['Press Install Stream Deck plugin below, then open the Stream Deck app.'], again: false };
