@@ -26,6 +26,7 @@ import { StreamDeckTab } from './StreamDeckTab';
 import { EventsTab } from './EventsTab';
 import { getBuffDefs } from '@/lib/buffs';
 import { readCommandCheck } from '@/lib/mixitup-command-check';
+import { errorDays, readErrors } from '@/lib/bridge-errors';
 import { getHappyHour, happyHourWhat } from '@/lib/happyhour';
 import { readPackGoal } from '@/lib/pack-goal';
 import { Overview, CHIP_STYLE } from './Overview';
@@ -124,7 +125,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
       {tab === 'connection' && (
         <div className="space-y-6">
           <Link href="/admin/mixitup/setup" className="btn btn-primary btn-sm"><Icon name="wrench" />{setupLabel}</Link>
-          <ConnectionTab settings={settings} bridge={bridge} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never', staff: !!b.staff, by: b.by ?? '' }))} blocks={blocks.map(b => ({ username: b.username, by: b.by, scope: b.streamKey ? 'this stream' : 'until lifted' }))} commandCheck={await readCommandCheck(await getBuffDefs())} />
+          <ConnectionTab settings={settings} bridge={bridge} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never', staff: !!b.staff, by: b.by ?? '' }))} blocks={blocks.map(b => ({ username: b.username, by: b.by, scope: b.streamKey ? 'this stream' : 'until lifted' }))} commandCheck={await readCommandCheck(await getBuffDefs())} errors={{ rows: (await readErrors()).map(e => ({ ...e, ago: timeAgo(e.at) })), days: await errorDays() }} />
         </div>
       )}
       {tab === 'paid' && <MixItUpConfig settings={settings} happyHour={await happyHourView(now)} packGoal={await packGoalView()}packs={((await getActiveSeasonWithPacks())?.packs ?? []).filter(p => p.cards.length > 0).map(p => ({ id: p.pack.id, name: p.pack.name, price: p.pack.price }))} />}

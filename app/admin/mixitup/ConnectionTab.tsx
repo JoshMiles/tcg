@@ -8,6 +8,7 @@ import type { BridgeState } from '@/lib/bridge';
 import { saveConnectionAction, checkBalanceAction, sendTestAction } from './mixitup-actions';
 import { BridgeCard, type BlockRow, type BridgeRow } from './BridgeCard';
 import { CommandCheckCard } from './CommandCheckCard';
+import { BridgeErrorsCard, type ErrorsView } from './BridgeErrorsCard';
 import type { CommandCheckRow } from '@/lib/mixitup-command-check-core';
 import { ConnectionSwitch } from './ConnectionSwitch';
 import { PaidPullSetup } from './PaidPullSetup';
@@ -18,12 +19,13 @@ const help = 'text-[11px] text-gray-500 leading-relaxed';
 const secondary = 'btn btn-sm btn-outline';
 
 /** Mix It Up → Connection: TCG Bridge (download, pairing, paired apps), how the site talks to Mix It Up, the currency, the direct addresses (Advanced) and the Try it buttons. */
-export function ConnectionTab({ settings: s, bridge, bridges, blocks, commandCheck }: { settings: MixItUpSettings; bridge: BridgeState; bridges: BridgeRow[]; blocks: BlockRow[]; commandCheck: CommandCheckRow[] | null }) {
+export function ConnectionTab({ settings: s, bridge, bridges, blocks, commandCheck, errors }: { settings: MixItUpSettings; bridge: BridgeState; bridges: BridgeRow[]; blocks: BlockRow[]; commandCheck: CommandCheckRow[] | null; errors: ErrorsView }) {
   return (
     <div className="space-y-6">
       <BridgeCard version={bridge.appVersion} bridges={bridges} blocks={blocks} />
       {bridges.length > 0 && <Suspense fallback={null}><BridgeVersionLine running={bridge.appVersion} /></Suspense>}
       {commandCheck && <CommandCheckCard rows={commandCheck} />}
+      <BridgeErrorsCard errors={errors} />
 
       <form action={saveConnectionAction}>
         <Panel title="Connection to Mix It Up" icon="link" hint="TCG Bridge is the normal way. Direct addresses are for a relay of your own and live under Advanced.">

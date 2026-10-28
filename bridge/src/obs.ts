@@ -67,6 +67,8 @@ export class ObsWatcher {
   readonly state: ObsState = { enabled: false, connected: false, error: '', scene: '', streaming: null, overlay: { ...NONE } };
   /** Set by the service so the tray level follows OBS. */
   onChange: () => void = () => undefined;
+  /** Set by the service: a failure worth an error report (57.9). */
+  onError: (part: 'obs' | 'reconnect', message: string) => void = () => undefined;
   private config: ObsConfig;
   private o: Required<ObsOptions>;
   private run: { abort: AbortController; done: Promise<void> } | null = null;
@@ -252,6 +254,7 @@ export class ObsWatcher {
         obs.disconnect().catch(() => undefined);
         if (signal.aborted) return;
         this.setDown(e instanceof ObsError ? e.message : describe(e));
+        if (backoff * 2 >= this.o.backoffMs.max && backoff < this.o.backoffMs.max) this.onError('reconnect', `OBS still cannot be reached after several tries: ${this.state.error}`); // once per outage: the wait has reached its longest
         await sleep(backoff, signal);
         backoff = Math.min(backoff * 2, this.o.backoffMs.max);
         continue;
@@ -275,7 +278,7 @@ export class ObsWatcher {
       void (async () => {
         this.streamChanged((await obs.call('GetStreamStatus')).outputActive);        await this.check();
         this.send(true);
-      })().catch(() => { this.state.error = 'Could not read OBS'; this.onChange(); });
+      })().catch(() => { this.state.error = 'Could not read OBS'; this.onError('obs', 'Could not read OBS'); this.onChange(); });
       await Promise.race([closed, stopped]);
       clearInterval(heartbeat);
       this.obs = null;

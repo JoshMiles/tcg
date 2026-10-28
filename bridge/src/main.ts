@@ -12,7 +12,7 @@ import { diagnosticsText } from './diagnostics';
 import { HAPPY_PRESETS, happyText, type HappyFacts } from './happyhour';
 import { cleanFeed, cleanFeedSettings, cleanSummary, shouldPlay, summaryMarkdown, type FeedSettings, type Summary } from './feed';
 import { defaultMixItUpPath, defaultObsPath, isMixItUpExe, isObsExe, obsRunning, startMixItUp, startObs } from './launch';
-import { Logger } from './log';
+import { Logger, redact } from './log';
 import { MixItUpClient } from './mixitup';
 import { cleanObsAddress, ObsWatcher } from './obs';
 import { runChecklist, type ChecklistResult } from './checklist';
@@ -249,7 +249,7 @@ function connect(): void {
   const obs = new ObsWatcher({ site: settings.site, report: body => site.report(body) }, obsConfig());
   alerts = new Alerts();
   ledger ??= new Ledger(join(app.getPath('userData'), 'ledger.json'));
-  service = new BridgeService({ client: site, mix: new MixItUpClient(), obs, onChange: push, log, ledger, backupDir: backupDir(), sinks: { feed: showPull, summary: showSummary, notice: showNotice } });
+  service = new BridgeService({ client: site, mix: new MixItUpClient(), obs, onChange: push, log, ledger, backupDir: backupDir(), sinks: { feed: showPull, summary: showSummary, notice: showNotice }, version: app.getVersion(), commit: build?.commit, redact: text => (logger ? logger.redact(text) : redact(text)) });
   staffTools = new StaffTools({ client: site, mix: new MixItUpClient(), obs, currencyId: () => service?.state.currencyId ?? '', openExternal: url => shell.openExternal(url) });
   scenePause = new ScenePause(async scene => {
     const r = await site.action({ action: 'scene-pause', scene });

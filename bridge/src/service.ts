@@ -1,7 +1,9 @@
 // The long-poll loop and the Mix It Up watcher. Plain TypeScript, no Electron: main.ts only wires it to the tray and the window.
 import { csvOf, writeBackup, type Ledger } from './bucks';
 import { commandWait, isKnownKind, Refused, runJob, undoLate, type BucksTasks, type Sinks } from './jobs';
+import { ErrorReporter, type ErrorPart } from './errors';
 import { MixItUpClient, MixItUpDown, MixItUpError } from './mixitup';
+import { redact as redactText } from './log';
 import type { ObsConfig, ObsState, ObsWatcher } from './obs';
 import { SiteClient, SiteError, Unauthorized, type BridgeCommand, type BridgeJob, type BridgeResult } from './site';
 
@@ -40,6 +42,16 @@ export interface ServiceOptions {
   backupDir?: string;
   /** The live pull feed and summary windows (55.11). */
   sinks?: Sinks;
+  /** For error reports to the site (57.9): the app version and commit, and the log's redaction. */
+  version?: string;
+  commit?: string;
+  redact?: (text: string) => string;
+}
+
+/** Which part a failed job's message blames: Mix It Up, OBS, or the job itself. A refusal that is not a fault (not enough Brie Bucks, an unknown viewer, OBS switched off) is not reported. */
+export function errorPartOf(message: string): ErrorPart | null {
+  if (/^Not enough |does not know that viewer|switched off/.test(message)) return null;
+  return /^Mix It Up/.test(message) ? 'mixitup' : /\bOBS\b/.test(message) ? 'obs' : 'job';
 }
 
 const JOURNAL_MAX = 50;
@@ -62,10 +74,13 @@ export class BridgeService {
   /** Whether Mix It Up answered at the last report to the site, and when: the site keeps the uptime history from these (55.11). */
   private mixReported: boolean | null = null;
   private mixReportAt = 0;
-  private o: Required<Omit<ServiceOptions, 'ledger' | 'backupDir' | 'sinks'>> & Pick<ServiceOptions, 'ledger' | 'backupDir' | 'sinks'>;
+  private o: Required<Omit<ServiceOptions, 'ledger' | 'backupDir' | 'sinks' | 'version' | 'commit' | 'redact'>> & Pick<ServiceOptions, 'ledger' | 'backupDir' | 'sinks'>;
+  private errors: ErrorReporter;
 
   constructor(opts: ServiceOptions) {
     this.o = { log: () => undefined, mixCheckMs: 5000, commandsMs: 300_000, backoffMs: { min: 1000, max: 30_000 }, retryMs: 300, ...opts };
+    this.errors = new ErrorReporter({ send: b => opts.client.report(b), redact: opts.redact ?? redactText, version: opts.version ?? '', commit: opts.commit, canSend: () => this.state.site === 'connected' });
+    opts.obs.onError = (part, message) => this.errors.report(part, message);
     this.state = { site: 'connecting', siteError: '', lastPollAt: null, mix: { found: false, version: '' }, currency: '', currencyId: '', channel: '', jobs: [], tray: 'offline', obs: opts.obs.state };
   }
 
@@ -156,7 +171,10 @@ export class BridgeService {
         try { // keep the last list when Mix It Up cannot give one now
           this.commands = await this.o.mix.commands();
           this.commandIds = new Set(this.commands.map(c => c.id.toLowerCase()));
-        } catch (e) { this.o.log(`Mix It Up commands: ${e instanceof Error ? e.message : 'unknown error'}`); }
+        } catch (e) {
+          this.o.log(`Mix It Up commands: ${e instanceof Error ? e.message : 'unknown error'}`);
+          this.errors.report('mixitup', `Could not list the Mix It Up commands: ${e instanceof Error ? e.message : 'unknown error'}`);
+        }
         const answer = await this.o.client.hello(currencies, version, this.commands);
         this.helloAt = Date.now();
         this.state.channel = answer.channel;
@@ -218,6 +236,8 @@ export class BridgeService {
     const ms = Date.now() - t0;
     const entry = this.log({ kind: job.kind, username: job.username, ok: result.ok, detail: result.ok ? summary(job, result) : result.error ?? 'failed', ms });
     this.o.log(`Job ${job.kind} ${result.ok ? 'ok' : 'failed'} in ${ms} ms${result.ok ? '' : `: ${result.error ?? 'failed'}`}`);
+    const part = result.ok ? null : errorPartOf(result.error ?? 'failed');
+    if (part) this.errors.report(part, `${job.kind}: ${result.error ?? 'failed'}`);
     if (job.currencyId) { this.state.currency = this.o.mix.currencyName(job.currencyId); this.state.currencyId = job.currencyId; }
     this.changed();
     let outcome: 'stored' | 'late' | 'lost';
@@ -236,7 +256,7 @@ export class BridgeService {
       entry.detail = result.ok ? (await undoLate(job, this.o.mix)) || 'Late: the site had given up, nothing to undo' : `${entry.detail} (late)`;
       if (result.ok && signed !== 0 && job.username) this.o.ledger?.add({ id: `${job.id}:undo`, user: job.username.toLowerCase(), amount: -signed, at: job.at ?? Date.now(), answer: entry.detail });
     } else if (result.ok && job.kind === 'deduct' && job.text) {
-      this.o.mix.say(job.text).catch(() => { entry.detail += ' (chat message not sent)'; this.changed(); }); // the site's own message for the pull
+      this.o.mix.say(job.text).catch(() => { entry.detail += ' (chat message not sent)'; this.errors.report('mixitup', 'The chat message for a pull was not sent'); this.changed(); }); // the site's own message for the pull
     }
     this.changed();
   }
