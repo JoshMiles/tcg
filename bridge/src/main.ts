@@ -134,6 +134,7 @@ const appState = (): object => demoState ?? ({
   paired: !!settings.token,
   site: settings.site,
   pairedAs: settings.pairedAs,
+  pcName: hostname(), // the sidebar footer; pairedAs was the PC name when pairing happened
   startWithWindows: settings.startWithWindows,
   obsSettings: { enabled: settings.obsEnabled, address: settings.obsAddress, hasPassword: !!settings.obsPassword, startReplay: settings.obsStartReplay }, // never the password itself
   alerts: settings.alerts,

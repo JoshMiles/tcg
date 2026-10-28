@@ -34,6 +34,7 @@
     <symbol id="i-keyboard" viewBox="0 0 24 24"><path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/></symbol>
     <symbol id="i-triangle-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
     <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
   </svg>
 
   <div class="app">
@@ -56,20 +57,43 @@
     </header>
 
     <div class="body">
+      <!-- The sidebar (59.4): pages grouped by job. Each button has data-tab (the page) and a title (the tooltip when the sidebar is folded to icons below 1100 px). -->
       <nav class="rail" aria-label="Sections">
-        <button type="button" class="rail-btn" data-tab="status" aria-current="page"><svg class="i"><use href="#i-activity"/></svg><span>Status</span></button>
-        <button type="button" class="rail-btn" data-tab="control"><svg class="i"><use href="#i-keyboard"/></svg><span>Control</span></button>
-        <button type="button" id="rail-staff" class="rail-btn" data-tab="staff" hidden><svg class="i"><use href="#i-shield"/></svg><span>Staff</span></button>
-        <button type="button" id="rail-activity" class="rail-btn" data-tab="activity" hidden><svg class="i"><use href="#i-bell"/></svg><span>Activity</span></button>
-        <button type="button" id="rail-whatsnew" class="rail-btn" data-tab="whatsnew" hidden><svg class="i"><use href="#i-file-text"/></svg><span>What's new</span></button>
-        <button type="button" class="rail-btn" data-tab="settings"><svg class="i"><use href="#i-settings"/></svg><span>Settings</span></button>
-        <button type="button" class="rail-btn" data-tab="about"><svg class="i"><use href="#i-info"/></svg><span>About</span></button>
-        <div class="rail-foot"><span id="rail-dot" class="dot bad"></span><span id="rail-text">Not connected</span></div>
+        <div class="rail-group" role="group" aria-labelledby="rg-live">
+          <p id="rg-live" class="rail-head">Live</p>
+          <button type="button" class="rail-btn" data-tab="home" title="Home" aria-current="page"><svg class="i"><use href="#i-activity"/></svg><span class="rail-label">Home</span></button>
+        </div>
+        <div class="rail-group" role="group" aria-labelledby="rg-tools">
+          <p id="rg-tools" class="rail-head">Stream tools</p>
+          <button type="button" class="rail-btn" data-tab="controls" title="Controls"><svg class="i"><use href="#i-sliders-horizontal"/></svg><span class="rail-label">Controls</span></button>
+          <button type="button" id="rail-feed" class="rail-btn" data-tab="feed" title="Feed and history" hidden><svg class="i"><use href="#i-message-square"/></svg><span class="rail-label">Feed and history</span></button>
+        </div>
+        <div id="rail-staff-group" class="rail-group" role="group" aria-labelledby="rg-staff" hidden>
+          <p id="rg-staff" class="rail-head">Staff</p>
+          <button type="button" class="rail-btn" data-tab="viewers" title="Viewers and cards"><svg class="i"><use href="#i-users"/></svg><span class="rail-label">Viewers and cards</span></button>
+          <button type="button" class="rail-btn" data-tab="stream" title="This stream"><svg class="i"><use href="#i-play"/></svg><span class="rail-label">This stream</span></button>
+        </div>
+        <div class="rail-group" role="group" aria-labelledby="rg-setup">
+          <p id="rg-setup" class="rail-head">Setup</p>
+          <button type="button" class="rail-btn" data-tab="connections" title="Connections"><svg class="i"><use href="#i-globe"/></svg><span class="rail-label">Connections</span></button>
+          <button type="button" class="rail-btn" data-tab="overlay" title="Overlay and OBS"><svg class="i"><use href="#i-video"/></svg><span class="rail-label">Overlay and OBS</span></button>
+          <button type="button" class="rail-btn" data-tab="buttons" title="Buttons and hotkeys"><svg class="i"><use href="#i-keyboard"/></svg><span class="rail-label">Buttons and hotkeys</span></button>
+          <button type="button" class="rail-btn" data-tab="notifications" title="Notifications"><svg class="i"><use href="#i-bell"/></svg><span class="rail-label">Notifications</span></button>
+          <button type="button" class="rail-btn" data-tab="app" title="App"><svg class="i"><use href="#i-settings"/></svg><span class="rail-label">App</span></button>
+        </div>
+        <div class="rail-group rail-about" role="group" aria-labelledby="rg-about">
+          <p id="rg-about" class="rail-head">About</p>
+          <button type="button" class="rail-btn" data-tab="about" title="About"><svg class="i"><use href="#i-info"/></svg><span class="rail-label">About</span></button>
+        </div>
+        <div class="rail-foot" title="Connection state and this PC">
+          <span id="rail-dot" class="dot bad"></span>
+          <div class="rail-foot-text"><span id="rail-text">Not connected</span><small id="rail-pc" class="muted"></small></div>
+        </div>
       </nav>
 
       <main class="content">
-        <!-- Status -->
-        <section data-panel="status">
+        <!-- Home: what is live (checklist, pause, events, command check, last jobs). The pairing form is here too until this PC is paired. -->
+        <section data-panel="home">
           <section id="pairing" class="card" hidden>
             <div class="card-head">
               <h2>Pair with the site</h2><p id="pair-note" class="line">On the site, open Admin > Mix It Up > Paid pulls and press "Pair TCG Bridge". Type the code it shows here.</p>
@@ -82,7 +106,7 @@
             </form>
           </section>
 
-          <div id="status" hidden>
+          <div id="status" class="cols" hidden>
             <section class="card">
               <div class="card-head">
                 <h2>Pre-stream checklist</h2><p class="line"><span id="checklist-dot" class="dot off"></span><span id="checklist-state">Not run yet</span></p>
@@ -92,6 +116,13 @@
                 <button type="button" id="checklist-run" class="btn"><svg class="i"><use href="#i-flask-conical"/></svg>Checklist</button>
               </div>
               <p class="note muted">Looks at everything at once and changes nothing: no chat message is sent and nobody is charged.</p>
+            </section>
+
+            <section class="card">
+              <h2 class="plain-title">Pause pulls</h2>
+              <label class="switch-row"><span><b>Pulls are paused</b><small id="control-last">Paid pulls and !pack answer "Packs are paused, back soon".</small></span><input id="control-pause" class="switch" type="checkbox"></label>
+              <p id="control-reason" class="muted small" hidden></p>
+              <p id="control-pause-result" class="result" role="status"></p>
             </section>
 
             <section class="card">
@@ -110,79 +141,6 @@
               <details class="more how"><summary>How?</summary><p class="small">Compares the commands the site expects with the ones switched on in Mix It Up, by name. A missing command and a switched-off one look the same. Nothing in Mix It Up is changed.</p></details>
             </section>
 
-            <section class="card">
-              <div class="card-head">
-                <h2>Stream Deck</h2><p class="line"><span id="deck-dot" class="dot off"></span><span id="deck-state"></span></p>
-              </div>
-            </section>
-
-            <section id="card-site" class="card">
-              <div class="card-head">
-                <h2>Site</h2><p class="line"><span id="site-dot" class="dot"></span><span id="site-state"></span></p>
-              </div>
-              <dl>
-                <dt>Address</dt><dd id="site-url"></dd>
-                <dt>Paired as</dt><dd id="paired-as"></dd>
-                <dt>Last poll</dt><dd id="last-poll"></dd>
-              </dl>
-            </section>
-
-            <section id="card-mix" class="card">
-              <div class="card-head">
-                <h2>Mix It Up</h2><p class="line"><span id="mix-dot" class="dot"></span><span id="mix-state"></span></p>
-              </div>
-              <dl>
-                <dt>Version</dt><dd id="mix-version"></dd>
-                <dt>Currency</dt><dd id="mix-currency"></dd>
-                <dt>File</dt><dd id="mix-path"></dd>
-              </dl>
-              <p id="mix-help" class="note" hidden>
-                Open Mix It Up, then go to Services > Developer API > Connect. TCG Bridge will notice within a few seconds.
-              </p>
-              <div class="row tools">
-                <button type="button" id="mix-start" class="btn" hidden><svg class="i"><use href="#i-play"/></svg>Start Mix It Up</button>
-                <button type="button" id="mix-choose" class="btn plain"><svg class="i"><use href="#i-folder-open"/></svg>Choose MixItUp.exe...</button>
-              </div>
-              <div class="row tools">
-                <input id="test-name" type="text" placeholder="Twitch name" aria-label="Twitch name to read the balance of" spellcheck="false" autocomplete="off" maxlength="25">
-                <button type="button" id="test-mix" class="btn plain"><svg class="i"><use href="#i-flask-conical"/></svg>Test Mix It Up</button>
-                <button type="button" id="test-chat" class="btn plain"><svg class="i"><use href="#i-message-square"/></svg>Send test chat message</button>
-              </div>
-              <p id="mix-result" class="result" role="status"></p>
-            </section>
-
-            <section id="card-obs" class="card">
-              <div class="card-head">
-                <h2>OBS</h2><p class="line"><span id="obs-dot" class="dot"></span><span id="obs-state"></span></p>
-              </div>
-              <dl>
-                <dt>Scene</dt><dd id="obs-scene"></dd>
-                <dt>Stream</dt><dd id="obs-stream"></dd>
-                <dt>Overlay</dt><dd id="obs-overlay"></dd>
-              </dl>
-              <div class="row tools">
-                <button type="button" id="test-obs" class="btn plain"><svg class="i"><use href="#i-flask-conical"/></svg>Check OBS</button>
-              </div>
-              <p id="test-obs-result" class="result" role="status"></p>
-              <details class="more">
-                <summary>OBS connection</summary>
-                <form id="obs-form">
-                  <label class="inline"><input id="obs-on" type="checkbox"> Talk to OBS</label>
-                  <label class="inline"><input id="obs-replay" type="checkbox"> Start the replay buffer when the stream starts (for "Save a clip" pull rules)</label>
-                  <label>Address <input id="obs-address" type="text" spellcheck="false" autocomplete="off"></label>
-                  <label>Password <input id="obs-password" type="password" spellcheck="false" autocomplete="off"></label>
-                  <div class="row">
-                    <button type="submit" id="obs-save" class="btn">Save</button>
-                    <button type="button" id="obs-forget" class="btn plain" hidden>Forget saved password</button>
-                  </div>
-                  <p id="obs-error" class="bad-text" role="alert"></p>
-                </form>
-                <p class="note muted">
-                  In OBS open Tools &gt; WebSocket Server Settings, tick "Enable WebSocket server", and copy the Server Password here (OBS 28 or newer; leave it empty if you switched authentication off). TCG Bridge only talks to OBS on this PC. It tells the site when the stream starts and stops, which scene is on air, and whether the TCG overlay browser source is in that scene and visible. An overlay inside a nested scene is not seen.
-                </p>
-              </details>
-            </section>
-
             <section class="card wide">
               <h2 class="plain-title">Last jobs</h2>
               <p id="no-jobs" class="empty">Nothing yet. Jobs appear here when the site asks Mix It Up for something.</p>
@@ -194,16 +152,10 @@
           </div>
         </section>
 
-        <!-- Control from the PC -->
-        <section data-panel="control" hidden>
-          <p id="control-unpaired" class="empty" hidden>Pair TCG Bridge first (Status page).</p>
-          <div id="control" hidden>
-            <section class="card">
-              <h2 class="plain-title">Pause pulls</h2>
-              <label class="switch-row"><span><b>Pulls are paused</b><small id="control-last">Paid pulls and !pack answer "Packs are paused, back soon".</small></span><input id="control-pause" class="switch" type="checkbox"></label>
-              <p id="control-reason" class="muted small" hidden></p>
-              <p id="control-pause-result" class="result" role="status"></p>
-            </section>
+        <!-- Controls: used during a stream -->
+        <section data-panel="controls" hidden>
+          <p id="control-unpaired" class="empty" hidden>Pair TCG Bridge first (Home page).</p>
+          <div id="control" class="cols" hidden>
             <section class="card">
               <h2 class="plain-title">Happy hour</h2>
               <p id="happy-now" class="muted" role="status">No happy hour is running.</p>
@@ -216,31 +168,6 @@
               </form>
               <p class="muted small">Starting while one runs replaces it. The site keeps the time; this window only shows it.</p>
               <p id="happy-result" class="result" role="status"></p>
-            </section>
-            <section class="card" id="preview-card" hidden>
-              <h2 class="plain-title">Preview overlay</h2>
-              <div class="row"><button type="button" id="preview-open" class="btn">Open the preview</button></div>
-              <details class="more how"><summary>How?</summary><p class="small">Opens the overlay in a window at your OBS canvas size, with Test pull and Show a card. It only watches: it never takes a real pull from OBS. Test pull and Show a card also play on the live overlay.</p></details>
-            </section>
-            <section class="card">
-              <h2 class="plain-title">Stream Deck buttons</h2>
-              <details class="more how"><summary>How?</summary><p class="small">In the Stream Deck app add a "Website" action, paste the address, and tick "GET request in background". The address has a secret key in it: do not share it. Only this PC can use it.</p></details>
-              <p id="control-error" class="bad-text" role="alert"></p>
-              <table id="control-buttons"><tbody></tbody></table>
-              <p id="control-copy-result" class="result" role="status"></p>
-            </section>
-            <section class="card">
-              <h2 class="plain-title">Hotkeys</h2>
-              <p class="muted small">Work anywhere in Windows. Type a shortcut like Ctrl+Alt+R; leave empty for none.</p>
-              <form id="hotkey-form">
-                <label>Refresh the overlay <input id="hk-refresh" type="text" spellcheck="false" autocomplete="off" maxlength="40"></label>
-                <p id="hk-refresh-error" class="bad-text" role="alert"></p>
-                <label>Pause or resume pulls <input id="hk-pause" type="text" spellcheck="false" autocomplete="off" maxlength="40"></label>
-                <p id="hk-pause-error" class="bad-text" role="alert"></p>
-                <label>Last buff again <input id="hk-lastBuff" type="text" spellcheck="false" autocomplete="off" maxlength="40"></label>
-                <p id="hk-lastBuff-error" class="bad-text" role="alert"></p>
-                <div class="row"><button type="submit" class="btn">Save hotkeys</button></div>
-              </form>
             </section>
             <section class="card">
               <details id="queue-box" class="more">
@@ -261,8 +188,19 @@
           </div>
         </section>
 
+        <!-- Feed and history (55.13): the dashboard's recent pulls, grants and trades, read only while this page is open; staff PCs only -->
+        <section data-panel="feed" hidden>
+          <section class="card">
+            <h2 class="plain-title">Recent activity</h2>
+            <details class="more how"><summary>How?</summary><p class="small">Pulls, grants and trades, newest first. Notices only reach this app while it is running: one sent while it was closed or offline is dropped, and is not shown later.</p></details>
+            <p id="activity-empty" class="empty" hidden>Nothing yet.</p>
+            <ul id="activity-list" class="links"></ul>
+            <p id="activity-result" class="result" role="status"></p>
+          </section>
+        </section>
+
         <!-- Staff tools (55.12): only when an admin switched "Staff tools on this PC" on at Mix It Up, Connection -->
-        <section data-panel="staff" hidden>
+        <section data-panel="viewers" class="cols" hidden>
           <section class="card">
             <h2 class="plain-title">Viewer</h2>
             <p class="muted small">Type a Twitch name. Names the site knows complete as you type.</p>
@@ -302,6 +240,9 @@
             </div>
             <p id="staff-card-result" class="result" role="status"></p>
           </section>
+        </section>
+
+        <section data-panel="stream" class="cols" hidden>
           <section class="card">
             <h2 class="plain-title">This stream</h2>
             <div class="row">
@@ -320,6 +261,11 @@
             </div>
             <p id="staff-stream-result" class="result" role="status"></p>
           </section>
+          <section class="card" id="preview-card" hidden>
+            <h2 class="plain-title">Preview overlay</h2>
+            <div class="row"><button type="button" id="preview-open" class="btn">Open the preview</button></div>
+            <details class="more how"><summary>How?</summary><p class="small">Opens the overlay in a window at your OBS canvas size, with Test pull and Show a card. It only watches: it never takes a real pull from OBS. Test pull and Show a card also play on the live overlay.</p></details>
+          </section>
           <section class="card">
             <h2 class="plain-title">Shortcuts</h2>
             <p class="muted small">Find a viewer, card or pack and open its admin page in your browser.</p>
@@ -334,27 +280,85 @@
           </section>
         </section>
 
-        <!-- Activity (55.13): the dashboard's recent pulls, grants and trades, read only while this tab is open -->
-        <section data-panel="activity" hidden>
-          <section class="card">
-            <h2 class="plain-title">Recent activity</h2>
-            <details class="more how"><summary>How?</summary><p class="small">Pulls, grants and trades, newest first. Notices only reach this app while it is running: one sent while it was closed or offline is dropped, and is not shown later.</p></details>
-            <p id="activity-empty" class="empty" hidden>Nothing yet.</p>
-            <ul id="activity-list" class="links"></ul>
-            <p id="activity-result" class="result" role="status"></p>
+        <!-- Connections: the links to the site, Mix It Up, OBS and the Stream Deck plugin -->
+        <section data-panel="connections" class="cols" hidden>
+          <section id="card-site" class="card">
+            <div class="card-head">
+              <h2>Site</h2><p class="line"><span id="site-dot" class="dot"></span><span id="site-state"></span></p>
+            </div>
+            <dl>
+              <dt>Address</dt><dd id="site-url"></dd>
+              <dt>Paired as</dt><dd id="paired-as"></dd>
+              <dt>Last poll</dt><dd id="last-poll"></dd>
+            </dl>
           </section>
-        </section>
 
-        <!-- Settings -->
-        <section data-panel="settings" hidden>
-          <section class="card">
-            <h2 class="plain-title">General</h2>
-            <label class="switch-row"><span><b>Start with Windows</b><small>TCG Bridge opens in the tray when you sign in.</small></span><input id="autostart" class="switch" type="checkbox"></label>
-            <label class="switch-row"><span><b>Alert me when a link drops while live</b><small>A Windows notification when the site, Mix It Up or OBS drops during a stream.</small></span><input id="alerts" class="switch" type="checkbox"></label>
-            <label class="switch-row"><span><b>Start Mix It Up with TCG Bridge</b><small>Opens Mix It Up when this app starts, if it is not running.</small></span><input id="mix-autostart" class="switch" type="checkbox"></label>
+          <section id="card-unpair" class="card">
+            <h2 class="plain-title">Pairing</h2>
+            <p id="account-text" class="muted"></p>
+            <div class="row tools"><button id="unpair" type="button" class="btn plain" hidden><svg class="i"><use href="#i-unlink"/></svg>Unpair</button></div>
           </section>
+
+          <section id="card-mix" class="card">
+            <div class="card-head">
+              <h2>Mix It Up</h2><p class="line"><span id="mix-dot" class="dot"></span><span id="mix-state"></span></p>
+            </div>
+            <dl>
+              <dt>Version</dt><dd id="mix-version"></dd>
+              <dt>Currency</dt><dd id="mix-currency"></dd>
+              <dt>File</dt><dd id="mix-path"></dd>
+            </dl>
+            <p id="mix-help" class="note" hidden>
+              Open Mix It Up, then go to Services > Developer API > Connect. TCG Bridge will notice within a few seconds.
+            </p>
+            <div class="row tools">
+              <button type="button" id="mix-start" class="btn" hidden><svg class="i"><use href="#i-play"/></svg>Start Mix It Up</button>
+              <button type="button" id="mix-choose" class="btn plain"><svg class="i"><use href="#i-folder-open"/></svg>Choose MixItUp.exe...</button>
+            </div>
+            <div class="row tools">
+              <input id="test-name" type="text" placeholder="Twitch name" aria-label="Twitch name to read the balance of" spellcheck="false" autocomplete="off" maxlength="25">
+              <button type="button" id="test-mix" class="btn plain"><svg class="i"><use href="#i-flask-conical"/></svg>Test Mix It Up</button>
+              <button type="button" id="test-chat" class="btn plain"><svg class="i"><use href="#i-message-square"/></svg>Send test chat message</button>
+            </div>
+            <p id="mix-result" class="result" role="status"></p>
+          </section>
+
+          <section id="card-obs" class="card">
+            <div class="card-head">
+              <h2>OBS</h2><p class="line"><span id="obs-dot" class="dot"></span><span id="obs-state"></span></p>
+            </div>
+            <dl>
+              <dt>Scene</dt><dd id="obs-scene"></dd>
+              <dt>Stream</dt><dd id="obs-stream"></dd>
+              <dt>Overlay</dt><dd id="obs-overlay"></dd>
+            </dl>
+            <div class="row tools">
+              <button type="button" id="test-obs" class="btn plain"><svg class="i"><use href="#i-flask-conical"/></svg>Check OBS</button>
+            </div>
+            <p id="test-obs-result" class="result" role="status"></p>
+            <details class="more">
+              <summary>OBS connection</summary>
+              <form id="obs-form">
+                <label class="inline"><input id="obs-on" type="checkbox"> Talk to OBS</label>
+                <label class="inline"><input id="obs-replay" type="checkbox"> Start the replay buffer when the stream starts (for "Save a clip" pull rules)</label>
+                <label>Address <input id="obs-address" type="text" spellcheck="false" autocomplete="off"></label>
+                <label>Password <input id="obs-password" type="password" spellcheck="false" autocomplete="off"></label>
+                <div class="row">
+                  <button type="submit" id="obs-save" class="btn">Save</button>
+                  <button type="button" id="obs-forget" class="btn plain" hidden>Forget saved password</button>
+                </div>
+                <p id="obs-error" class="bad-text" role="alert"></p>
+              </form>
+              <p class="note muted">
+                In OBS open Tools &gt; WebSocket Server Settings, tick "Enable WebSocket server", and copy the Server Password here (OBS 28 or newer; leave it empty if you switched authentication off). TCG Bridge only talks to OBS on this PC. It tells the site when the stream starts and stops, which scene is on air, and whether the TCG overlay browser source is in that scene and visible. An overlay inside a nested scene is not seen.
+              </p>
+            </details>
+          </section>
+
           <section class="card">
-            <h2 class="plain-title">Stream Deck plugin</h2>
+            <div class="card-head">
+              <h2>Stream Deck plugin</h2><p class="line"><span id="deck-dot" class="dot off"></span><span id="deck-state"></span></p>
+            </div>
             <label class="switch-row"><span><b>Stream Deck plugin</b><small>Lets the TCG Bridge plugin in the Stream Deck app talk to this app, on this PC only. Install turns it on.</small></span><input id="deck-on" class="switch" type="checkbox"></label>
             <p id="deck-offer" class="note" hidden>The Stream Deck plugin is out of date for this version of TCG Bridge.</p>
             <div class="row tools">
@@ -363,18 +367,69 @@
             </div>
             <p id="deck-install-result" class="result" role="status"></p>
             <p id="deck-error" class="bad-text" role="alert"></p>
-            <details class="more how"><summary>How?</summary><p class="small">Needs the Elgato Stream Deck app. The plugin adds Buff, Last buff again, Pause pulls and Happy hour keys; the Mix It Up Stream Deck commands and the Website buttons on the Control tab keep working.</p></details>
+            <details class="more how"><summary>How?</summary><p class="small">Needs the Elgato Stream Deck app. The plugin adds Buff, Last buff again, Pause pulls and Happy hour keys; the Mix It Up Stream Deck commands and the Website buttons on the Buttons and hotkeys page keep working.</p></details>
           </section>
-          <section class="card" id="notice-card" hidden>
-            <h2 class="plain-title">Staff notices</h2>
-            <details class="more how"><summary>How?</summary><p class="small">Windows notifications from the site while this PC has staff tools on. Clicking one opens its page in your browser. A notice sent while this app is offline is dropped.</p></details>
-            <label class="switch-row"><span><b>Needs attention</b><small>A Discord channel switched off, a failed backup, data health.</small></span><input id="notice-attention" class="switch" type="checkbox"></label>
-            <label class="switch-row"><span><b>New reports and feedback</b><small>A viewer sends a report or feedback.</small></span><input id="notice-feedback" class="switch" type="checkbox"></label>
-            <label class="switch-row"><span><b>Paid pull refusals</b><small>At most one a minute for each reason; never for not enough Brie Bucks.</small></span><input id="notice-refusal" class="switch" type="checkbox"></label>
-            <label class="switch-row"><span><b>Deploys</b><small>A new build is live, with its changelog lines.</small></span><input id="notice-deploy" class="switch" type="checkbox"></label>
+        </section>
+
+        <!-- Overlay and OBS: set once -->
+        <section data-panel="overlay" class="cols" hidden>
+          <section class="card">
+            <h2 class="plain-title">Pause pulls on scenes</h2>
+            <label class="switch-row"><span><b>Pause pulls while a chosen scene is on air</b><small>Packs are paused through the same switch as Pause pulls on Home. Switching to any other scene opens them again, but only if a scene paused them: a pause you set by hand stays until you lift it.</small></span><input id="scene-pause-on" class="switch" type="checkbox"></label>
+            <p id="scene-pause-empty" class="empty" hidden></p>
+            <ul id="scene-pause-list" class="links"></ul>
           </section>
           <section class="card">
-            <h2 class="plain-title">Streamer tools</h2>
+            <h2 class="plain-title">Live stats in OBS</h2>
+            <details class="more how"><summary>How?</summary><p class="small">Pick an OBS text source (GDI+ or FreeType text) for each stat you want on screen. TCG Bridge writes only the text, at most once a second and only when it changes. A stat set to "Not shown" never touches a source, so its text stays as it is. Needs OBS connected on the Connections page.</p></details>
+            <p id="obs-stats-empty" class="empty" hidden></p>
+            <ul id="obs-stats-list" class="links"></ul>
+          </section>
+          <section class="card">
+            <h2 class="plain-title">OBS on this PC</h2>
+            <label class="switch-row"><span><b>Start OBS with TCG Bridge</b><small>Opens OBS when this app starts, if it is not running.</small></span><input id="obs-autostart" class="switch" type="checkbox"></label>
+            <dl><dt>OBS file</dt><dd id="obs-path"></dd></dl>
+            <div class="row tools"><button type="button" id="obs-choose" class="btn plain"><svg class="i"><use href="#i-folder-open"/></svg>Choose obs64.exe...</button></div>
+            <p id="obs-choose-result" class="result" role="status"></p>
+          </section>
+        </section>
+
+        <!-- Buttons and hotkeys: set once -->
+        <section data-panel="buttons" hidden>
+          <p id="buttons-unpaired" class="empty" hidden>Pair TCG Bridge first (Home page).</p>
+          <div id="buttons-wrap" class="cols" hidden>
+            <section class="card">
+              <h2 class="plain-title">Stream Deck buttons</h2>
+              <details class="more how"><summary>How?</summary><p class="small">In the Stream Deck app add a "Website" action, paste the address, and tick "GET request in background". The address has a secret key in it: do not share it. Only this PC can use it.</p></details>
+              <p id="control-error" class="bad-text" role="alert"></p>
+              <table id="control-buttons"><tbody></tbody></table>
+              <p id="control-copy-result" class="result" role="status"></p>
+            </section>
+            <section class="card">
+              <h2 class="plain-title">Hotkeys</h2>
+              <p class="muted small">Work anywhere in Windows. Type a shortcut like Ctrl+Alt+R; leave empty for none.</p>
+              <form id="hotkey-form">
+                <label>Refresh the overlay <input id="hk-refresh" type="text" spellcheck="false" autocomplete="off" maxlength="40"></label>
+                <p id="hk-refresh-error" class="bad-text" role="alert"></p>
+                <label>Pause or resume pulls <input id="hk-pause" type="text" spellcheck="false" autocomplete="off" maxlength="40"></label>
+                <p id="hk-pause-error" class="bad-text" role="alert"></p>
+                <label>Last buff again <input id="hk-lastBuff" type="text" spellcheck="false" autocomplete="off" maxlength="40"></label>
+                <p id="hk-lastBuff-error" class="bad-text" role="alert"></p>
+                <div class="row"><button type="submit" class="btn">Save hotkeys</button></div>
+              </form>
+            </section>
+          </div>
+        </section>
+
+        <!-- Notifications -->
+        <section data-panel="notifications" class="cols" hidden>
+          <section class="card">
+            <h2 class="plain-title">Alerts</h2>
+            <label class="switch-row"><span><b>Alert me when a link drops while live</b><small>A Windows notification when the site, Mix It Up or OBS drops during a stream.</small></span><input id="alerts" class="switch" type="checkbox"></label>
+            <label class="switch-row"><span><b>End of stream summary</b><small>A notification and a summary window when the stream ends, with a Copy for Discord button.</small></span><input id="summary-on" class="switch" type="checkbox"></label>
+          </section>
+          <section class="card">
+            <h2 class="plain-title">Live pull feed</h2>
             <label class="switch-row"><span><b>Live pull feed window</b><small>A second window, one line per pull as its card is revealed. Closing it turns this off.</small></span><input id="feed-on" class="switch" type="checkbox"></label>
             <label class="switch-row"><span><b>Keep the feed on top</b><small>Stays above other windows, including OBS.</small></span><input id="feed-top" class="switch" type="checkbox"></label>
             <label class="switch-row"><span><b>Mute the feed sound</b><small>No sound for any pull.</small></span><input id="feed-mute" class="switch" type="checkbox"></label>
@@ -386,28 +441,23 @@
               <label class="inline" for="feed-volume">Volume</label>
               <input id="feed-volume" type="range" min="0" max="100" step="5">
             </div>
-            <label class="switch-row"><span><b>End of stream summary</b><small>A notification and a summary window when the stream ends, with a Copy for Discord button.</small></span><input id="summary-on" class="switch" type="checkbox"></label>
-            <label class="switch-row"><span><b>Start OBS with TCG Bridge</b><small>Opens OBS when this app starts, if it is not running.</small></span><input id="obs-autostart" class="switch" type="checkbox"></label>
-            <dl><dt>OBS file</dt><dd id="obs-path"></dd></dl>
-            <div class="row tools"><button type="button" id="obs-choose" class="btn plain"><svg class="i"><use href="#i-folder-open"/></svg>Choose obs64.exe...</button></div>
-            <p id="obs-choose-result" class="result" role="status"></p>
           </section>
+          <section class="card" id="notice-card" hidden>
+            <h2 class="plain-title">Staff notices</h2>
+            <details class="more how"><summary>How?</summary><p class="small">Windows notifications from the site while this PC has staff tools on. Clicking one opens its page in your browser. A notice sent while this app is offline is dropped.</p></details>
+            <label class="switch-row"><span><b>Needs attention</b><small>A Discord channel switched off, a failed backup, data health.</small></span><input id="notice-attention" class="switch" type="checkbox"></label>
+            <label class="switch-row"><span><b>New reports and feedback</b><small>A viewer sends a report or feedback.</small></span><input id="notice-feedback" class="switch" type="checkbox"></label>
+            <label class="switch-row"><span><b>Paid pull refusals</b><small>At most one a minute for each reason; never for not enough Brie Bucks.</small></span><input id="notice-refusal" class="switch" type="checkbox"></label>
+            <label class="switch-row"><span><b>Deploys</b><small>A new build is live, with its changelog lines.</small></span><input id="notice-deploy" class="switch" type="checkbox"></label>
+          </section>
+        </section>
+
+        <!-- App -->
+        <section data-panel="app" class="cols" hidden>
           <section class="card">
-            <h2 class="plain-title">Pause pulls on scenes</h2>
-            <label class="switch-row"><span><b>Pause pulls while a chosen scene is on air</b><small>Packs are paused through the same switch as the Control tab. Switching to any other scene opens them again, but only if a scene paused them: a pause you set by hand stays until you lift it.</small></span><input id="scene-pause-on" class="switch" type="checkbox"></label>
-            <p id="scene-pause-empty" class="empty" hidden></p>
-            <ul id="scene-pause-list" class="links"></ul>
-          </section>
-          <section class="card">
-            <h2 class="plain-title">Live stats in OBS</h2>
-            <details class="more how"><summary>How?</summary><p class="small">Pick an OBS text source (GDI+ or FreeType text) for each stat you want on screen. TCG Bridge writes only the text, at most once a second and only when it changes. A stat set to "Not shown" never touches a source, so its text stays as it is. Needs OBS connected on the Status page.</p></details>
-            <p id="obs-stats-empty" class="empty" hidden></p>
-            <ul id="obs-stats-list" class="links"></ul>
-          </section>
-          <section id="card-unpair" class="card">
-            <h2 class="plain-title">Pairing</h2>
-            <p id="account-text" class="muted"></p>
-            <div class="row tools"><button id="unpair" type="button" class="btn plain" hidden><svg class="i"><use href="#i-unlink"/></svg>Unpair</button></div>
+            <h2 class="plain-title">General</h2>
+            <label class="switch-row"><span><b>Start with Windows</b><small>TCG Bridge opens in the tray when you sign in.</small></span><input id="autostart" class="switch" type="checkbox"></label>
+            <label class="switch-row"><span><b>Start Mix It Up with TCG Bridge</b><small>Opens Mix It Up when this app starts, if it is not running.</small></span><input id="mix-autostart" class="switch" type="checkbox"></label>
           </section>
           <section class="card">
             <h2 class="plain-title">Brie Bucks backups</h2>
@@ -426,17 +476,7 @@
           </section>
         </section>
 
-        <!-- About -->
-        <section data-panel="whatsnew" hidden>
-          <section class="card">
-            <h2 class="plain-title">What's new</h2>
-            <div class="row tools"><button id="whatsnew-refresh" type="button" class="btn plain"><svg class="i"><use href="#i-refresh-cw"/></svg>Refresh</button></div>
-            <p id="whatsnew-status" class="muted" role="status"></p>
-            <div id="whatsnew-notes"></div>
-            <p id="whatsnew-empty" class="empty" hidden>Release notes for this version are not published yet. <button id="whatsnew-all-empty" type="button" class="link">All releases</button></p>
-            <p id="whatsnew-fail" class="empty" hidden>Could not load the release notes. <button id="whatsnew-all" type="button" class="link">See all releases on GitHub</button></p>
-          </section>
-        </section>
+        <!-- About: the version, updates and What's new (which shows after an update) -->
         <section data-panel="about" hidden>
           <section class="card about">
             <img src="icon.png" alt="" width="72" height="72">
@@ -457,6 +497,14 @@
             <p id="update-result" class="result" role="status"></p>
             <p class="muted small"><button id="clear-release-cache" type="button" class="link">Clear cached release notes</button></p>
             <p class="muted small">TCG Bridge checks when it starts and every 6 hours. Updates install in the start-up window; restart to update.</p>
+          </section>
+          <section id="whatsnew-card" class="card" hidden>
+            <h2 class="plain-title">What's new</h2>
+            <div class="row tools"><button id="whatsnew-refresh" type="button" class="btn plain"><svg class="i"><use href="#i-refresh-cw"/></svg>Refresh</button></div>
+            <p id="whatsnew-status" class="muted" role="status"></p>
+            <div id="whatsnew-notes"></div>
+            <p id="whatsnew-empty" class="empty" hidden>Release notes for this version are not published yet. <button id="whatsnew-all-empty" type="button" class="link">All releases</button></p>
+            <p id="whatsnew-fail" class="empty" hidden>Could not load the release notes. <button id="whatsnew-all" type="button" class="link">See all releases on GitHub</button></p>
           </section>
         </section>
       </main>
