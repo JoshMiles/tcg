@@ -27,6 +27,12 @@ export async function statsChecks(): Promise<void> {
   assert.equal(statText('happyHour', {}, happy, now + 1000), 'Happy hour: free packs, 12:33 left', 'it ticks each second');
   assert.equal(statText('happyHour', {}, happy, now + 754_000), '', 'run out = cleared');
   assert.equal(statText('happyHour', {}, null, now), '');
+  assert.equal(statText('goal', { goal: 'Pack goal: 37 / 50' }, null, now), 'Pack goal: 37 / 50', 'the site sends the finished text');
+  assert.equal(statText('goal', { goal: null }, null, now), '', 'no goal for this stream clears the source');
+  assert.equal(statText('goal', {}, null, now), null, 'not answered yet');
+  assert.deepEqual(cleanStatFacts({ goal: 'G: 1 / 5' }), { goal: 'G: 1 / 5' });
+  assert.deepEqual(cleanStatFacts({ goal: null }), { goal: null });
+  assert.deepEqual(cleanStatFacts({ goal: 7 }), {});
 
   // Only mapped stats are wanted, and nothing at all before the site has answered.
   const map = { ...noStatMap(), packs: 'Packs text', happyHour: 'Happy text' };

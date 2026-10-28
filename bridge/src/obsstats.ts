@@ -3,12 +3,12 @@
 // source, and a stat that is not mapped never touches a source, so its text stays as it is.
 import { happyText, type HappyFacts } from './happyhour';
 
-export const STAT_IDS = ['packs', 'lastBig', 'topPuller', 'happyHour', 'queue'] as const;
+export const STAT_IDS = ['packs', 'lastBig', 'topPuller', 'happyHour', 'goal', 'queue'] as const;
 export type StatId = (typeof STAT_IDS)[number];
 /** Stat to the OBS text source it is written to; '' = not mapped. */
 export type StatMap = Record<StatId, string>;
-export const STAT_LABELS: Record<StatId, string> = { packs: 'Packs this stream', lastBig: 'Last big pull', topPuller: 'Top puller', happyHour: 'Happy hour countdown', queue: 'Queue length' };
-export const noStatMap = (): StatMap => ({ packs: '', lastBig: '', topPuller: '', happyHour: '', queue: '' });
+export const STAT_LABELS: Record<StatId, string> = { packs: 'Packs this stream', lastBig: 'Last big pull', topPuller: 'Top puller', happyHour: 'Happy hour countdown', goal: 'Pack goal progress', queue: 'Queue length' };
+export const noStatMap = (): StatMap => ({ packs: '', lastBig: '', topPuller: '', happyHour: '', goal: '', queue: '' });
 
 /** The OBS input kinds that have a `text` setting (GDI+ and FreeType 2, every version). */
 const TEXT_KINDS = new Set(['text_gdiplus', 'text_gdiplus_v2', 'text_gdiplus_v3', 'text_ft2_source', 'text_ft2_source_v2']);
@@ -42,6 +42,8 @@ export interface StatFacts {
   packs?: number;
   lastBig?: { username: string; cardName: string } | null;
   topPuller?: { username: string; packs: number } | null;
+  /** The pack goal's finished text from the site ("Label: 37 / 50"); null = no goal for this stream (ROADMAP 57.5). */
+  goal?: string | null;
   queue?: number;
 }
 
@@ -58,6 +60,8 @@ export function cleanStatFacts(raw: unknown): StatFacts {
   const big = o.lastBig as { username?: unknown; cardName?: unknown } | null | undefined;
   if (big === null) out.lastBig = null;
   else if (text(big?.username) !== undefined && text(big?.cardName) !== undefined) out.lastBig = { username: text(big!.username)!, cardName: text(big!.cardName)! };
+  if (o.goal === null) out.goal = null;
+  else if (text(o.goal) !== undefined) out.goal = text(o.goal)!;
   const top = o.topPuller as { username?: unknown; packs?: unknown } | null | undefined;
   if (top === null) out.topPuller = null;
   else if (text(top?.username) !== undefined && count(top?.packs) !== undefined) out.topPuller = { username: text(top!.username)!, packs: count(top!.packs)! };
@@ -70,6 +74,7 @@ export function statText(id: StatId, facts: StatFacts, happy: HappyFacts | null,
     case 'packs': return typeof facts.packs === 'number' ? `Packs: ${facts.packs}` : null;
     case 'lastBig': return facts.lastBig === undefined ? null : facts.lastBig ? `${facts.lastBig.username}: ${facts.lastBig.cardName}` : '';
     case 'topPuller': return facts.topPuller === undefined ? null : facts.topPuller ? `Top puller: ${facts.topPuller.username} (${facts.topPuller.packs})` : '';
+    case 'goal': return facts.goal === undefined ? null : (facts.goal ?? '');
     case 'queue': return typeof facts.queue === 'number' ? `Queue: ${facts.queue}` : null;
     case 'happyHour': return happyText(happy, now);
   }

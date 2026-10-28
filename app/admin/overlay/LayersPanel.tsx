@@ -180,7 +180,7 @@ export function LayersPanel({ overlapping, lowContrast, layout, selected, select
                       onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); else if (e.key === 'Escape') { e.currentTarget.value = l.name; e.currentTarget.blur(); } }}
                       className="flex-1 min-w-0 mx-1 my-0.5 rounded border border-gray-600 bg-gray-950 px-1.5 py-0.5 text-sm text-gray-100" />
                   ) : <button type="button" onClick={() => { selectView(view); selectTarget(id); }} onDoubleClick={() => setRenaming(view + l.id)} title="Double-click to rename" aria-current={selected === id} className={`flex-1 min-w-0 flex items-center gap-2 px-2 py-1 text-left text-sm truncate ${l.visible ? 'text-gray-200' : 'text-gray-500 line-through'}`}>
-                    <Icon name={l.kind === 'text' ? 'text' : l.kind === 'image' ? 'image' : 'stop'} className="text-gray-500 shrink-0" />
+                    <Icon name={l.kind === 'text' ? 'text' : l.kind === 'image' ? 'image' : l.kind === 'goal' ? 'trophy' : 'stop'} className="text-gray-500 shrink-0" />
                     {l.name}
                     {overlapping.includes(id) && <Icon name="warning" className="text-fuchsia-400 shrink-0" title="Overlaps a Twitch zone (webcam, chat or alerts)" />}
                     {lowContrast[id] !== undefined && <Icon name="warning" className="text-orange-400 shrink-0" title={`Low contrast (${lowContrast[id].toFixed(1)}:1)`} />}
@@ -198,7 +198,7 @@ export function LayersPanel({ overlapping, lowContrast, layout, selected, select
           </ul>
           <div className="flex items-center gap-1 px-1 pt-1 text-xs text-gray-500">
             Add layer
-            {(['text', 'image', 'shape'] as CustomKind[]).map(k => (
+            {(['text', 'image', 'shape', 'goal'] as CustomKind[]).map(k => (
               <button key={k} type="button" disabled={(layout[view].custom?.length ?? 0) >= MAX_CUSTOM} onClick={() => add(view, k)} className="rounded border border-gray-700 px-1.5 py-0.5 hover:border-gray-500 hover:text-white disabled:opacity-40">
                 <Icon name="plus" /> {k}
               </button>

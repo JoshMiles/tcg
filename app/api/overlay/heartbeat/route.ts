@@ -3,6 +3,7 @@ import { recordHeartbeat, isValidClientId } from '@/lib/overlay';
 import { getReloadSignal } from '@/lib/overlay-settings';
 import { isOverlayRequest } from '@/lib/overlay-key';
 import { bridgePullReveal } from '@/lib/bridge';
+import { readPackGoal } from '@/lib/pack-goal';
 
 // The OBS overlay (public/widget.js) pings this every ~10s so the admin can see it is open.
 // Needs the overlay key (or a staff session), so nobody can fake an open overlay; it also only accepts a tiny, validated payload.
@@ -26,5 +27,7 @@ export async function POST(req: NextRequest) {
     dev: body.dev === true,
   });
   // `reload` changes when an admin asks connected overlays to refresh (see Overlay Editor); the widget reloads once idle.
-  return NextResponse.json({ ok: true, reload: await getReloadSignal() });
+  // `goal` (ROADMAP 57.5) is sent only to an overlay that has a Pack goal layer and asked for it (`goal: true`), so no other overlay costs a read.
+  const goal = body.goal === true ? await readPackGoal() : undefined;
+  return NextResponse.json({ ok: true, reload: await getReloadSignal(), ...(goal !== undefined ? { goal: goal ? { label: goal.goal.label, count: Math.min(goal.count, goal.goal.target), target: goal.goal.target } : null } : {}) });
 }

@@ -1,4 +1,5 @@
 import { recordStreamPull } from '@/lib/stream-streak';
+import { countPackGoalPull } from '@/lib/pack-goal';
 import { NextRequest, NextResponse, after } from 'next/server';
 import { inSandbox } from '@/lib/db';
 import { getCollection, saveCollection, deleteCollection, addCollectionEntryWithSerial, listSeasons, removeUserFromCollection, withCollectionLock } from '@/lib/kv';
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
     ...(copyId ? { copyId } : {}),
     ...(uid ? { uid } : {}),
   });
-  if (!test) await recordStreamPull(username);
+  if (!test) { await recordStreamPull(username); await countPackGoalPull(); } // the community pack goal (57.5): real pulls only
 
   // Sent after the response, held open by after() so the function isn't frozen before it goes out. The sandbox is decided
   // now (it is not visible inside after()). Outside a request (scripts) it just runs. The pull rules (Mix It Up commands on big pulls,

@@ -10,7 +10,7 @@ export type { ShapeFill, ShapeSpec, ShapeType };
 // Pure and client-safe. public/widget.js (renderCustom) draws them; every value here is data, never markup.
 
 export const MAX_CUSTOM = 16;
-export const CUSTOM_KINDS = ['text', 'image', 'shape'] as const;
+export const CUSTOM_KINDS = ['text', 'image', 'shape', 'goal'] as const;
 export type CustomKind = (typeof CUSTOM_KINDS)[number];
 export const BANDS = ['front', 'back'] as const;
 /** Pack view only: when in the pull the layer is up (`reveal`: until the card is revealed, `after`: from the card reveal on). */
@@ -53,9 +53,17 @@ export interface CustomShape extends CustomBase, ShapeSpec {
   /** Only `shadows` and `glow` are drawn on a shape. */
   fx: Effects;
 }
-export type CustomLayer = CustomText | CustomImage | CustomShape;
+/** The community pack goal's progress bar (ROADMAP 57.5). It draws nothing until a goal is set for the stream; the numbers come from the site. */
+export interface CustomGoal extends CustomBase {
+  kind: 'goal';
+  /** The filled part and the empty track behind it. */
+  color: string; track: string;
+  /** The words ("Pack goal: 37 / 50") over the bar, when `showText` is on: size in design px and colour. */
+  showText: boolean; size: number; textColor: string;
+}
+export type CustomLayer = CustomText | CustomImage | CustomShape | CustomGoal;
 
-const KIND_LABEL: Record<CustomKind, string> = { text: 'Text', image: 'Image', shape: 'Shape' };
+const KIND_LABEL: Record<CustomKind, string> = { text: 'Text', image: 'Image', shape: 'Shape', goal: 'Pack goal' };
 const ID = /^[A-Za-z0-9_-]{1,24}$/;
 
 /** Valid layers from anything: unknown kinds, bad ids and duplicates are dropped, at most MAX_CUSTOM kept. Absent or empty gives []. */
@@ -93,6 +101,8 @@ export function sanitizeCustom(raw: unknown, width: number, height: number, view
       if (fx.glow) keep.glow = fx.glow;
       if (fx.stroke) keep.stroke = fx.stroke;
       out.push({ ...base, kind, url: r.url as string, fit: pick(r.fit, IMAGE_FITS, 'contain'), radius: Math.round(clamp(r.radius, 0, 1000, 0)), fx: keep });
+    } else if (kind === 'goal') {
+      out.push({ ...base, kind, color: hex(r.color, '#facc15'), track: hex(r.track, '#1f2937'), showText: r.showText !== false, size: Math.round(clamp(r.size, 6, 200, 24)), textColor: hex(r.textColor, '#ffffff') });
     } else {
       const fx = sanitizeFx(r.fx), keep: Effects = {};
       if (fx.shadows) keep.shadows = fx.shadows;
@@ -108,7 +118,7 @@ export function sanitizeCustom(raw: unknown, width: number, height: number, view
   return out;
 }
 
-const DEFAULT_SIZE: Record<CustomKind, [number, number]> = { text: [400, 80], image: [200, 200], shape: [240, 160] };
+const DEFAULT_SIZE: Record<CustomKind, [number, number]> = { text: [400, 80], image: [200, 200], shape: [240, 160], goal: [400, 48] };
 
 /** The box a tool press makes: a click gives just the point (kept on the stage so the default box fits), a drag the rectangle between the two corners (at least 20 px each way). */
 export function toolBox(kind: CustomKind, x0: number, y0: number, x1: number, y1: number, width: number, height: number): { x: number; y: number; w?: number; h?: number } {
