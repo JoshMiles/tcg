@@ -23,8 +23,10 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 50 | Swap finder trial (50.3) | Blocked (trial readout from 2026-11-24) | S |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
 | 59 | TCG Bridge redesign: bigger window, less clutter, layout by job (59.1 design pass, then build items) | Building (59.2 to 59.5 done; 59.6 in progress) | L |
-| 58 | Twitch through TCG Bridge: sign in to the app with Twitch, connect the channel, EventSub in the app, awards for existing channel points rewards, bits / subs / raids, chat commands replacing the Mix It Up ones (58.0 to 58.6) | After Track 59 | L |
-| 60 | Staff wiki refresh: every page brought up to date, new pages for TCG Bridge, Twitch and the Stream Deck plugin (60.1) | Last, after Track 59 | M |
+| 61 | Stream Deck plugin: fix the keys that do not work (61.1), then queue, staff, live info and OBS / overlay keys (61.2 to 61.5) | 61.1 right after Track 59; 61.2 on after Track 58 | M |
+| 58 | Twitch through TCG Bridge: sign in to the app with Twitch, connect the channel, EventSub in the app, awards for existing channel points rewards, bits / subs / raids, chat commands replacing the Mix It Up ones (58.0 to 58.6) | After Track 59 and 61.1 | L |
+| 62 | Native OBS plugin for TCG Bridge (62.1 design pass, then build items) | After Track 58 | L |
+| 60 | Staff wiki refresh: every page brought up to date, new pages for TCG Bridge, Twitch, the Stream Deck plugin and the OBS plugin (60.1) | Last, after Tracks 61 and 62 | M |
 
 Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52 and 54 to 57 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -132,6 +134,35 @@ Viewer first: look up a viewer, then a viewer card with gift, collection, block,
 ### 59.8 Tool windows and polish (After 59.7)
 Pull feed, summary and preview windows share the new header and tokens; the feed window gets the same filters. Keyboard focus order and screen reader names checked across every page.
 
+## Track 61: Stream Deck plugin fix and more keys (2026-10-28)
+
+Josh: the plugin's keys don't work; fix that, then add queue, staff, live info and OBS / overlay keys. The plugin is `streamdeck/` (Elgato SDK, UUID `tv.cheesygidds.tcgbridge`, built into `bin/plugin.js`), talking to the app's `DeckServer` (`bridge/src/deck.ts`) on 127.0.0.1 with the port and token from `%APPDATA%\TCG Bridge\streamdeck.json`; the plugin's version always equals the bridge's (`x.y.z.0`). Every item bumps the bridge minor and keeps the Mix It Up Stream Deck commands working.
+
+### 61.1 Fix the keys (Ready, M; right after Track 59, before Track 58)
+1. **Reproduce first.** Josh reports the keys do nothing or the wrong thing. Walk the whole path on the code and with `bridge/scripts/check-deck.ts`'s real server: install from TCG Bridge (does the packed plugin contain `bin/plugin.js` and its `node_modules`, is the manifest's `CodePath` right, does Stream Deck 6.9+ load it), the link (is `DeckServer` running: it only listens while the Settings switch is on, and that switch moved in 59.4 / 59.6; is `streamdeck.json` written where the plugin reads it, port and token current after an app restart), the key press (action UUIDs in the manifest match `keys.ts`, settings from the property inspector reach the key, the request reaches `runStaffKey` / the control actions), and the answer (title / state / alert on the key).
+2. Ask Josh for the Stream Deck app's plugin log (`%APPDATA%\Elgato\StreamDeck\logs\tv.cheesygidds.tcgbridge*.log`) and TCG Bridge's log if the code walk does not find it.
+3. Fix every cause found; the app shows the link state plainly on the Stream Deck plugin connection (59.6) and in the status pill when the plugin is installed but not linked.
+4. **Checks:** an end-to-end check in `bridge/scripts/check-deck.ts` that runs the built plugin's link and key code against the real `DeckServer` for each existing key (buff, last buff, pause pulls, happy hour); a pack check that the `.streamDeckPlugin` holds everything the manifest points at.
+
+### 61.2 Queue keys (After Track 58, S)
+Skip next pull, Clear queue (hold 1 s, like ending a happy hour), and a key that shows how many are waiting (polled from the app, not the site, at most every 5 s). Paid pulls skipped or cleared are refunded as today.
+
+### 61.3 Staff keys (After 61.2, S)
+Pause / resume trading, switch to a chosen scene, open the preview overlay. Shown only on a staff PC and refused with the 58.0 role rules (a mod-linked PC gets only mod actions).
+
+### 61.4 Live info keys (After 61.3, S)
+Keys that show a number or name: pulls this stream, last big pull, top puller, pack goal progress (`Label: 37 / 50`), happy hour time left. From the app's existing state (59.5 numbers, 57.4 / 57.5 stats); no new site calls.
+
+### 61.5 OBS and overlay keys (After 61.4, S)
+Refresh overlay, test pull, show a card (chosen in the property inspector), run the checklist (key turns green or red with the count). Test pull and show a card warn as the app does that they play on the live overlay.
+
+## Track 62: native OBS plugin (2026-10-28)
+
+Josh: a native OBS plugin (not a browser dock) for TCG Bridge. After Track 58, before the wiki (Track 60).
+
+### 62.1 Design pass (Needs design: Opus, then Josh)
+Decide what the plugin does that a browser dock or the app cannot: a native dock with the live controls (pause pulls, happy hour, queue, feed), TCG sources (the overlay, live stats, pack goal) added and kept in the right scene by the plugin, scene-change hooks without the WebSocket, or all of these. How it talks to TCG Bridge (the same local link as the Stream Deck plugin, a token in a file the app writes). Build: C/C++ from the obs-plugintemplate with CMake, Windows x64 only, built in CI against the OBS version range it supports, shipped inside TCG Bridge and installed from the app like the Stream Deck plugin; what happens when OBS updates. Its version follows the bridge's. Mockups and a build split (62.2 onward) for Josh before any build.
+
 ## Track 60: staff wiki refresh (2026-10-28)
 
 Josh: a complete update to the staff wiki (`content/wiki/*.md`, shown at /admin/wiki, and at /mod/guide for pages with `audience: mods`), last on the roadmap so it describes everything above as built. The wiki was last updated 2026-10-27, before Tracks 55 to 59.
@@ -139,7 +170,7 @@ Josh: a complete update to the staff wiki (`content/wiki/*.md`, shown at /admin/
 ### 60.1 Wiki audit and rewrite (Ready, M; last)
 1. **Audit.** Read every page against the site and TCG Bridge as they stand (the area docs in `docs/`, `bridge/README.md`, the admin pages), and list what is wrong, missing or out of date. Plain-language, for staff, not developers.
 2. **Update the existing twelve pages** (Overview, Cards, Environments, Glossary, Live tools, Moderation, the three mod how-tos, Support answers, Trading, Viewers): Mix It Up paid pulls and prices (55.4), happy hour, pack goal, raid shout-out and event rewards, pause reasons, the overlay preview, and anything the redesign (Track 59) moved.
-3. **New pages:** TCG Bridge for the streamer (install, Twitch sign-in 58.0, the update flow, the checklist, OBS stats, errors), TCG Bridge for mods (what a staff PC can do; `audience: mods`), Twitch connection (58.1 to 58.6: channel points awards, refunds by hand, chat commands and the bot account), and the Stream Deck plugin (57.13). Each linked from Overview, and new words in the Glossary.
+3. **New pages:** TCG Bridge for the streamer (install, Twitch sign-in 58.0, the update flow, the checklist, OBS stats, errors), TCG Bridge for mods (what a staff PC can do; `audience: mods`), Twitch connection (58.1 to 58.6: channel points awards, refunds by hand, chat commands and the bot account), the Stream Deck plugin (57.13, Track 61) and the OBS plugin (Track 62). Each linked from Overview, and new words in the Glossary.
 4. **Checks:** `scripts/check-wiki.mts` passes (front matter, links); the wording rules (`scripts/check-words.mts`); one PR, or two if it grows large (existing pages, then new pages).
 
 ## Twitch extension
