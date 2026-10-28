@@ -115,6 +115,7 @@ function renderBanners() {
   $('start-note-text').textContent = note;
   $('update-banner').hidden = !state.update;
   $('update-banner-text').textContent = state.update;
+  $('update-banner-restart').hidden = !state.updateVersion;
 }
 
 // Pause pulls on scenes (57.2): the scenes OBS reported, plus any saved one OBS no longer lists, each with a checkbox.
@@ -172,6 +173,7 @@ function render() {
   $('account-text').textContent = state.paired ? `Paired with ${state.site} as ${state.pairedAs}.` : 'Not paired yet. Pair on the Status page.';
   $('autostart').checked = state.startWithWindows;
   $('update').textContent = state.update || 'No update waiting.';
+  $('restart-update').hidden = !state.updateVersion;
   $('alerts').checked = state.alerts;
   $('mix-autostart').checked = state.mixItUp.startWithBridge;
   $('feed-on').checked = state.tools.feed.on;
@@ -280,6 +282,8 @@ $('summary-on').addEventListener('change', e => window.bridge.setSummary(e.targe
 $('obs-autostart').addEventListener('change', e => window.bridge.setStartObs(e.target.checked));
 $('updated-link').addEventListener('click', () => window.bridge.openRelease());
 $('open-release').addEventListener('click', () => window.bridge.openRelease());
+$('update-banner-restart').addEventListener('click', () => window.bridge.restartToUpdate());
+$('restart-update').addEventListener('click', () => window.bridge.restartToUpdate());
 $('updated-dismiss').addEventListener('click', () => window.bridge.dismissUpdated());
 $('start-note-dismiss').addEventListener('click', () => { dismissedNote = state ? state.startNote : ''; render(); });
 

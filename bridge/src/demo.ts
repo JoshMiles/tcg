@@ -64,7 +64,7 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
     obsSettings: { enabled: true, address: 'ws://127.0.0.1:4455', hasPassword: true },
     mixItUp: { startWithBridge: false, path: 'C:\\Users\\streamer\\AppData\\Local\\MixItUp\\MixItUp.exe' },
     tools: { feed: { on: false, minStars: 4, volume: 0.5, muted: false, onTop: false }, summary: false, startObs: false, obsPath: 'C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe' },
-    appVersion: ctx.version, update: '', updatedTo: '',
+    appVersion: ctx.version, update: '', updateVersion: '', updatedTo: '',
     service: { site: 'connected', siteError: '', lastPollAt: now - 3000, mix: { found: mixFound, version: mixFound ? '1.10.0.0' : '' }, currency: 'Brie Bucks', currencyId: 'x', channel: 'Cheesygidds', jobs, tray: mixFound ? 'connected' : 'partly', obs },
     ...extra,
   });
@@ -72,9 +72,9 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
   const shots: [string, object, string][] = [
     ['main-1-status-connected', state(true), 'status'],
     ['main-2-status-mixitup-missing', state(false), 'status'],
-    ['main-3-status-banners', state(true, { startNote: "Couldn't check for updates", updatedTo: '0.5.0', update: 'Version 0.5.1 is ready: it installs when you quit TCG Bridge (restart to update)' }), 'status'],
+    ['main-3-status-banners', state(true, { startNote: "Couldn't check for updates", updatedTo: '0.5.0', update: 'Version 0.5.1 is available. Restart TCG Bridge to install it.', updateVersion: '0.5.1' }), 'status'],
     ['main-4-settings', state(true), 'settings'],
-    ['main-5-about', state(true, { update: 'Downloading version 0.5.1' }), 'about'],
+    ['main-5-about', state(true, { update: 'Version 0.5.1 is available. Restart TCG Bridge to install it.', updateVersion: '0.5.1' }), 'about'],
     ['main-6-pairing', { ...state(false), paired: false, site: 'https://cheesytcg.app', pairedAs: '', service: null }, 'status'],
   ];
   for (const [name, s, t] of shots) {

@@ -1,18 +1,16 @@
 // Words and addresses for updates. Plain TypeScript, no Electron: main.ts owns electron-updater.
-export type UpdateStage = { stage: 'idle' } | { stage: 'downloading'; version: string } | { stage: 'ready'; version: string };
+// Updates download and install only in the start-up window; while running, a newer version is only announced.
+export type UpdateStage = { stage: 'idle' } | { stage: 'available'; version: string };
 
 export const releaseUrl = (version: string): string => `https://github.com/JoshMiles/tcg/releases/tag/bridge-v${version}`;
 
 export function updateText(u: UpdateStage): string {
-  if (u.stage === 'downloading') return `Downloading version ${u.version}`;
-  if (u.stage === 'ready') return `Version ${u.version} is ready: it installs when you quit TCG Bridge (restart to update)`;
-  return '';
+  return u.stage === 'available' ? `Version ${u.version} is available. Restart TCG Bridge to install it.` : '';
 }
 
 /** What "Check for updates" answers. `latest` is what the check found: null = nothing newer. */
-export function checkText(current: string, latest: string | null, u: UpdateStage): string {
-  if (latest === null) return `You are up to date (version ${current})`;
-  return updateText(u.stage === 'idle' ? { stage: 'downloading', version: latest } : u);
+export function checkText(current: string, latest: string | null): string {
+  return latest === null ? `You are up to date (version ${current})` : updateText({ stage: 'available', version: latest });
 }
 
 /** The version to announce as "Updated to ...", or '' on the first run ever or when nothing changed. */

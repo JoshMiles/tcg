@@ -816,9 +816,9 @@ async function main() {
   // ── Updates ──
   assert.equal(releaseUrl('0.3.0'), 'https://github.com/JoshMiles/tcg/releases/tag/bridge-v0.3.0');
   assert.deepEqual([updatedTo('', '0.3.0'), updatedTo('0.3.0', '0.3.0'), updatedTo('0.2.0', '0.3.0')], ['', '', '0.3.0'], 'first run and no change say nothing');
-  assert.equal(checkText('0.3.0', null, { stage: 'idle' }), 'You are up to date (version 0.3.0)');
-  assert.equal(checkText('0.3.0', '0.4.0', { stage: 'idle' }), 'Downloading version 0.4.0');
-  assert.match(checkText('0.3.0', '0.4.0', { stage: 'ready', version: '0.4.0' }), /^Version 0\.4\.0 is ready.*restart to update/);
+  assert.equal(checkText('0.3.0', null), 'You are up to date (version 0.3.0)');
+  assert.equal(checkText('0.3.0', '0.4.0'), 'Version 0.4.0 is available. Restart TCG Bridge to install it.');
+  assert.equal(updateText({ stage: 'available', version: '0.4.0' }), checkText('0.3.0', '0.4.0'));
   assert.equal(updateText({ stage: 'idle' }), '');
 
   // ── Start-up window: fake updater events and a fake clock ──
@@ -863,15 +863,20 @@ async function main() {
     s.event({ type: 'progress', percent: 10 }, 5000);
     assert.equal(s.tick(34_999).handover, false);
     assert.deepEqual([s.tick(35_000).handover, s.step.note], [true, DOWNLOAD_NOTE]);
-    // an update-downloaded after the 8 s hand-over is not installed at start-up: it becomes "ready, restart to update"
+    // an update found at start-up leaves the running stage alone: the app restarts into the installer instead
+    s = new Startup(0);
+    s.event({ type: 'checking' }, 0);
+    st = s.event({ type: 'available', version: '0.6.0' }, 500);
+    assert.deepEqual([st.update.stage, st.install], ['idle', false]);
+    st = s.event({ type: 'downloaded', version: '0.6.0' }, 900);
+    assert.deepEqual([st.update.stage, st.install], ['idle', true]);
+    // an update found after the 8 s hand-over (or any time while running) is only announced: no download phase, nothing to install
     s = new Startup(0);
     s.event({ type: 'checking' }, 0);
     s.tick(8000);
     st = s.event({ type: 'available', version: '0.6.0' }, 9000);
-    assert.deepEqual([st.handover, st.update, st.note], [true, { stage: 'downloading', version: '0.6.0' }, '']);
-    st = s.event({ type: 'downloaded', version: '0.6.0' }, 20_000);
-    assert.deepEqual([st.phase, st.install, st.update], ['starting', false, { stage: 'ready', version: '0.6.0' }]);
-    assert.match(updateText(st.update), /ready.*restart to update/);
+    assert.deepEqual([st.phase, st.handover, st.install, st.update, st.note], ['starting', true, false, { stage: 'available', version: '0.6.0' }, '']);
+    assert.match(updateText(st.update), /available.*Restart TCG Bridge/);
     // later events once running never come back to the start-up window
     assert.equal(s.event({ type: 'checking' }, 21_000).phase, 'starting');
   }

@@ -68,19 +68,18 @@ export class Startup {
 
   event(e: StartupEvent, now: number): StartupStep {
     this.activeAt = now;
-    if (this.handover) { // running: updates found now only change the window's update line
-      if (e.type === 'available') { this.update = { stage: 'downloading', version: e.version }; this.note = ''; }
-      else if (e.type === 'downloaded') { this.update = { stage: 'ready', version: e.version }; this.note = ''; }
+    if (this.handover) { // running: an update found now is only announced (the button restarts the app, the start-up window installs it)
+      if (e.type === 'available') { this.update = { stage: 'available', version: e.version }; this.note = ''; }
       else if (e.type === 'none') this.note = '';
       return this.step;
     }
     if (this.phase === 'checking') {
-      if (e.type === 'available') { this.phase = 'downloading'; this.version = e.version; this.percent = 0; this.update = { stage: 'downloading', version: e.version }; }
+      if (e.type === 'available') { this.phase = 'downloading'; this.version = e.version; this.percent = 0; }
       else if (e.type === 'none') this.start();
       else if (e.type === 'error') this.giveUp(CHECK_NOTE);
     } else if (this.phase === 'downloading') {
       if (e.type === 'progress') this.percent = Math.max(0, Math.min(100, Math.round(e.percent)));
-      else if (e.type === 'downloaded') { this.phase = 'installing'; this.install = true; this.update = { stage: 'ready', version: e.version }; }
+      else if (e.type === 'downloaded') { this.phase = 'installing'; this.install = true; }
       else if (e.type === 'error') this.giveUp(DOWNLOAD_NOTE);
     }
     return this.step;
