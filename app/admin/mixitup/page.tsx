@@ -21,6 +21,8 @@ import { readWatchdogAt } from '@/lib/overlay-watchdog';
 import { isPullsPaused, pauseChatOn, pauseReason } from '@/lib/pull-pause';
 import { CommandsPanel } from './CommandsPanel';
 import { ConnectionTab } from './ConnectionTab';
+import { channelConnectReady, readChannelStatus } from '@/lib/twitch-channel';
+import { testingLine } from '@/lib/twitch-channel-core';
 import { MixItUpConfig } from './MixItUpConfig';
 import { MixItUpLog } from './MixItUpLog';
 import { StreamDeckTab } from './StreamDeckTab';
@@ -66,6 +68,12 @@ async function packGoalView() {
   const r = cur?.goal.reward;
   const reward = !r || r.type === 'none' ? 'none' : r.type === 'pulls' ? `${r.amount} extra pull${r.amount === 1 ? '' : 's'} each this stream` : `community buff ${buffs.find(b => b.id === r.buffId)?.name ?? '(missing)'}`;
   return { buffs, running: cur ? { label: cur.goal.label, target: cur.goal.target, count: cur.count, reward, by: cur.goal.by } : null };
+}
+
+/** The connected Twitch channel (58.1) for the Connection tab; null when none. */
+async function twitchView() {
+  const c = await readChannelStatus();
+  return c ? { login: c.login, scopes: c.scopes, since: timeAgo(c.connectedAt), by: c.by, testing: c.testing, testingLine: testingLine(c.login) } : null;
 }
 
 async function happyHourView(now: number) {
@@ -126,7 +134,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
       {tab === 'connection' && (
         <div className="space-y-6">
           <Link href="/admin/mixitup/setup" className="btn btn-primary btn-sm"><Icon name="wrench" />{setupLabel}</Link>
-          <ConnectionTab settings={settings} bridge={bridge} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never', staff: isStaffPc(b), account: bridgeAccount(b), by: b.by ?? '' }))} blocks={blocks.map(b => ({ username: b.username, by: b.by, scope: b.streamKey ? 'this stream' : 'until lifted' }))} commandCheck={await readCommandCheck(await getBuffDefs())} errors={{ rows: (await readErrors()).map(e => ({ ...e, ago: timeAgo(e.at) })), days: await errorDays() }} />
+          <ConnectionTab settings={settings} bridge={bridge} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never', staff: isStaffPc(b), account: bridgeAccount(b), by: b.by ?? '' }))} blocks={blocks.map(b => ({ username: b.username, by: b.by, scope: b.streamKey ? 'this stream' : 'until lifted' }))} commandCheck={await readCommandCheck(await getBuffDefs())} errors={{ rows: (await readErrors()).map(e => ({ ...e, ago: timeAgo(e.at) })), days: await errorDays() }} twitch={await twitchView()} twitchReady={channelConnectReady()} />
         </div>
       )}
       {tab === 'paid' && <MixItUpConfig settings={settings} happyHour={await happyHourView(now)} packGoal={await packGoalView()}packs={((await getActiveSeasonWithPacks())?.packs ?? []).filter(p => p.cards.length > 0).map(p => ({ id: p.pack.id, name: p.pack.name, price: p.pack.price }))} />}
