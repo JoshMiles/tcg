@@ -23,6 +23,8 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 50 | Swap finder trial (50.3) | Blocked (trial readout from 2026-11-24) | S |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
 | 56 | TCG Bridge: version rule and automatic releases, commit on the About tab, dashboard card, README rewrite (56.1 to 56.3) | Ready | M |
+| 57 | TCG Bridge features: checklist, scene pause, happy hour, OBS stats, pack goal, raid shout-out, event feed, command check, errors on the dashboard, overlay preview, what's new, beta and rollback, Stream Deck plugin (57.1 to 57.13) | Ready after Track 56 (57.12 and 57.13 need design) | L |
+| 58 | Twitch connection: channel point rewards and events straight from Twitch, in the admin portal and TCG Bridge | Needs a decision (58.0) | L |
 
 Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52, 54 and 55 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -71,6 +73,65 @@ A card on `/admin` (staff who can see the Mix It Up page only): the latest relea
 
 ### 56.3 README rewrite (Ready, M)
 `README.md` predates Tracks 53 to 56: rewrite it for someone new to the project. What the site is (the overlay, the public site, the Twitch panel, the Mix It Up integration and TCG Bridge), how the pieces connect (one short diagram in text), running it locally (point to `docs/local-dev.md`), checks, deploys and versions (site and bridge), the docs index (every area doc, one line each, matching `CLAUDE.md`'s table), and how work is done (ROADMAP, one feature per PR). Bring `bridge/README.md` up to date with 0.11.0's features and 56.1. No em dashes.
+
+## Track 57: TCG Bridge features (2026-10-28)
+
+Josh picked all thirteen (2026-10-28). Starts after Track 56 (every item bumps the bridge minor and releases itself, 56.1). Read `bridge/README.md` and `docs/admin/mixitup.md` ("TCG Bridge") first. One PR per item, in this order unless an item says otherwise. Everything new is off by default and switched on in the app's Settings tab or on the site's Mix It Up page, like the 0.9.0 streamer tools. The app only acts on scene, source and command names it reported itself (the 0.6.0 rule).
+
+### 57.1 Pre-stream checklist (Ready, M)
+A **Checklist** button (Status tab and tray) runs every check at once and shows one line each, green or red with the reason in words: paired with the site; Mix It Up found, the chosen currency exists, a balance can be read for the channel; OBS connected; the TCG overlay source is in the scene on air and visible; an active season with openable packs (asked from the site); the pull queue empty; pulls not paused; happy hour state. Reuses the existing self-tests (`src/selftest.ts`); running it changes nothing. The site's Overview tab shows the last result and when it ran.
+
+### 57.2 Pause pulls on chosen scenes (Ready, S to M)
+Settings: pick OBS scenes (from the scene list the app reports). While one of them is on air, the app pauses pulls through the same switch as the Control tab (reason "scene <name>"); switching to any other scene resumes them, but only if the app paused them itself (a pause staff set by hand is never lifted). Chat `!pack` gets the paused reply. Off by default.
+
+### 57.3 Happy hour in the app (Ready, S)
+Control tab and tray: start (minutes, free or a discount) and end, through the site's happy hour (55.4c, `startHappyHour` / `endHappyHour`, audit line "TCG Bridge"). A countdown shows in the window and the tray tooltip while it runs, from the site's state (the app keeps no clock of its own for it).
+
+### 57.4 Live stats in OBS text sources (Ready, M)
+Settings: map up to six stats to OBS text sources by name (GDI+ / FreeType text inputs from the app's own source list): packs this stream, last big pull ("viewer: card"), top puller, happy hour countdown, pack goal progress (57.5), queue length. The app updates them with obs-websocket `SetInputSettings` (`text` only), at most once a second per source and only when the value changes. The site sends the stats on change over the existing bridge link. Unmapping a stat leaves the source's text as it is.
+
+### 57.5 Community pack goal (Ready, M)
+Site, Mix It Up page: a goal for this stream (packs, target, label, an optional reward: a community buff or extra pulls this stream, from what exists). Every pull this stream counts (test pulls and sandboxes never). Progress goes to 57.4's text source and to an optional bar on the overlay (`public/widget.js`, a new overlay element, off unless placed in the Overlay Editor). On reaching it: one chat line through the bridge, the reward applied once, an audit line. Resets with the stream key (`currentStreamKey`).
+
+### 57.6 Raid shout-out (Ready, S to M)
+When a raid arrives (55.4g's raid event, or Twitch directly once Track 58 lands), if the raider has a public profile with cards, the overlay shows their best card (highest card value, through the show-off path) with "Raid from <name>", and one chat line. A switch and a minimum raid size on the Events tab. No profile, or a private one, shows nothing. Once per raider per stream.
+
+### 57.7 Event feed in the app (Ready, S)
+A list on the Status tab (and its own section in the live pull feed window) of the last 30 event rewards as they land: event, viewer, amount, what it earned or why it was ignored. Sent by the site over the bridge link; the same lines as the Mix It Up log.
+
+### 57.8 Mix It Up command check (Ready, S)
+The site already gets the app's enabled Mix It Up commands (0.4.0). Compare them with what the site expects (the `!pack` command, the switched-on chat commands, the Stream Deck buttons and event commands the setup cards describe, matched by the Web Request address the downloads put in, else by name): a missing or switched-off one shows on the Connection tab and in the app's Status tab with the name to fix. Never changes Mix It Up.
+
+### 57.9 Bridge errors on the dashboard (Ready, S)
+The app sends a short error report (time, part, message, app version and commit, redacted like Copy diagnostics) when something fails: a job, a reconnect giving up, an OBS or Mix It Up call. The site keeps the last 50 in KV and counts them per day; the admin data health card warns when there were any in the last 24 hours, linking to the list on the Connection tab. A burst (10 in 10 minutes) posts once to the System Discord channel; single errors never do.
+
+### 57.10 Overlay preview window (Ready, M)
+A **Preview overlay** window in the app shows the paired site's overlay page at the OBS canvas size (from OBS when connected, else 1920x1080), scaled to fit, with **Test pull** (the 55.14 test pull, never a real one) and **Show a card**. The site gives the app a preview address with its own short-lived key (staff only, read-only, never the OBS overlay key), so the window can never trigger real pulls.
+
+### 57.11 What's new screen (Ready, S)
+After an update the app opens a What's new tab once: the release notes of every version since the last one seen (from the GitHub releases 56.1 publishes, cached), newest first. The About tab keeps a link to all releases.
+
+### 57.12 Beta channel and rollback (Needs design, M)
+Opt in to builds from open PRs (a prerelease per PR that changes the bridge, published by the 56.1 workflow and marked prerelease so normal users never get it), and reinstall the previous release from the About tab. Open: how a PR build gets a version above the next release without breaking the minor rule (for example `0.13.0-pr.620.1`), electron-updater's `allowPrerelease` and `allowDowngrade`, and whether a preview site pairs with beta builds. Plan before building.
+
+### 57.13 Stream Deck plugin (Needs design, L)
+A native Elgato Stream Deck plugin (Stream Deck SDK, Node) that talks to TCG Bridge on the same PC over a local connection, so buttons need no Mix It Up command each: actions for the Stream Deck buffs and quick actions (55.2), happy hour (55.4c), pause pulls, a test pull and show a card, with live state on the key (paused, happy hour time left, queue length). Open: the local transport and its pairing (localhost only, a token), packaging and signing for the Elgato Marketplace or a side-loaded `.streamDeckPlugin`, and versioning next to the bridge. Plan before building; last in this track.
+
+## Track 58: Twitch connection for the site and TCG Bridge (2026-10-28)
+
+Josh: bring Twitch features into TCG Bridge and the admin portal, for example actions for specific channel points rewards, using the Twitch API. Today the site signs viewers in with no scopes and calls Helix with an app access token (`lib/twitch-helix.ts`); everything from chat and events comes through Mix It Up. The Twitch API can do this directly: EventSub sends channel point redemptions, cheers, gifted subs, raids and stream online / offline to a webhook on the site, and Helix can create the channel's own custom rewards and mark each redemption fulfilled or refunded. Only rewards created by our Twitch app can be managed and refunded by it.
+
+### 58.0 Decisions (Needs a decision: Josh)
+1. **Where events arrive.** Recommended: EventSub webhooks on the site (works when the stream PC is off, one place for the logic; TCG Bridge shows and controls it). The other way is an EventSub WebSocket inside TCG Bridge (only while the app runs).
+2. **Which rewards first.** Suggested, each a channel points reward the site creates and manages: Open a pack, Show my best card, a buff (from the Stream Deck buffs), Happy hour for N minutes (high cost). Each with cost, cooldown, per-stream limit and on / off in the admin portal.
+3. **Mix It Up overlap.** When a Twitch event is handled directly, the matching Mix It Up event command (55.4g) is ignored so nothing counts twice. Mix It Up stays for Brie Bucks and chat.
+
+### Planned once 58.0 is answered (Needs design)
+- **58.1 Connect the channel:** an admin-only "Connect Twitch channel" sign-in, for the broadcaster account only, asking for the scopes the chosen features need (`channel:read:redemptions`, `channel:manage:redemptions`, `bits:read`, `channel:read:subscriptions`); refresh token encrypted in KV; status and Disconnect in the admin portal.
+- **58.2 EventSub endpoint:** `/api/webhooks/twitch-events` (not under the frozen `/api/twitch/*`): signature check, challenge, revocation, message id dedupe; subscriptions kept in step on connect.
+- **58.3 Channel point rewards in the admin portal:** create, edit, pause and delete the TCG rewards on Twitch; map each to an action; fulfil the redemption when the action succeeds, refund the points when it fails (no packs, queue full, buff already active).
+- **58.4 Event rewards from Twitch:** 55.4g's events get a source switch (Mix It Up or Twitch) per event.
+- **58.5 In TCG Bridge:** redemptions in the event feed (57.7), pause or resume the TCG rewards from the app and the tray, the Twitch connection in the checklist (57.1).
 
 ## Twitch extension
 
