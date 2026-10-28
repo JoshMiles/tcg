@@ -22,7 +22,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 47 | Access hardening (47.11) | Blocked (Josh, from 2026-11-02) | S |
 | 50 | Swap finder trial (50.3) | Blocked (trial readout from 2026-11-24) | S |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
-| 59 | TCG Bridge redesign: bigger window, less clutter, layout by job (59.1 design pass, then build items) | Building (59.2 to 59.8; design A chosen) | L |
+| 59 | TCG Bridge redesign: bigger window, less clutter, layout by job (59.1 design pass, then build items) | Building (59.2 to 59.5 done; 59.6 in progress) | L |
 | 58 | Twitch through TCG Bridge: sign in to the app with Twitch, connect the channel, EventSub in the app, awards for existing channel points rewards, bits / subs / raids, chat commands replacing the Mix It Up ones (58.0 to 58.6) | After Track 59 | L |
 | 60 | Staff wiki refresh: every page brought up to date, new pages for TCG Bridge, Twitch and the Stream Deck plugin (60.1) | Last, after Track 59 | M |
 
@@ -70,8 +70,9 @@ Josh: bring Twitch features into TCG Bridge and the admin portal, for example aw
 
 **How the token flows.** The site keeps the Twitch app's secret, so the broadcaster connects once on the site (an authorization-code sign-in like the staff one, with the scopes below) and the site stores the refresh token encrypted in KV. TCG Bridge asks the site for a short-lived access token over its paired link when it needs one (never the refresh token), opens the EventSub WebSocket with it and creates its subscriptions with Helix. Same client id throughout, so no second Twitch app is needed.
 
-### 58.0 Sign in to TCG Bridge with Twitch (Ready, M; first in this track)
+### 58.0 Sign in to TCG Bridge with Twitch (site half done: #649, 2026-10-28; app half 58.0b after 59.6)
 Josh (2026-10-28): the app is linked to a Twitch account instead of a pairing code, and the account's site role gives it its permissions. The channel connection (58.1) stays separate.
+Site half (58.0a, #649): `POST /api/bridge/link` `{ name }` -> `{ id, code, secret, url, expiresAt }`; `POST /api/bridge/link/poll` `{ id, secret }` -> pending / denied / expired / `{ token, login, role }` once; the `/bridge/link` Allow page; role-based staff tools (Josh 2026-10-28: a mod-linked PC gets only what mods can do on the site: trading, block, unblock, scene and the reads); role re-read at most once a minute. Left for 58.0b (app, after 59.6): the Connect screen's Sign in with Twitch button and polling, "Signed in as" on the TCG account row, Sign out, then removing pairing codes (item 3).
 1. **Linking.** The app's pairing screen becomes **Sign in with Twitch**: the app asks the site for a one-time link request (an id and a short code shown in the app), opens the system browser on the site's `/bridge/link?id=...`, the streamer signs in with the site's existing Twitch sign-in, sees "Link TCG Bridge on <PC name>? Code <code>" and clicks Allow. The app polls the request (every 2 s, 10 minutes, then expires) and receives its bridge token, exactly what pairing gives it today. No Twitch token ever reaches the app.
 2. **Permissions from the role.** The token is tied to the Twitch user id. Admin or broadcaster: everything. Mod / staff: the staff tools (55.12's staff switch is set from the role, no admin toggle). Anyone else: refused at Allow ("This account has no staff role on the TCG site"). The role is re-read on the bridge's regular `status` call; a lost role revokes the PC (the app's existing "revoked" path).
 3. **Pairing codes go.** The admin "Pair a new PC" code flow is removed; bridges paired today keep working until unlinked, then sign in. The Connection tab lists each PC with the account it is signed in as, and **Unlink** stays.
@@ -110,16 +111,16 @@ Josh: the app is cluttered and its UX is poor; the window is small (860 x 640, m
 ### 59.1 Redesign pass (Done 2026-10-28)
 Audit and three directions mocked up. Josh chose direction A: a Live Home dashboard and a sidebar grouped by job (Live: Home; Stream tools: Controls, Feed and history; Staff: Viewers and cards, This stream, its own group shown only on a staff PC; Setup: Connections, Overlay and OBS, Buttons and hotkeys, Notifications, App; About: version, updates and What's new in one page). Default window 1280 x 800. Mix It Up job lines go in the one Home feed under a Jobs filter. Each item below is one PR, bumps the bridge minor, has a `## TCG Bridge` section and extends `demo.ts` so the new pages show in screenshots. The app is never half-arranged: the navigation move lands in one PR with the old cards inside it, and pages are reworked after.
 
-### 59.2 Bigger, remembered window (Ready)
+### 59.2 Bigger, remembered window (Done: #647, bridge 0.27.0)
 Default 1280 x 800, minimum 960 x 620. Save size, position and maximised state; on start, if the saved spot is not on any display, reset to the centred default. Cards sit in a two-column grid when the window is wide. No navigation change.
 
-### 59.3 One status summary and a shared card kit (After 59.2)
+### 59.3 One status summary and a shared card kit (Done: #648, bridge 0.28.0)
 A status pill in the title bar ("All good" or "N things need you") opens a list with a fix button per row (update ready: Restart; Mix It Up not connected: Fix; couldn't check for updates). It replaces the three banners; "Updated to x" becomes a one-time toast with "See what changed". One card header style, a rule for primary vs plain buttons, one empty state, one result line per card, long help text behind "How?" links.
 
-### 59.4 Grouped navigation (After 59.3)
+### 59.4 Grouped navigation (Done: #650, bridge 0.29.0)
 The sidebar groups above. Existing cards move, not rewritten: Status live parts to Home, Control to Controls, setup cards out of Status and Settings into the Setup pages, What's new merged into About, Activity into Feed and history. The Staff group only on a staff PC. Tray order matches the sidebar. Below 1100 wide the sidebar folds to icons.
 
-### 59.5 Home dashboard (After 59.4)
+### 59.5 Home dashboard (Done: #651, bridge 0.30.0)
 Fits 1280 x 800 without scrolling: connection chips; Pulls (Pause pulls), Happy hour presets, the pull queue (out of its details box, with Skip next); "this stream" numbers; a Ready-to-go-live card that shrinks to one line when the checklist passes; and one live feed merging pulls, event rewards and Mix It Up jobs, with All / Pulls / Events / Jobs filters. Leaves a slot for 58.5's Pause awards and a Twitch filter.
 
 ### 59.6 Connections page (After 59.5)

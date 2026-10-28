@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Goal
-Track 59 (bridge redesign) then 58, then 60 (wiki); Track 57 done (Josh, 2026-10-28: keep going after 56): one fresh agent per item, Opus reviews, reads all comments, merges on green, next. 57.12 and 57.13 need an Opus design pass first; Track 58 needs Josh to connect a Twitch account (any account, 58.1) before 58.2 is tried for real.
+Track 59 (bridge redesign, 59.2 to 59.5 done, 59.6 building) then 58 (58.0a site half done), then 60 (wiki); Track 57 done (Josh, 2026-10-28: keep going after 56): one fresh agent per item, Opus reviews, reads all comments, merges on green, next. 57.12 and 57.13 need an Opus design pass first; Track 58 needs Josh to connect a Twitch account (any account, 58.1) before 58.2 is tried for real.
 
 ## Done
 - Track 45 (#480 to #483), 34.8 (#484, panel 0.0.2 submitted, under Twitch review).
@@ -14,10 +14,9 @@ Track 59 (bridge redesign) then 58, then 60 (wiki); Track 57 done (Josh, 2026-10
 ## Left
 - Track 55 done (#579 to #614), archived. Follow-up: event command downloads (55.5 x 55.4g) not yet planned as an item.
 - Josh to test in real Mix It Up: one event of each kind from the Events tab (single gift, mass gift, bits, raid, redeem); a `!pack <name>`;.
-- Old worktrees from the Track 55 run under .claude/worktrees/agent-* (one holds the open 55.5 branch): clean once #603 merges.
 - Waiting: 43.3 and Track 53 (panel review), 47.11 (Josh, from 2026-11-02), 40.2f (field data, about 2026-11-09), 35.1 (Josh), 50.3 trial readout (from 2026-11-24).
 - Flaky checks: check-achievements and check-recent-arrivals; verify sometimes fails one check on a first run and passes on a rerun.
-- Cleanup for Josh: stray remote branch 51-6-staff-reports-to-admins; stray node process on port 4111; stale worktrees under .claude/worktrees/.
+- Cleanup for Josh: stray remote branch 51-6-staff-reports-to-admins; stray node process on port 4111.
 - Josh to do: Vercel Firewall log-only trial rules (docs/hosting.md), read the CSP report logs after a week.
 
 ## Key files
@@ -84,3 +83,8 @@ Track 59 (bridge redesign) then 58, then 60 (wiki); Track 57 done (Josh, 2026-10
 - 2026-10-28: Josh: the app's What's new is unhelpful (PR title, commit, PR link, installer note). Opus: PRs that change bridge/ get a required '## TCG Bridge' section of streamer-facing bullets (enforced in bridge.yml's check job); the release notes lead with it and the app shows only those bullets (old releases fall back to the title). Queued after 57.13a and the docs check merge (both touch bridge.yml / the PR template).
 - 2026-10-28: Josh: the TCG Bridge redesign (Track 59) goes before the Twitch work (Track 58); the design leaves room for 58's parts. Track 57 finished (57.13b #644, bridge 0.26.0) and archived.
 - 2026-10-28: Josh picked redesign direction A (Home dashboard, sidebar grouped by job), default window 1280 x 800, Mix It Up jobs in the Home feed under a Jobs filter, Staff as its own sidebar group. Mockups: https://claude.ai/artifact/TG6hipR2Jg7sWWwEYXkGfr. Split into 59.2 to 59.8 in ROADMAP.
+- 2026-10-28: 59.2 merged (#647, bridge 0.27.0). Josh: run the site half of 58.0 (Twitch link: request, link page, Allow, poll, role-based permissions, role re-read) in parallel with 59.3 as "58.0a"; pairing codes stay until the app half (after 59.6). Josh: a mod-linked PC gets only the staff actions mods can do on the site; admin and super get all.
+- 2026-10-28: 59.3 merged (#648, bridge 0.28.0: status pill, one card style). 59.4 (grouped sidebar) started; 58.0a still building.
+- 2026-10-28: 58.0a merged (#649): site side of Sign in with Twitch (link request, /bridge/link Allow page, poll, role-based staff tools, mod PCs limited to trading/block/unblock/scene and reads, role re-read each minute). App half (58.0b) after 59.6.
+- 2026-10-28: 59.4 merged (#650, bridge 0.29.0): grouped sidebar; Happy hour and queue on Controls, Pause pulls on Home; Feed and history staff-only until 59.5.
+- 2026-10-28: 59.5 merged (#651, bridge 0.30.0): Home dashboard; pull details also flow while OBS is live so This stream counts stay whole (Opus fix).
