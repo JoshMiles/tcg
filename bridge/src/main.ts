@@ -33,6 +33,7 @@ import { cleanSite, pair, SiteClient, Unauthorized, type QueueRow } from './site
 import { Startup, type StartupEvent, type StartupStep } from './startup';
 import { clearReleaseCache, loadReleases, releaseBlocks, RELEASES_API, RELEASES_URL, releasesBetween, type Note } from './releases';
 import { checkText, releaseUrl, updatedTo, updateText, type UpdateStage } from './update';
+import { attentionItems } from './status';
 
 // Development only: `npm start -- --demo-startup [--shots=<folder>]` walks the start-up window through its states and then shows the
 // window with made-up data (and saves PNGs of each when a folder is given). Ignored in the installed app.
@@ -151,6 +152,10 @@ const appState = (): object => demoState ?? ({
   update: updateText(update),
   updateVersion: update.stage === 'available' ? update.version : '',
   updatedTo: updatedNote,
+  attention: attentionItems({
+    paired: !!settings.token, updateVersion: update.stage === 'available' ? update.version : '', startNote,
+    site: service?.state.site ?? null, mixFound: !!service?.state.mix.found, obsEnabled: settings.obsEnabled, obsConnected: !!service?.state.obs.connected,
+  }),
   whatsNew: whatsNewFrom ? { open: whatsNewOpen } : null,
   service: service?.state ?? null,
 });
@@ -882,6 +887,7 @@ function setupIpc(): void {
     if (!app.isPackaged) return { ok: false, text: 'Updates only work in the installed app' };
     try {
       const r = await autoUpdater.checkForUpdates();
+      if (startNote) { startNote = ''; push(); } // the check worked now: the pill drops "Couldn't check for updates"
       return { ok: true, text: checkText(app.getVersion(), r?.isUpdateAvailable ? r.updateInfo.version : null) };
     } catch {
       return { ok: false, text: 'Could not check for updates (offline, or no release yet)' };

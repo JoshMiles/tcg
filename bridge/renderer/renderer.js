@@ -13,7 +13,6 @@ const setDot = (id, kind) => { $(id).className = 'dot' + (kind ? ' ' + kind : ''
 let state = null;
 let obsFormFilled = false;
 let nameFilled = false;
-let dismissedNote = '';
 
 function overlayText(o, scene) {
   if (!o.found) return 'Not found. Add the overlay as a browser source in OBS (the address is in Admin > Settings > OBS Overlay).';
@@ -177,15 +176,96 @@ async function loadWhatsNew() {
 function renderBanners() {
   $('rail-whatsnew').hidden = !state.whatsNew;
   if (state.whatsNew && state.whatsNew.open && !whatsNewOpened) { whatsNewOpened = true; showTab('whatsnew'); }
-  $('updated').hidden = !state.updatedTo;
-  $('updated-version').textContent = state.updatedTo;
-  const note = state.startNote && state.startNote !== dismissedNote ? state.startNote : '';
-  $('start-note').hidden = !note;
-  $('start-note-text').textContent = note;
-  $('update-banner').hidden = !state.update;
-  $('update-banner-text').textContent = state.update;
-  $('update-banner-restart').hidden = !state.updateVersion;
+  renderPill();
+  renderToast();
 }
+
+// The status pill (59.3): the app sends the items (src/status.ts); a row is text, a short why and one button.
+const pill = $('status-pill');
+const pop = $('status-pop');
+const setPop = open => { pop.hidden = !open; pill.setAttribute('aria-expanded', String(open)); };
+pill.addEventListener('click', () => setPop(pop.hidden));
+document.addEventListener('click', e => { if (!pop.hidden && !e.target.closest('.tb-status')) setPop(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !pop.hidden) { setPop(false); pill.focus(); } });
+$('status-pop').addEventListener('focusout', e => { if (e.relatedTarget && !e.relatedTarget.closest('.tb-status')) setPop(false); });
+
+/** Takes the streamer to the card that fixes an item: its tab opens, the card scrolls into view and gets the focus. */
+function goToCard(id) {
+  const card = $(id);
+  if (!card) return;
+  const panel = card.closest('[data-panel]');
+  if (panel) showTab(panel.dataset.panel);
+  card.scrollIntoView({ block: 'center' });
+  card.tabIndex = -1;
+  card.focus({ preventScroll: true });
+}
+
+async function fixItem(item, button) {
+  if (item.fix === 'restart') { window.bridge.restartToUpdate(); return; }
+  if (item.fix === 'goto') { setPop(false); goToCard(item.go); return; }
+  button.disabled = true;
+  $('status-result').className = 'result';
+  $('status-result').textContent = 'Working...';
+  try {
+    const r = await window.bridge.checkUpdate();
+    $('status-result').textContent = r.text;
+    $('status-result').className = 'result ' + (r.ok ? 'ok' : 'fail');
+  } catch {
+    $('status-result').textContent = 'Something went wrong';
+    $('status-result').className = 'result fail';
+  }
+  button.disabled = false;
+}
+
+let attentionKey = '';
+function renderPill() {
+  const items = state.attention || [];
+  const n = items.length;
+  setDot('status-dot', n ? 'warn' : 'ok');
+  const text = n === 0 ? 'All good' : n === 1 ? '1 thing needs you' : `${n} things need you`;
+  $('status-text').textContent = text;
+  pill.setAttribute('aria-label', `Status: ${text}. Show the list`);
+  $('status-empty').hidden = n > 0;
+  const key = JSON.stringify(items);
+  if (key === attentionKey) return;
+  attentionKey = key;
+  if (!n) $('status-result').textContent = '';
+  $('status-items').replaceChildren(...items.map(item => {
+    const li = document.createElement('li');
+    const box = document.createElement('div');
+    const title = document.createElement('b');
+    title.textContent = item.text;
+    const why = document.createElement('small');
+    why.textContent = item.detail;
+    box.append(title, why);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn plain';
+    button.textContent = item.button;
+    button.setAttribute('aria-label', `${item.button}: ${item.text}`);
+    button.addEventListener('click', () => { void fixItem(item, button); });
+    li.append(box, button);
+    return li;
+  }));
+}
+
+// "Updated to x" shows once as a toast for a few seconds, only while the window is on screen; it counts as seen when it goes.
+let toastTimer = 0;
+function endToast() {
+  clearTimeout(toastTimer);
+  toastTimer = 0;
+  $('toast').hidden = true;
+  void window.bridge.dismissUpdated();
+}
+function renderToast() {
+  const shown = !!state.updatedTo;
+  $('toast').hidden = !shown;
+  if (!shown) { clearTimeout(toastTimer); toastTimer = 0; return; }
+  $('toast-version').textContent = state.updatedTo;
+  if (!toastTimer && !document.hidden) toastTimer = setTimeout(endToast, 8000);
+}
+document.addEventListener('visibilitychange', () => { if (state) renderToast(); });
+$('toast-link').addEventListener('click', () => { if (state && state.whatsNew) showTab('whatsnew'); else window.bridge.openRelease(); endToast(); });
 
 // Pause pulls on scenes (57.2): the scenes OBS reported, plus any saved one OBS no longer lists, each with a checkbox.
 let scenePauseKey = '';
@@ -405,14 +485,10 @@ $('feed-stars').addEventListener('change', e => window.bridge.setFeed({ minStars
 $('feed-volume').addEventListener('change', e => window.bridge.setFeed({ volume: Number(e.target.value) / 100 }));
 $('summary-on').addEventListener('change', e => window.bridge.setSummary(e.target.checked));
 $('obs-autostart').addEventListener('change', e => window.bridge.setStartObs(e.target.checked));
-$('updated-link').addEventListener('click', () => { if (state && state.whatsNew) showTab('whatsnew'); else window.bridge.openRelease(); });
 $('open-release').addEventListener('click', () => window.bridge.openReleases());
 $('whatsnew-all').addEventListener('click', () => window.bridge.openReleases());
 $('whatsnew-all-empty').addEventListener('click', () => window.bridge.openReleases());
-$('update-banner-restart').addEventListener('click', () => window.bridge.restartToUpdate());
 $('restart-update').addEventListener('click', () => window.bridge.restartToUpdate());
-$('updated-dismiss').addEventListener('click', () => window.bridge.dismissUpdated());
-$('start-note-dismiss').addEventListener('click', () => { dismissedNote = state ? state.startNote : ''; render(); });
 
 // A button that runs an action in the app and writes the answer, in words, next to it.
 function action(buttonId, resultId, call) {
@@ -433,8 +509,8 @@ function action(buttonId, resultId, call) {
     button.disabled = false;
   });
 }
-action('test-mix', 'test-mix-result', () => window.bridge.testMixItUp($('test-name').value));
-action('test-chat', 'test-chat-result', () => window.bridge.testChat());
+action('test-mix', 'mix-result', () => window.bridge.testMixItUp($('test-name').value));
+action('test-chat', 'mix-result', () => window.bridge.testChat());
 action('test-obs', 'test-obs-result', () => window.bridge.testObs());
 $('checklist-run').addEventListener('click', async () => {
   $('checklist-run').disabled = true;
@@ -443,8 +519,8 @@ $('checklist-run').addEventListener('click', async () => {
   $('checklist-run').disabled = false;
   if (state) renderChecklist(state.checklist);
 });
-action('mix-start', 'mix-start-result', () => window.bridge.startMixItUp());
-action('mix-choose', 'mix-start-result', () => window.bridge.chooseMixItUp());
+action('mix-start', 'mix-result', () => window.bridge.startMixItUp());
+action('mix-choose', 'mix-result', () => window.bridge.chooseMixItUp());
 action('obs-choose', 'obs-choose-result', () => window.bridge.chooseObsExe());
 action('open-logs', 'help-result', () => window.bridge.openLogs());
 action('open-backups', 'backup-result', () => window.bridge.openBackups());
@@ -635,9 +711,10 @@ const activityTabOpen = () => !!state && state.staff && document.querySelector('
 async function loadActivity() {
   if (!activityTabOpen()) return;
   const r = await staffAsk({ op: 'activity' });
-  $('activity-result').textContent = r.ok ? (r.data.events.length ? '' : 'Nothing yet.') : r.text;
+  $('activity-result').textContent = r.ok ? '' : r.text;
   $('activity-result').className = 'result ' + (r.ok ? '' : 'fail');
   if (!r.ok) return;
+  $('activity-empty').hidden = r.data.events.length > 0;
   listOf($('activity-list'), r.data.events.map(e => { const li = document.createElement('li'); li.textContent = e.text; return li; }));
 }
 for (const b of document.querySelectorAll('.rail-btn')) b.addEventListener('click', () => { void loadActivity(); });

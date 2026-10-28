@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { BrowserWindow } from 'electron';
 import { Startup, type StartupEvent, type StartupStep } from './startup';
+import { attentionItems } from './status';
 
 export interface DemoContext {
   shots: string;
@@ -59,7 +60,8 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
     job(900, 'add', 'cheesehead', true, 'Gave 100 Brie Bucks'),
   ];
   const obs = { enabled: true, connected: true, error: '', scene: 'Main scene', streaming: true, overlay: { found: true, inProgram: true, visible: true, sourceName: 'TCG Overlay' } };
-  const state = (mixFound: boolean, extra: object = {}): object => ({
+  const state = (mixFound: boolean, extra: { startNote?: string; update?: string; updateVersion?: string; updatedTo?: string } = {}): object => ({
+    attention: attentionItems({ paired: true, updateVersion: extra.updateVersion ?? '', startNote: extra.startNote ?? '', site: 'connected', mixFound, obsEnabled: true, obsConnected: true }),
     startNote: '', paired: true, site: 'https://cheesytcg.app', pairedAs: 'STREAM-PC', startWithWindows: true, alerts: true,
     obsSettings: { enabled: true, address: 'ws://127.0.0.1:4455', hasPassword: true },
     mixItUp: { startWithBridge: false, path: 'C:\\Users\\streamer\\AppData\\Local\\MixItUp\\MixItUp.exe' },
@@ -69,17 +71,22 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
     ...extra,
   });
 
-  const shots: [string, object, string][] = [
+  const notes = { startNote: "Couldn't check for updates", update: 'Version 0.5.1 is available. Restart TCG Bridge to install it.', updateVersion: '0.5.1' };
+  const openPill = `document.getElementById('status-pill').click()`;
+  const shots: [string, object, string, string?][] = [
     ['main-1-status-connected', state(true), 'status'],
     ['main-2-status-mixitup-missing', state(false), 'status'],
-    ['main-3-status-banners', state(true, { startNote: "Couldn't check for updates", updatedTo: '0.5.0', update: 'Version 0.5.1 is available. Restart TCG Bridge to install it.', updateVersion: '0.5.1' }), 'status'],
+    ['main-3-status-pill-open', state(false, notes), 'status', openPill], // the pill's list open: update ready, couldn't check, Mix It Up
+    ['main-3b-updated-toast', state(true, { updatedTo: ctx.version }), 'status'], // "Updated to x" as a toast
     ['main-4-settings', state(true), 'settings'],
-    ['main-5-about', state(true, { update: 'Version 0.5.1 is available. Restart TCG Bridge to install it.', updateVersion: '0.5.1' }), 'about'],
-    ['main-6-pairing', { ...state(false), paired: false, site: 'https://cheesytcg.app', pairedAs: '', service: null }, 'status'],
+    ['main-5-about', state(true, { update: notes.update, updateVersion: notes.updateVersion }), 'about'],
+    ['main-6-pairing', { ...state(false), paired: false, site: 'https://cheesytcg.app', pairedAs: '', service: null, attention: attentionItems({ paired: false, updateVersion: '', startNote: '', site: null, mixFound: false, obsEnabled: false, obsConnected: false }) }, 'status'],
   ];
-  for (const [name, s, t] of shots) {
+  for (const [name, s, t, js] of shots) {
+    await w.webContents.executeJavaScript(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`); // closes the pill's list from the shot before
     ctx.setState(s);
     await tab(t);
+    if (js) await w.webContents.executeJavaScript(js);
     await wait(500);
     await capture(ctx, w, name);
     if (!ctx.shots) await wait(2500);
