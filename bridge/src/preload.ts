@@ -40,6 +40,7 @@ contextBridge.exposeInMainWorld('bridge', {
   checkUpdate: (): Result => ipcRenderer.invoke('check-update'),
   clearReleaseCache: (): Result => ipcRenderer.invoke('clear-release-cache'),
   setPause: (on: boolean): Result => ipcRenderer.invoke('pause', !!on),
+  setPauseAwards: (on: boolean): Result => ipcRenderer.invoke('pause-awards', !!on),
   copyButton: (i: number): Result => ipcRenderer.invoke('copy-button', Number(i)),
   setHotkeys: (map: Record<string, string>): Promise<Record<string, string>> => ipcRenderer.invoke('set-hotkeys', map),
   getQueue: (): Promise<{ ok: boolean; text: string; rows: { id: string; kind: string; username: string; pack: string; waitedS: number }[] }> => ipcRenderer.invoke('queue'),

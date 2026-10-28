@@ -1,5 +1,6 @@
 // The pre-stream checklist (ROADMAP 57.1): every part is looked at once, one line each. It changes nothing anywhere: no chat message, no charge.
 // Plain TypeScript, no Electron. The parts come in as small interfaces so the checks can use fakes.
+import { SUBSCRIPTIONS, type EsStatus } from './eventsub';
 import type { MixItUpClient } from './mixitup';
 import type { ObsState } from './obs';
 import { overlayText, testMixItUp } from './selftest';
@@ -21,6 +22,8 @@ export interface ChecklistParts {
   facts: () => Promise<SiteFacts>;
   obsEnabled: boolean;
   obsCheck: () => Promise<ObsState>;
+  /** Twitch EventSub (58.5): the app's own connection state; left out = no Twitch line. */
+  twitch?: EsStatus;
   now?: () => number;
   timeoutMs?: number;
 }
@@ -52,6 +55,15 @@ export function obsLines(enabled: boolean, s: ObsState | Error | null): Checklis
     s.connected ? ok('OBS', `Connected. Scene ${s.scene || 'unknown'}.`) : bad('OBS', s.error || 'Not connected to OBS.'),
     o.found && o.inProgram && o.visible ? ok('Overlay', overlayText(o, s.scene)) : bad('Overlay', overlayText(o, s.scene)),
   ];
+}
+
+/** The Twitch line (58.5): green when listening with every subscription enabled, red with the reason when not, grey when no channel is connected (or this PC may not listen). */
+export function twitchLine(s: EsStatus): ChecklistLine {
+  if (s.state === 'off' && (s.why === 'none' || s.why === 'forbidden')) return muted('Twitch', s.reason || 'No Twitch channel is connected.');
+  if (s.state !== 'connected') return bad('Twitch', s.reason || 'Not listening to Twitch.');
+  const missing = SUBSCRIPTIONS.filter(sub => !s.subs.some(x => x.type === sub.type && x.status === 'enabled'));
+  if (missing.length > 0) return bad('Twitch', `Listening, but ${plural(missing.length, 'subscription is', 'subscriptions are')} not enabled: ${missing.map(m => m.type).join(', ')}.`);
+  return ok('Twitch', `Listening to ${s.login || 'the channel'}${s.testing ? ' (a test account)' : ''}, all ${SUBSCRIPTIONS.length} subscriptions enabled.`);
 }
 
 /** Ready when no line is red. */
@@ -86,6 +98,7 @@ export async function runChecklist(p: ChecklistParts): Promise<ChecklistResult> 
     facts instanceof Error ? bad('Site', facts.message || 'The site did not answer.') : ok('Site', 'Paired and the site answers.'),
     mix instanceof Error ? bad('Mix It Up', mix.message) : { label: 'Mix It Up', tone: mix.ok ? 'ok' : 'bad', text: mix.text },
     ...obsLines(p.obsEnabled, obs),
+    ...(p.twitch ? [twitchLine(p.twitch)] : []),
     ...(facts instanceof Error ? ['Season', 'Packs', 'Pull queue', 'Pulls'].map(l => bad(l, 'Not known because the site did not answer.')).concat(muted('Happy hour', 'Not known because the site did not answer.')) : siteLines(facts, now)),
   ];
   return { lines, ...overall(lines) };

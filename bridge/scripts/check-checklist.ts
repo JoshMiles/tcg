@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { overall, runChecklist, siteLines, type ChecklistParts, type SiteFacts } from '../src/checklist';
 import type { MixItUpClient } from '../src/mixitup';
 import type { ObsState } from '../src/obs';
+import { SUBSCRIPTIONS, type EsStatus } from '../src/eventsub';
 import { SiteClient, Unauthorized } from '../src/site';
 
 const CUR = '11111111-2222-3333-4444-555555555555';
@@ -23,6 +24,18 @@ export async function checklistChecks(): Promise<void> {
   assert.deepEqual(r.lines.map(l => l.label), ['Site', 'Mix It Up', 'OBS', 'Overlay', 'Season', 'Packs', 'Pull queue', 'Pulls', 'Happy hour']);
   assert.ok(r.lines.every(l => l.tone === (l.label === 'Happy hour' ? 'muted' : 'ok')), 'green, and the happy hour grey');
   assert.match(line(r, 'Mix It Up').text, /Mix It Up 1\.10 answers\..*josh has 7 Brie Bucks/);
+
+  // The Twitch line (58.5): left out without a status; grey with no channel; red with the reason; red when a subscription is missing; green when all are enabled.
+  const es = (over: Partial<EsStatus> = {}): EsStatus => ({ state: 'connected', why: '', reason: '', login: 'josh', testing: false, subs: SUBSCRIPTIONS.map(s => ({ type: s.type, status: 'enabled' as const })), lastEventAt: null, since: null, ...over });
+  r = await runChecklist(parts({ twitch: es() }));
+  assert.deepEqual(r.lines.map(l => l.label), ['Site', 'Mix It Up', 'OBS', 'Overlay', 'Twitch', 'Season', 'Packs', 'Pull queue', 'Pulls', 'Happy hour']);
+  assert.ok(r.ready && line(r, 'Twitch').tone === 'ok' && /Listening to josh, all 6 subscriptions enabled/.test(line(r, 'Twitch').text));
+  r = await runChecklist(parts({ twitch: es({ state: 'off', why: 'none', reason: 'No Twitch channel is connected.', subs: [] }) }));
+  assert.ok(r.ready && line(r, 'Twitch').tone === 'muted', 'no channel connected is grey and does not block');
+  r = await runChecklist(parts({ twitch: es({ state: 'reconnecting', why: 'twitch', reason: 'Twitch is not reachable.', subs: [] }) }));
+  assert.ok(!r.ready && line(r, 'Twitch').tone === 'bad' && line(r, 'Twitch').text === 'Twitch is not reachable.', 'red with the reason');
+  r = await runChecklist(parts({ twitch: es({ subs: es().subs.slice(0, 4) }) }));
+  assert.ok(!r.ready && /not enabled: stream\.online, stream\.offline/.test(line(r, 'Twitch').text) && /2 subscriptions are/.test(line(r, 'Twitch').text), 'a missing subscription is red');
 
   // Mix It Up closed, the currency missing, no channel yet
   r = await runChecklist(parts({ mix: mixDown }));

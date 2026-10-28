@@ -26,6 +26,7 @@ import { readEventSub, recentTwitchEvents } from '@/lib/twitch-events';
 import { lineText, listeningLine } from '@/lib/twitch-events-core';
 import { fetchRewards, readAwards } from '@/lib/twitch-awards';
 import { testingLine } from '@/lib/twitch-channel-core';
+import { awardsPaused } from '@/lib/twitch-awards';
 import { MixItUpConfig } from './MixItUpConfig';
 import { MixItUpLog } from './MixItUpLog';
 import { StreamDeckTab } from './StreamDeckTab';
@@ -78,11 +79,11 @@ async function twitchView() {
   const c = await readChannelStatus();
   if (!c) return null;
   // 58.2: what TCG Bridge says about its EventSub connection, and the newest events it forwarded.
-  const [sub, events] = await Promise.all([readEventSub(), recentTwitchEvents(8)]);
+  const [sub, events, awardsOff] = await Promise.all([readEventSub(), recentTwitchEvents(8), awardsPaused()]);
   const listening = listeningLine(sub, events[0] ?? null, Date.now(), timeAgo);
   const off = sub && sub.state !== 'connected' ? sub.reason || (sub.state === 'off' ? 'TCG Bridge is not listening' : 'TCG Bridge is reconnecting to Twitch') : '';
   return {
-    login: c.login, scopes: c.scopes, since: timeAgo(c.connectedAt), by: c.by, testing: c.testing, testingLine: testingLine(c.login),
+    login: c.login, scopes: c.scopes, since: timeAgo(c.connectedAt), by: c.by, testing: c.testing, testingLine: testingLine(c.login), awardsPaused: awardsOff,
     listening, problem: listening ? '' : off || (sub ? 'TCG Bridge has not reported lately' : 'TCG Bridge has not reported a Twitch connection yet'),
     events: events.map(e => ({ text: lineText(e), ago: timeAgo(e.at) })),
   };
