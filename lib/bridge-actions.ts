@@ -6,12 +6,12 @@ import { recordAudit } from './audit';
 import { bridgeQueue, type BridgeToken } from './bridge';
 import { getTradeSettings } from './trades';
 import { getBuffDef, getBuffDefs } from './buffs';
-import { isPullsPaused, setPullsPaused } from './pull-pause';
+import { isPullsPaused, pauseReason, setPullsPaused, setScenePause } from './pull-pause';
 import { clearQueueRefunding, skipNext } from './queue-control';
 import { LAST_BUFF, runStreamDeck } from './streamdeck';
 
 const BY = 'TCG Bridge';
-export interface BridgeActionResult { ok: boolean; message: string; paused?: boolean; buffs?: { id: string; name: string }[]; /** ROADMAP 55.12: this PC's staff switch, and (with it) whether trading is paused. */ staff?: boolean; tradingPaused?: boolean }
+export interface BridgeActionResult { ok: boolean; message: string; paused?: boolean; /** Why pulls are paused: "scene <name>", or '' for a pause set by hand (57.2). */ reason?: string; buffs?: { id: string; name: string }[]; /** ROADMAP 55.12: this PC's staff switch, and (with it) whether trading is paused. */ staff?: boolean; tradingPaused?: boolean }
 const done = (ok: boolean, message: string, extra: Partial<BridgeActionResult> = {}): BridgeActionResult => ({ ok, message, ...extra });
 const words = async (r: Promise<{ ok: boolean; message: string }>) => { const x = await r; return done(x.ok, x.message || 'That buff is not switched on for the Stream Deck.'); };
 
@@ -19,7 +19,7 @@ export async function runBridgeAction(body: Record<string, unknown>, pc?: Bridge
   switch (body.action) {
     case 'status': {
       const buffs = (await getBuffDefs()).filter(b => b.streamDeck && b.type !== 'grant-achievement').map(b => ({ id: b.id, name: b.name }));
-      return done(true, '', { paused: await isPullsPaused(), buffs, staff: !!pc?.staff, ...(pc?.staff ? { tradingPaused: !(await getTradeSettings()).enabled } : {}) });
+      return done(true, '', { paused: await isPullsPaused(), reason: await pauseReason(), buffs, staff: !!pc?.staff, ...(pc?.staff ? { tradingPaused: !(await getTradeSettings()).enabled } : {}) });
     }
     case 'buff': {
       const def = typeof body.id === 'string' ? await getBuffDef(body.id) : null;
@@ -33,7 +33,13 @@ export async function runBridgeAction(body: Record<string, unknown>, pc?: Bridge
     case 'pause': {
       const on = typeof body.on === 'boolean' ? body.on : !(await isPullsPaused());
       if (await setPullsPaused(on)) await recordAudit('everyone', `${BY}: pulls ${on ? 'paused' : 'resumed'}`);
-      return done(true, on ? 'Pulls are paused.' : 'Pulls are open.', { paused: on });
+      return done(true, on ? 'Pulls are paused.' : 'Pulls are open.', { paused: on, reason: await pauseReason() });
+    }
+    case 'scene-pause': { // ROADMAP 57.2: `scene` is the OBS scene on air when it is one the streamer picked, else null
+      const scene = typeof body.scene === 'string' && body.scene.trim() ? body.scene.trim().slice(0, 100) : null;
+      if (await setScenePause(scene)) await recordAudit('everyone', `${BY}: pulls ${scene ? `paused (scene ${scene})` : 'resumed (left the scene)'}`);
+      const paused = await isPullsPaused();
+      return done(true, paused ? 'Pulls are paused.' : 'Pulls are open.', { paused, reason: await pauseReason() });
     }
     case 'refresh':
       return (await bridgeQueue({ kind: 'obs-refresh' })) ? done(true, 'Refreshing the overlay in OBS.') : done(false, 'The overlay could not be refreshed.');

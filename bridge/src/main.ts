@@ -19,6 +19,7 @@ import { checkObs, sendTestChat, testMixItUp, type TestResult } from './selftest
 import { BridgeService, type TrayLevel } from './service';
 import { cleanNotice, NOTICE_KINDS, type NoticeKind } from './notices';
 import { StaffTools } from './staff';
+import { cleanScenePause, ScenePause } from './scenepause';
 import { FileSettingsStore, defaults, type Settings } from './settings';
 import { cleanSite, pair, SiteClient, Unauthorized, type QueueRow } from './site';
 import { Startup, type StartupEvent, type StartupStep } from './startup';
@@ -55,6 +56,8 @@ let control: ControlServer | null = null; // the Stream Deck buttons (control.ts
 let hotkeys: Hotkeys | null = null;
 let hotkeyErrors: Partial<Record<HotkeyName, string>> = {};
 let paused: boolean | null = null; // pulls paused on the site; null until the site has said
+let pauseReason = ''; // why pulls are paused: "scene <name>" when a chosen OBS scene did it (57.2), else ''
+let scenePause: ScenePause | null = null; // pauses pulls while a chosen OBS scene is on air (57.2)
 let buffs: { id: string; name: string }[] = []; // the buffs switched on for the Stream Deck
 let staff = false; // the site says an admin switched "Staff tools on this PC" on (55.12)
 let tradingPaused = false;
@@ -97,7 +100,8 @@ const appState = (): object => demoState ?? ({
   staff,
   checklist: lastChecklist,
   notices: settings.notices,
-  control: { error: control?.error ?? '', paused, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
+  scenePause: { ...settings.scenePause, obsScenes: sceneList() },
+  control: { error: control?.error ?? '', paused, reason: pauseReason, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
   appVersion: app.getVersion(),
   about: aboutParts(app.getVersion(), build),
   update: updateText(update),
@@ -123,7 +127,8 @@ function push(): void {
   tray?.setToolTip(`TCG Bridge: ${TRAY_TEXT[level]}`);
   if (win && !win.isDestroyed()) win.webContents.send('state', appState());
   tickAlerts();
-  const menu = `${paused}${!!client}${staff}${tradingPaused}${staff ? sceneList().join('|') : ''}`;
+  scenePause?.update(settings.scenePause, !!service?.state.obs.connected, service?.state.obs.scene ?? '');
+  const menu =`${paused}${!!client}${staff}${tradingPaused}${staff ? sceneList().join('|') : ''}`;
   if (menu !== menuFor) { menuFor = menu; tray?.setContextMenu(trayMenu()); }
   if (service?.state.site === 'revoked' && settings.token) { // the site revoked this PC: forget the token so a restart does not retry it
     log('The site revoked this PC');
@@ -137,7 +142,7 @@ async function runControl(a: ControlAction): Promise<ControlResult> {
   if (!client) return { ok: false, text: 'Pair TCG Bridge first' };
   try {
     const r = await client.action(a);
-    if (typeof r.paused === 'boolean') paused = r.paused;
+    if (typeof r.paused === 'boolean') { paused = r.paused; pauseReason = r.reason ?? ''; }
     lastControl = r.message;
     log(`Control ${a.action}: ${r.ok ? 'ok' : 'failed'}, ${r.message}`);
     queueAt = 0;
@@ -154,6 +159,7 @@ async function loadStatus(): Promise<void> {
     const r = await client?.action({ action: 'status' });
     if (!r) return;
     paused = r.paused ?? paused;
+    if (typeof r.paused === 'boolean') pauseReason = r.reason ?? '';
     buffs = r.buffs ?? buffs;
     staff = r.staff === true;
     tradingPaused = staff && (r.tradingPaused ?? tradingPaused);
@@ -176,6 +182,13 @@ function connect(): void {
   ledger ??= new Ledger(join(app.getPath('userData'), 'ledger.json'));
   service = new BridgeService({ client: site, mix: new MixItUpClient(), obs, onChange: push, log, ledger, backupDir: backupDir(), sinks: { feed: showPull, summary: showSummary, notice: showNotice } });
   staffTools = new StaffTools({ client: site, mix: new MixItUpClient(), obs, currencyId: () => service?.state.currencyId ?? '', openExternal: url => shell.openExternal(url) });
+  scenePause = new ScenePause(async scene => {
+    const r = await site.action({ action: 'scene-pause', scene });
+    if (!r.ok) throw new Error(r.message);
+    if (typeof r.paused === 'boolean') { paused = r.paused; pauseReason = r.reason ?? ''; }
+    log(`Scene pause: ${scene ? `${scene} is on air` : 'left a chosen scene'}, ${r.message}`);
+    push();
+  });
   service.start();
   push();
   void loadStatus();
@@ -187,6 +200,9 @@ async function disconnect(): Promise<void> {
   service = null;
   client = null;
   paused = null;
+  pauseReason = '';
+  scenePause?.stop();
+  scenePause = null;
   lastChecklist = null;
   buffs = [];
   staff = false;
@@ -570,6 +586,11 @@ function setupIpc(): void {
   ipcMain.handle('set-notice', async (_e, kind: unknown, on: unknown) => {
     if (!NOTICE_KINDS.some(k => k === kind)) return;
     settings = { ...settings, notices: { ...settings.notices, [kind as NoticeKind]: !!on } };
+    await store.save(settings);
+    push();
+  });
+  ipcMain.handle('set-scene-pause', async (_e, raw: unknown) => { // pause pulls on chosen scenes (57.2)
+    settings = { ...settings, scenePause: cleanScenePause(raw) };
     await store.save(settings);
     push();
   });

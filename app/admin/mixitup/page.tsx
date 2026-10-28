@@ -17,7 +17,7 @@ import { packSetup } from '@/lib/mixitup-setup';
 import { CHANNEL_LOGIN, SITE_URL } from '@/lib/site';
 import { listBridges, readBridge, readObs } from '@/lib/bridge';
 import { readWatchdogAt } from '@/lib/overlay-watchdog';
-import { isPullsPaused, pauseChatOn } from '@/lib/pull-pause';
+import { isPullsPaused, pauseChatOn, pauseReason } from '@/lib/pull-pause';
 import { CommandsPanel } from './CommandsPanel';
 import { ConnectionTab } from './ConnectionTab';
 import { MixItUpConfig } from './MixItUpConfig';
@@ -83,7 +83,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
       numbers: streamNumbers(log, cmdLog, (await kv.get<number>('twitch:live:since')) || null, now),
       recent: [...log, ...cmdLog].sort((a, b) => b.at - a.at).slice(0, 5),
       streamExtra: streamBuffAmount(await getStreamBuff(), await currentStreamKey()),
-      paused: await isPullsPaused(), pauseChat: await pauseChatOn(),
+      paused: await isPullsPaused(), pauseReason: await pauseReason(), pauseChat: await pauseChatOn(),
       testViewers: settings.testViewers, paidOn: settings.enabled, sandbox: await inSandbox(), tests: await recentTests(), uptime: await readUptime(), checklist: await readChecklist(),
     };
   };

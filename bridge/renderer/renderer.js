@@ -70,6 +70,9 @@ function renderControl() {
   if (!c) return;
   $('control-pause').checked = !!c.paused;
   $('control-pause').disabled = c.paused === null;
+  const byScene = c.paused && typeof c.reason === 'string' && c.reason.startsWith('scene ');
+  $('control-reason').hidden = !byScene;
+  $('control-reason').textContent = byScene ? 'Paused by scene: ' + c.reason.slice(6) : '';
   if (c.last) $('control-last').textContent = c.last;
   $('control-error').textContent = c.error;
   if (!hotkeysFilled) { // once; later renders must not overwrite what is being typed
@@ -113,6 +116,37 @@ function renderBanners() {
   $('update-banner-text').textContent = state.update;
 }
 
+// Pause pulls on scenes (57.2): the scenes OBS reported, plus any saved one OBS no longer lists, each with a checkbox.
+let scenePauseKey = '';
+function saveScenePause() {
+  const scenes = [...$('scene-pause-list').querySelectorAll('input')].filter(i => i.checked).map(i => i.value);
+  window.bridge.setScenePause({ on: $('scene-pause-on').checked, scenes });
+}
+function renderScenePause() {
+  const sp = state.scenePause;
+  if (!sp) return;
+  $('scene-pause-on').checked = sp.on;
+  const names = [...new Set([...sp.obsScenes, ...sp.scenes])];
+  $('scene-pause-empty').hidden = names.length > 0;
+  $('scene-pause-empty').textContent = 'No scenes yet. Connect TCG Bridge to OBS (Status page) and they appear here.';
+  const key = JSON.stringify([names, sp.scenes, sp.obsScenes]);
+  if (key === scenePauseKey) return;
+  scenePauseKey = key;
+  $('scene-pause-list').replaceChildren(...names.map(name => {
+    const li = document.createElement('li');
+    const label = document.createElement('label');
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.value = name;
+    box.checked = sp.scenes.includes(name);
+    box.addEventListener('change', saveScenePause);
+    label.append(box, document.createTextNode(sp.obsScenes.includes(name) ? name : name + ' (not in OBS now)'));
+    li.append(label);
+    return li;
+  }));
+}
+$('scene-pause-on').addEventListener('change', saveScenePause);
+
 function render() {
   if (!state) return;
   const svc = state.service;
@@ -149,6 +183,7 @@ function render() {
   $('obs-path').textContent = state.tools.obsPath;
   renderBanners();
   renderControl();
+  renderScenePause();
   const level = svc ? svc.tray : 'offline';
   setDot('rail-dot', level === 'connected' ? 'ok' : level === 'partly' ? 'warn' : '');
   $('rail-text').textContent = state.paired ? TRAY_TEXT[level] : 'Not paired';
