@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { formatBytes, loadDataHealth, BLOB_WARN_BYTES, BLOB_HIGH_BYTES, type HealthLevel } from '@/lib/data-health';
+import { errorsLast24h } from '@/lib/bridge-errors';
 import { getActiveSeason, OLD_COPY_DAYS } from '@/lib/kv';
 import { deleteOldCollectionCopiesAction, finishMoveAction, releaseStuckEscrowAction } from '../trade-actions';
 import { PendingButton } from '@/app/components/PendingButton';
@@ -14,9 +15,15 @@ const n = (v: number) => v.toLocaleString();
 export async function DataHealthPanel() {
   const active = await getActiveSeason().catch(() => null);
   const h = await loadDataHealth(active?.id ?? null);
+  const bridgeErrors = await errorsLast24h().catch(() => 0);
   return (
     <Panel title="Data health" icon="database" hint={`Each season's collection is stored per viewer, so a pull, trade or upgrade only touches the viewers involved. The leaderboard, search and admin lists still read the whole season; it is flagged at ${formatBytes(BLOB_WARN_BYTES)} and again at ${formatBytes(BLOB_HIGH_BYTES)}. Trades and the activity log are capped, so they stay small. Measured just now.`}>
-      {h.seasons.length === 0 ? <p className="text-sm text-gray-500">No published seasons yet.</p> : (
+      {bridgeErrors > 0 && (
+        <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
+          TCG Bridge reported {n(bridgeErrors)} error{bridgeErrors === 1 ? '' : 's'} in the last 24 hours. <Link href="/admin/mixitup?tab=connection#bridge-errors" className="underline hover:text-white">See the list</Link>
+        </p>
+      )}
+      {h.seasons.length === 0 ?<p className="text-sm text-gray-500">No published seasons yet.</p> : (
         <>
         <ul className="sm:hidden space-y-2">
           {h.seasons.map(s => (
