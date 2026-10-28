@@ -8,7 +8,7 @@
 
 ## The project
 
-A trading card game played live on stream: an OBS overlay where viewers pull cards, an admin panel (seasons, packs, cards), a public site (profiles, binder, dex, leaderboard, trading) and a Twitch Extension panel. Production: `https://cheesytcg.app` (Vercel, Next.js 15, KV + Blob). Data is Seasons → Packs → Cards in KV (see [docs/data-architecture.md](docs/data-architecture.md)). Open work and the rules in force live in `ROADMAP.md` (short, open items only); read it before starting anything non-trivial.
+A trading card game played live on stream: an OBS overlay where viewers pull cards, an admin panel (seasons, packs, cards), a public site (profiles, binder, dex, leaderboard, trading) and a Twitch Extension panel. Production: `https://cheesytcg.app` (Vercel, Next.js 16, KV + Blob). Data is Seasons → Packs → Cards in KV (see [docs/data-architecture.md](docs/data-architecture.md)). Open work and the rules in force live in `ROADMAP.md` (short, open items only); read it before starting anything non-trivial.
 
 **The game runs only on the Cheesygidds Twitch channel (https://www.twitch.tv/cheesygidds).** Say so in public copy (FAQ, Terms, Privacy, home, footer) and use `CHANNEL_NAME` / `CHANNEL_URL` from `lib/site.ts`, never a hard-coded name or URL.
 

@@ -22,11 +22,10 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 47 | Access hardening (47.11) | Blocked (Josh, from 2026-11-02) | S |
 | 50 | Swap finder trial (50.3) | Blocked (trial readout from 2026-11-24) | S |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
-| 56 | TCG Bridge: version rule and automatic releases, commit on the About tab, dashboard card, README rewrite (56.1 to 56.3) | Ready | M |
-| 57 | TCG Bridge features: checklist, scene pause, happy hour, OBS stats, pack goal, raid shout-out, event feed, command check, errors on the dashboard, overlay preview, what's new, beta and rollback, Stream Deck plugin (57.1 to 57.13) | Ready after Track 56 (57.12 and 57.13 need design) | L |
-| 58 | Twitch through TCG Bridge: connect the channel, EventSub in the app, awards for existing channel points rewards, bits / subs / raids, chat commands replacing the Mix It Up ones (58.1 to 58.6) | Ready after Track 56 | L |
+| 57 | TCG Bridge features: checklist, scene pause, happy hour, OBS stats, pack goal, raid shout-out, event feed, command check, errors on the dashboard, overlay preview, what's new, beta and rollback, Stream Deck plugin (57.1 to 57.13) | Ready (57.12 and 57.13 need design) | L |
+| 58 | Twitch through TCG Bridge: connect the channel, EventSub in the app, awards for existing channel points rewards, bits / subs / raids, chat commands replacing the Mix It Up ones (58.1 to 58.6) | Ready | L |
 
-Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52, 54 and 55 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
+Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52 and 54 to 56 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
 ## Track 35: home-screen app (2026-10-20)
 
@@ -59,24 +58,9 @@ Checked against the code on 2026-10-25, most of the 16 breaking changes need not
 ### 43.3 Rename `middleware.ts` to `proxy.ts` (Blocked: panel freeze, S)
 The file holds the extension's CORS rules, which stay as submitted while panel 0.0.2 is under review (Rules in force). Pick this up when the review is back. `proxy.ts` runs on Node only; today the file runs on edge and reads through `lib/admin-auth-edge` and `lib/access-edge`. Rename the file and its export (the codemod does both), then test the admin and mod gates, the access gate and the `/api/twitch/*` CORS answers (the panel's requests from the Twitch origin) on a preview deployment. Drop the `-edge` variants only if nothing else uses them.
 
-## Track 56: TCG Bridge versions, releases and docs (2026-10-28)
-
-Josh: every PR that touches TCG Bridge bumps its minor version; the app's info screen shows the commit it was built from; the admin dashboard shows the latest TCG Bridge; the README needs a big update. Today the app is 0.11.0 (`bridge/package.json`); 0.6.0 to 0.10.0 were bumped but never released, because a release needs a hand-pushed `bridge-v*` tag (`.github/workflows/bridge.yml`). Read `bridge/README.md` and `docs/admin/mixitup.md` ("TCG Bridge") first. One PR per item, in order.
-
-### 56.1 Version rule, automatic releases, commit on the About tab (Ready, M)
-1. **Rule:** a PR that changes anything under `bridge/` (except `bridge/README.md`) must raise the minor of `bridge/package.json` `version` above `main`'s, patch reset to 0 (0.11.0 to 0.12.0); `bridge/package-lock.json`'s two version fields match. A new step in the workflow's PR job fails with the reason in words otherwise. Write the rule in `CLAUDE.md` (Gotchas, one line) and `bridge/README.md`.
-2. **Releases without a tag:** on a push to `main` that changes `bridge/package.json`'s version, the workflow builds the installer and publishes release `bridge-v<version>` itself (a tag pushed by the workflow's token would not start another run, so build in the same run). Skip if that release already exists. Hand-pushed tags keep working. The release notes are the merged PR's title and its Changelog bullets, plus the commit.
-3. **Commit stamp:** the build writes the commit (short and full SHA from `GITHUB_SHA`, else `git rev-parse`), the build date and the PR number into the packaged app (a generated JSON file or electron-builder `extraMetadata`, never committed). The About tab shows "Version 0.12.0, built from <short sha> (PR #N) on <date>", the sha linking to the commit on GitHub. **Copy diagnostics** includes it. The app sends the short sha with its `hello` so the site knows it too (`cleanHello` keeps accepting an older app without it).
-
-### 56.2 TCG Bridge on the admin dashboard (Ready, S to M)
-A card on `/admin` (staff who can see the Mix It Up page only): the latest release (version, date, commit, link to the release and the installer), from the GitHub releases API (`bridge-v*`, newest by date), cached in KV for 10 minutes; a failed lookup shows the cached one with "could not check GitHub" and never breaks the page. Beside it the connected app (from the bridge's `hello`: version, commit, last seen, connected or not) and "Out of date: 0.11.0 running, 0.12.0 available" when they differ. The Mix It Up page's Connection tab shows the same line. The Download TCG Bridge button keeps pointing at the newest release.
-
-### 56.3 README rewrite (Ready, M)
-`README.md` predates Tracks 53 to 56: rewrite it for someone new to the project. What the site is (the overlay, the public site, the Twitch panel, the Mix It Up integration and TCG Bridge), how the pieces connect (one short diagram in text), running it locally (point to `docs/local-dev.md`), checks, deploys and versions (site and bridge), the docs index (every area doc, one line each, matching `CLAUDE.md`'s table), and how work is done (ROADMAP, one feature per PR). Bring `bridge/README.md` up to date with 0.11.0's features and 56.1. No em dashes.
-
 ## Track 57: TCG Bridge features (2026-10-28)
 
-Josh picked all thirteen (2026-10-28). Starts after Track 56 (every item bumps the bridge minor and releases itself, 56.1). Read `bridge/README.md` and `docs/admin/mixitup.md` ("TCG Bridge") first. One PR per item, in this order unless an item says otherwise. Everything new is off by default and switched on in the app's Settings tab or on the site's Mix It Up page, like the 0.9.0 streamer tools. The app only acts on scene, source and command names it reported itself (the 0.6.0 rule).
+Josh picked all thirteen (2026-10-28). Every item that changes bridge/ bumps the bridge minor and releases itself on merge (56.1). Read `bridge/README.md` and `docs/admin/mixitup.md` ("TCG Bridge") first. One PR per item, in this order unless an item says otherwise. Everything new is off by default and switched on in the app's Settings tab or on the site's Mix It Up page, like the 0.9.0 streamer tools. The app only acts on scene, source and command names it reported itself (the 0.6.0 rule).
 
 ### 57.1 Pre-stream checklist (Ready, M)
 A **Checklist** button (Status tab and tray) runs every check at once and shows one line each, green or red with the reason in words: paired with the site; Mix It Up found, the chosen currency exists, a balance can be read for the channel; OBS connected; the TCG overlay source is in the scene on air and visible; an active season with openable packs (asked from the site); the pull queue empty; pulls not paused; happy hour state. Reuses the existing self-tests (`src/selftest.ts`); running it changes nothing. The site's Overview tab shows the last result and when it ran.
@@ -119,7 +103,7 @@ A native Elgato Stream Deck plugin (Stream Deck SDK, Node) that talks to TCG Bri
 
 ## Track 58: Twitch events through TCG Bridge (2026-10-28)
 
-Josh: bring Twitch features into TCG Bridge and the admin portal, for example awards for specific channel points rewards, using the Twitch API. Today the site signs viewers in with no scopes and calls Helix with an app access token (`lib/twitch-helix.ts`); events come only through Mix It Up (55.4g). Read `bridge/README.md`, `docs/admin/mixitup.md` ("TCG Bridge", "Event rewards") and `docs/staff.md` (Twitch sign-in) first. Starts after Track 56; one PR per item; every bridge PR bumps the minor (56.1).
+Josh: bring Twitch features into TCG Bridge and the admin portal, for example awards for specific channel points rewards, using the Twitch API. Today the site signs viewers in with no scopes and calls Helix with an app access token (`lib/twitch-helix.ts`); events come only through Mix It Up (55.4g). Read `bridge/README.md`, `docs/admin/mixitup.md` ("TCG Bridge", "Event rewards") and `docs/staff.md` (Twitch sign-in) first. One PR per item; every bridge PR bumps the minor and releases itself (56.1).
 
 **Decisions (Josh, 2026-10-28).**
 1. TCG Bridge is always open while streaming, so it receives the events: an EventSub WebSocket in the app, not webhooks on the site.
