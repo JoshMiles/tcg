@@ -8,7 +8,8 @@ import { attentionItems } from './status';
 import { connectionRows } from './connections';
 import { clock, type EventLine } from './events';
 import type { ChecklistLine } from './checklist';
-import { viewerFacts } from './staffpages';
+import { staffActionsFor, viewerFacts } from './staffpages';
+import { accountLabel } from './signin';
 import { FEED_KEEP, filterFeed, mergeFeed, readySummary, streamNumbers, type PullEntry } from './home';
 
 export interface DemoContext {
@@ -94,14 +95,14 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
   const scenePause = { on: true, scenes: ['Be right back'], obsScenes: ['Main scene', 'Be right back'] };
   const obsStats = { map: {}, texts: ['Pulls text'], stats: [{ id: 'packs', label: 'Packs this stream' }] };
   const notices = { attention: true, feedback: true, refusal: true, deploy: true };
-  const state = (mixFound: boolean, extra: { startNote?: string; update?: string; updateVersion?: string; updatedTo?: string; staff?: boolean; whatsNew?: { open: boolean } } = {}): object => ({
+  const state = (mixFound: boolean, extra: { startNote?: string; update?: string; updateVersion?: string; updatedTo?: string; staff?: boolean; staffCan?: string[]; account?: string; whatsNew?: { open: boolean } } = {}): object => ({
     control, scenePause, obsStats, notices, pcName: 'STREAM-PC', staff: false, whatsNew: null, home, queue, events: [], commandsMissing: mixFound ? [] : null,
     checklist: readySummary({ ready: mixFound, at: now - 120_000, lines: mixFound ? checklistLines : checklistLines.map(l => (l.label === 'Mix It Up' ? { ...l, tone: 'bad' as const, text: 'Not answering. Open Mix It Up and switch its Developer API on.' } : l)) }),
     attention: attentionItems({ paired: true, updateVersion: extra.updateVersion ?? '', startNote: extra.startNote ?? '', site: 'connected', mixFound, obsEnabled: true, obsConnected: true, deckReason: '' }),
-    connections: connectionRows({ paired: true, pairedAs: 'STREAM-PC', site: 'connected', siteError: '', mixFound, obsEnabled: true, obsConnected: true, obsStreaming: true, obsError: '', deckInstalled: true, deckOn: true, deckConnected: true, deckError: '', deckSeen: true }),
+    connections: connectionRows({ paired: true, pairedAs: 'STREAM-PC', login: 'cheesygidds', role: 'admin', site: 'connected', siteError: '', mixFound, obsEnabled: true, obsConnected: true, obsStreaming: true, obsError: '', deckInstalled: true, deckOn: true, deckConnected: true, deckError: '', deckSeen: true }),
     liveSince: now - 47 * 60_000,
     deck: { on: true, error: '', connected: true, found: true, installed: ctx.version, offer: false },
-    startNote: '', paired: true, site: 'https://cheesytcg.app', pairedAs: 'STREAM-PC', startWithWindows: true, alerts: true,
+    startNote: '', paired: true, site: 'https://cheesytcg.app', pairedAs: 'STREAM-PC', account: accountLabel({ login: 'cheesygidds', role: 'admin', pairedAs: 'STREAM-PC' }), linked: true, staffCan: null, signIn: null, startWithWindows: true, alerts: true,
     obsSettings: { enabled: true, address: 'ws://127.0.0.1:4455', hasPassword: true },
     mixItUp: { startWithBridge: false, path: 'C:\\Users\\streamer\\AppData\\Local\\MixItUp\\MixItUp.exe' },
     tools: { feed: { on: false, minStars: 4, volume: 0.5, muted: false, onTop: false }, summary: false, startObs: false, obsPath: 'C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe' },
@@ -117,6 +118,7 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
   const viewer = { username: 'brie_fan', copies: 38, unique: 24, rank: 3, of: 112, bucks: 420, blocked: false, pulls: [{ text: 'Gouda Goat (Holo)' }, { text: 'Brie Bear' }, { text: 'Swiss Sloth' }], refusals: [{ text: 'Packs are paused' }] };
   const staffReads = `staffState = ${JSON.stringify({ tradingPaused: false, extra: 2, variants: [{ id: 'regular', label: 'Regular' }, { id: 'holo', label: 'Holo' }], scenes: ['Main scene', 'Be right back', 'Starting soon'] })}; renderStaff();`;
   const viewerCard = `${staffReads} showViewer(${JSON.stringify({ ...viewer, facts: viewerFacts({ ...viewer }) })}); document.getElementById('staff-card').value = '#12 Gouda Goat'; document.getElementById('staff-viewer-result').textContent = 'Gifted 2 packs to brie_fan.'; document.getElementById('staff-viewer-result').className = 'result ok';`;
+  const unlinked = { ...state(false), paired: false, linked: false, account: '', site: 'https://cheesytcg.app', pairedAs: '', service: null, attention: attentionItems({ paired: false, updateVersion: '', startNote: '', site: null, mixFound: false, obsEnabled: false, obsConnected: false, deckReason: '' }) };
   const shots: [string, object, string, string?][] = [
     ['main-1-home-connected', state(true), 'home'], // the busy dashboard at 1280 x 800: chips, pulls, happy hour, queue, numbers, feed
     ['main-1b-home-staff', state(true, { staff: true }), 'home'],
@@ -136,7 +138,11 @@ export async function runDemo(ctx: DemoContext): Promise<void> {
     ['main-13-staff-this-stream', state(true, { staff: true }), 'stream', staffReads], // extra pulls, scene select, trading, preview, search, back up
     ['main-14-feed-and-history', state(false), 'feed'], // everyone: the history only
     ['main-14b-feed-and-history-staff', state(true, { staff: true }), 'feed'], // a staff PC: the activity part as well
-    ['main-15-connect-screen', { ...state(false), paired: false, site: 'https://cheesytcg.app', pairedAs: '', service: null, attention: attentionItems({ paired: false, updateVersion: '', startNote: '', site: null, mixFound: false, obsEnabled: false, obsConnected: false, deckReason: '' }) }, 'home'], // the first-run Connect screen
+    ['main-15-connect-screen', unlinked, 'home'], // the first-run Connect screen: the Sign in with Twitch button
+    ['main-15b-connect-screen-code', { ...unlinked, signIn: { phase: 'waiting', code: 'ABC123', note: '' } }, 'home'], // Sign in with Twitch waiting: the code to compare with the site
+    ['main-15c-connect-screen-expired', { ...unlinked, signIn: { phase: 'expired' } }, 'home'], // the sign-in took too long: Try again
+    ['main-17-account-signed-in', state(true), 'connections', pick('account')], // the TCG account detail: signed in with Twitch, with Sign out
+    ['main-17b-staff-mod', state(true, { staff: true, staffCan: staffActionsFor('mod'), account: accountLabel({ login: 'modguy', role: 'mod', pairedAs: 'STREAM-PC' }) }), 'stream', staffReads], // a mod: only what a mod may do
   ];
   if (w.isMaximized()) w.unmaximize();
   w.setSize(1280, 800); // the size the Home dashboard is made to fit

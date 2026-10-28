@@ -29,10 +29,10 @@ export function attentionItems(f: AttentionFacts): AttentionItem[] {
   if (f.updateVersion) out.push({ id: 'update', text: `Update ${f.updateVersion} is ready`, detail: 'Restart TCG Bridge to install it.', button: 'Restart', fix: 'restart' });
   if (f.startNote) out.push({ id: 'check', text: f.startNote, detail: 'The update check at start-up did not finish.', button: 'Try again', fix: 'recheck' });
   if (!f.paired) {
-    out.push({ id: 'pair', text: 'Not paired with the site', detail: 'Pair this PC so the site can reach Mix It Up.', button: 'Fix', fix: 'goto', go: GO_CONNECT });
+    out.push({ id: 'pair', text: 'Not signed in to the site', detail: 'Sign in with Twitch so the site can reach Mix It Up.', button: 'Fix', fix: 'goto', go: GO_CONNECT });
     return out;
   }
-  if (f.site === 'revoked') out.push({ id: 'site', text: 'The site no longer accepts this PC', detail: 'Unpair, then pair again with a new code.', button: 'Fix', fix: 'goto', go: goFor('account') });
+  if (f.site === 'revoked') out.push({ id: 'site', text: 'The site no longer accepts this PC', detail: 'Sign out, then sign in with Twitch again.', button: 'Fix', fix: 'goto', go: goFor('account') });
   else if (f.site === 'offline') out.push({ id: 'site', text: 'Cannot reach the site', detail: 'TCG Bridge keeps trying.', button: 'Fix', fix: 'goto', go: goFor('account') });
   if (f.site && !f.mixFound) out.push({ id: 'mix', text: 'Mix It Up is not connected', detail: 'Mix It Up is closed, or its Developer API is off.', button: 'Fix', fix: 'goto', go: goFor('mix') });
   if (f.site && f.obsEnabled && !f.obsConnected) out.push({ id: 'obs', text: 'OBS is not connected', detail: 'OBS is closed, or its WebSocket server is off.', button: 'Fix', fix: 'goto', go: goFor('obs') });

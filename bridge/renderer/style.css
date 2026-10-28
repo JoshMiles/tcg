@@ -212,6 +212,9 @@ td.fail { color: var(--bad); }
 .connect-box h1 { font-size: 26px; }
 .connect-box form { display: grid; gap: 12px; width: 100%; }
 .connect-what { margin: 0; color: var(--soft); }
+.connect-block { display: grid; gap: 12px; width: 100%; justify-items: start; }
+.connect-site { display: grid; gap: 4px; width: 100%; }
+.signin-code { font: 700 44px/1.1 var(--display); letter-spacing: .3em; color: var(--primary); user-select: all; }
 .connect-box .bad-text, .connect-box .small, .connect-box p { margin: 0; }
 
 /* Connections (59.6): a list on the left, the picked connection on the right. */

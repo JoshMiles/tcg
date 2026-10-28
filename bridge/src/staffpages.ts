@@ -11,8 +11,8 @@ export const STAFF_NEEDS: Record<string, 'admin' | 'mod'> = {
 };
 
 /**
- * What a signed-in account may use, by its site role (58.0b will hide the rest). null is a PC signed in with no role: nothing.
- * Not used to hide anything yet: the site refuses what a role cannot do and the result line shows its message.
+ * What a signed-in account may use, by its site role (58.0b: the window hides the rest). null is a PC signed in with no role: nothing.
+ * The site still refuses what a role cannot do, so a stale role never gets past it.
  */
 export function staffActionsFor(role: StaffRoleName | null): string[] {
   if (!role) return [];
