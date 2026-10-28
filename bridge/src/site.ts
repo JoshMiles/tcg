@@ -8,10 +8,13 @@ export interface BridgeJob { id: string; kind: string; username?: string; amount
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeCurrency { id: string; name: string }
 export interface BridgeCommand { id: string; name: string }
-export interface SiteAction { ok: boolean; message: string; paused?: boolean; /** "scene <name>" when a chosen OBS scene paused pulls (57.2). */ reason?: string; buffs?: { id: string; name: string }[]; staff?: boolean; tradingPaused?: boolean; /** 57.3: present on `status` and the happy hour actions; null = none running. */ happyHour?: { what: string; endsAt: number } | null; /** 57.4: the answer to `stats`. */ stats?: StatFacts; /** 57.7: the answer to `events`, newest first. */ events?: EventLine[] }
+export interface SiteAction { ok: boolean; message: string; paused?: boolean; /** "scene <name>" when a chosen OBS scene paused pulls (57.2). */ reason?: string; buffs?: { id: string; name: string }[]; staff?: boolean; tradingPaused?: boolean; /** 57.3: present on `status` and the happy hour actions; null = none running. */ happyHour?: { what: string; endsAt: number } | null; /** 57.4: the answer to `stats`. */ stats?: StatFacts; /** 57.7: the answer to `events`, newest first. */ events?: EventLine[]; /** 57.8: on `status`, the Mix It Up commands the site expects and does not find (empty = all found); absent until the site has the app's commands. */ commandsMissing?: string[] }
 /** What /api/bridge/staff answers to an action (ROADMAP 55.12). */
 export interface StaffReply { ok: boolean; message: string; needsForce?: boolean }
 export interface QueueRow { id: string; kind: string; username: string; pack: string; waitedS: number }
+
+/** The missing command names from the site: short strings only, at most 30; undefined when the site did not say. */
+export const cleanMissing = (v: unknown): string[] | undefined => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!x.trim()).slice(0, 30).map(x => x.slice(0, 100)) : undefined);
 
 /** `{ happyHour }` for the site's answer: an object, null (none running), or nothing when an older site did not say. */
 const happyHourOf = (v: unknown): Pick<SiteAction, 'happyHour'> => {
@@ -85,7 +88,7 @@ export class SiteClient {
   async action(body: Record<string, unknown>): Promise<SiteAction> {
     const r = await this.call('/api/bridge/action', body, AbortSignal.timeout(15_000));
     if (r.status !== 200) throw new SiteError(r.status, `The site answered ${r.status}`);
-    return { ok: r.json.ok === true, message: typeof r.json.message === 'string' ? r.json.message : '', ...(typeof r.json.paused === 'boolean' ? { paused: r.json.paused } : {}), ...(typeof r.json.reason === 'string' ? { reason: r.json.reason.slice(0, 200) } : {}), ...(typeof r.json.staff === 'boolean' ? { staff: r.json.staff } : {}), ...(typeof r.json.tradingPaused === 'boolean' ? { tradingPaused: r.json.tradingPaused } : {}), ...(happyHourOf(r.json.happyHour)), ...(r.json.stats && typeof r.json.stats === 'object' ? { stats: cleanStatFacts(r.json.stats) } : {}), ...(Array.isArray(r.json.events) ? { events: cleanEvents(r.json.events) } : {}),...(Array.isArray(r.json.buffs) ? { buffs: (r.json.buffs as SiteAction['buffs'])!.filter(b => typeof b?.id === 'string' && typeof b?.name === 'string') } : {}) };
+    return { ok: r.json.ok === true, message: typeof r.json.message === 'string' ? r.json.message : '', ...(typeof r.json.paused === 'boolean' ? { paused: r.json.paused } : {}), ...(typeof r.json.reason === 'string' ? { reason: r.json.reason.slice(0, 200) } : {}), ...(typeof r.json.staff === 'boolean' ? { staff: r.json.staff } : {}), ...(typeof r.json.tradingPaused === 'boolean' ? { tradingPaused: r.json.tradingPaused } : {}), ...(happyHourOf(r.json.happyHour)), ...(r.json.stats && typeof r.json.stats === 'object' ? { stats: cleanStatFacts(r.json.stats) } : {}), ...(Array.isArray(r.json.events) ? { events: cleanEvents(r.json.events) } : {}), ...(Array.isArray(r.json.commandsMissing) ? { commandsMissing: cleanMissing(r.json.commandsMissing) } : {}),...(Array.isArray(r.json.buffs) ? { buffs: (r.json.buffs as SiteAction['buffs'])!.filter(b => typeof b?.id === 'string' && typeof b?.name === 'string') } : {}) };
   }
 
   /** One staff action (ROADMAP 55.12). A 403 means the admin has not switched staff tools on for this PC. */
@@ -124,6 +127,7 @@ export class SiteClient {
       queueLength: Number(j.queueLength) || 0,
       paused: j.paused === true,
       happyHour: hh && typeof hh.what === 'string' && typeof hh.endsAt === 'number' ? { what: hh.what, endsAt: hh.endsAt } : null,
+      ...(Array.isArray(j.commandsMissing) ? { commandsMissing: cleanMissing(j.commandsMissing) } : {}),
     };
   }
 
