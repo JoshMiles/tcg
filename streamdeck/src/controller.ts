@@ -33,7 +33,7 @@ export class Keys {
   /** The stats the visible Stat keys show: the app asks the site for them only while this is not empty. */
   private tell(): void {
     const want = new Set<DeckStatKind>();
-    for (const k of this.keys.values()) if (k.kind === 'stat') { const s = statOf(k.settings); if (s) want.add(s); } else if (k.kind === 'queue') want.add('queue');
+    for (const k of this.keys.values()) if (k.kind === 'stat') { const s = statOf(k.settings); if (s && s !== 'happy') want.add(s); } else if (k.kind === 'queue') want.add('queue');
     this.link.want([...want]);
   }
 

@@ -220,6 +220,33 @@ export async function deckPluginChecks(): Promise<void> {
     await answered('stat', () => press('stat'), 'alert');
     assert.deepEqual(ran.pop(), { action: 'skip' });
 
+    // Live info (61.4): the same Stat key set to the other choices shows the app's names and the happy hour time left, and a press does nothing.
+    const pick = (stat: string) => { keys.stat = { stat }; say({ event: 'didReceiveSettings', action: action('stat'), context: ctx('stat'), device, payload: { settings: keys.stat, coordinates: { column: 0, row: 0 }, isInMultiAction: false } }); };
+    st = state({ stats: { queue: 3, lastBig: { username: 'brie_fan', cardName: 'Charizard' }, topPuller: { username: 'cheese', packs: 9 }, goal: 'Open the legendary pack: 37 / 50' } });
+    server.broadcast();
+    pick('lastBig');
+    await until('the last big pull', () => seen[ctx('stat')].title === 'brie_fan\nCharizard');
+    pick('topPuller');
+    await until('the top puller', () => seen[ctx('stat')].title === 'cheese\n9 packs');
+    pick('goal');
+    await until('the goal cut to fit', () => seen[ctx('stat')].title === 'Open the .\n37 / 50');
+    st = state({ happy: { what: 'Free packs', endsAt: Date.now() + 600_000 } });
+    server.broadcast();
+    pick('happy');
+    await until('the happy hour time left', () => /^Happy hour\n\d+:\d\d$/.test(seen[ctx('stat')].title));
+    st = state();
+    server.broadcast();
+    await until('no happy hour', () => seen[ctx('stat')].title === 'No happy\nhour');
+    assert.deepEqual(server.wanted, ['queue'], 'the happy hour key asks the site for nothing (only the Pulls waiting key wants the queue)');
+    const statBefore = seen[ctx('stat')].ok + seen[ctx('stat')].alert;
+    await press('stat');
+    await press('stat');
+    await wait(200);
+    assert.equal(seen[ctx('stat')].ok + seen[ctx('stat')].alert, statBefore, 'a press on a live info key does nothing');
+    assert.equal(ran.length, 0);
+    pick('queue');
+    await until('the queue stat again', () => seen[ctx('stat')].title === 'Queue\n3');
+
     // Queue keys (61.2): Skip next pull is one press; Clear queue needs a hold of a second (a short press only says so); Pulls waiting shows the app's number.
     assert.equal(seen[ctx('skip')].title, 'Skip\nnext pull');
     assert.equal(seen[ctx('clear-queue')].title, 'Clear\nqueue');
