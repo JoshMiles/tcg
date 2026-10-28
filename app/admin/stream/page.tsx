@@ -11,7 +11,7 @@ import { readMixItUpHealth } from '@/lib/mixitup-health';
 import { pickLogFilter, statusCards, streamNumbers } from '@/lib/mixitup-page';
 import { timeAgo } from '@/lib/site-data';
 import { readQueue } from '@/lib/queue-control';
-import { FEED_LIMIT, SECTIONS, SUB_TABS, filterFeed, mergeFeed, pickFeedFilter, resolveStream, statusStrip } from '@/lib/stream-page';
+import { FEED_LIMIT, SECTIONS, filterFeed, mergeFeed, pickFeedFilter, resolveStream, statusStrip } from '@/lib/stream-page';
 import { getStreamBuff } from '@/lib/pull-limit';
 import { streamBuffAmount } from '@/lib/pull-limit-core';
 import { getCommandLog, getCommands, getCommandStats } from '@/lib/commands';
@@ -45,8 +45,8 @@ import { TwitchChannelCard } from './TwitchChannelCard';
 import { Connections } from './Connections';
 import { MixItUpPanel } from './MixItUpPanel';
 import { SetupWizard } from './SetupWizard';
-import { TestViewers, TryIt } from './TestExtras';
-import { connectionList, defaultConn } from '@/lib/stream-connections';
+import { TestViewers } from './TestExtras';
+import { connHref, connectionList, defaultConn } from '@/lib/stream-connections';
 import { notSetUp } from '@/lib/mixitup-wizard';
 import { CARDS, cardHref, cardSummaries } from '@/lib/viewers-cards';
 import { helperGroups } from '@/lib/viewers-helper';
@@ -106,7 +106,7 @@ const SECTION_HINT: Record<string, string> = {
   viewers: 'What viewers get: one card for each thing a viewer can earn or do, with a summary of how it is set',
   connections: 'TCG Bridge, Mix It Up, OBS, the Twitch channel, the command check and error reports',
   test: 'Try a pull, a balance check or a chat message before you go live',
-  history: 'The log of every request and how the bridge held up on past streams',
+  history: 'The log of every request, the Brie Bucks check, and how the bridge held up on past streams',
 };
 /** The community pack goal (57.5) for its box, and the community buffs it can give. */
 async function packGoalView() {
@@ -120,7 +120,7 @@ async function packGoalView() {
 export default async function StreamPage({ searchParams }: { searchParams: Promise<{ section?: string; tab?: string; card?: string; conn?: string; step?: string; feed?: string; saved?: string; error?: string; note?: string; filter?: string }> }) {
   await staffPage('admin');
   const { section: sectionParam, tab: tabParam, card: cardParam, conn: connParam, step, feed, saved, error, note, filter } = await searchParams;
-  const { section, tab, card, conn } = resolveStream(sectionParam, tabParam, cardParam, connParam);
+  const { section, card, conn } = resolveStream(sectionParam, tabParam, cardParam, connParam);
   const settings = await getMixItUpSettings();
   const bridge = await readBridge();
   const health = await readMixItUpHealth();
@@ -136,7 +136,6 @@ export default async function StreamPage({ searchParams }: { searchParams: Promi
   const cards = statusCards({ health, settings, bridge, paired: bridges.length, obs, now, ago: timeAgo, watchdogAt });
   const checklist = await readChecklist();
   const strip = statusStrip(cards, checklist, now);
-  const subs = SUB_TABS[section];
   const live = async () => {
     const [log, cmdLog] = [await getMixItUpLog(), await getCommandLog()];
     const items = mergeFeed(log, cmdLog, await getEventFeed(), FEED_LIMIT);
@@ -157,13 +156,16 @@ export default async function StreamPage({ searchParams }: { searchParams: Promi
     const uptime = await readUptime();
     return (
       <div className="space-y-6">
-        <LedgerCheckPanel check={await readLedgerCheck()} when={timeAgo} />
         <MixItUpLog log={[...(await getMixItUpLog()), ...(await getCommandLog())].sort((a, b) => b.at - a.at)} filter={pickLogFilter(filter)} now={now} />
+        <LedgerCheckPanel check={await readLedgerCheck()} when={timeAgo} />
         {uptime.length > 0 && (
           <Panel title="Uptime" icon="activity" hint="TCG Bridge, Mix It Up and OBS during each of the last streams. Grey is a time nobody reported.">
             <div className="space-y-4">{[...uptime].reverse().map(u => <UptimeStrip key={u.from} s={u} now={now} />)}</div>
           </Panel>
         )}
+        <Panel title="Brie Bucks backups" icon="shield">
+          <p className="text-sm text-gray-300">The site does not keep a list of these. TCG Bridge saves them on the stream PC in Documents\TCG Bridge\backups; its Settings tab has Open backups. <Link href={connHref('mixitup')} className="link link-primary">Switch backups on or off</Link>.</p>
+        </Panel>
       </div>
     );
   };
@@ -249,7 +251,6 @@ export default async function StreamPage({ searchParams }: { searchParams: Promi
       <PageHeader title="Stream" subtitle={setupView ? 'Set up Mix It Up and TCG Bridge, one step at a time' : SECTION_HINT[section]} />
       <StatusStrip strip={strip} />
       <PageTabs tabs={SECTIONS} active={setupView ? (sectionParam === 'setup' ? 'connections' : 'live') : section} base="/admin/stream" param="section" label="Stream sections" />
-      {subs && !setupView && <PageTabs tabs={subs} active={tab!} base="/admin/stream" keep={{ section }} label={`${SECTIONS.find(x => x.id === section)!.label} pages`} />}
 
       {error && <div role="alert" className="rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-2.5 text-sm text-red-300">Not saved: {error}</div>}
       {note && <div role="status" className="rounded-lg border border-green-500/30 bg-green-950/30 px-4 py-2.5 text-sm text-green-300">{note}</div>}
@@ -264,14 +265,13 @@ export default async function StreamPage({ searchParams }: { searchParams: Promi
       {!setupView && section === 'connections' && await connections()}
       {!setupView && section === 'test' && (
         <div className="space-y-6">
+          <ChecklistPanel checklist={checklist} now={now} />
           <Panel title="Test pulls" icon="flask" hint="Pretend a test viewer typed !pack in chat and watch every step: the balance check, the charge, the overlay, the save and the rules. The edition is kept apart from the real collection and counts nowhere. Test viewers are managed below.">
             <TestPulls viewers={settings.testViewers} paidOn={settings.enabled} sandbox={await inSandbox()} recent={await recentTests()} />
           </Panel>
-          <Panel title="Quick tests" icon="zap" hint="Each one shows its answer right here.">
+          <Panel title="Quick tests" icon="zap" hint="Uses the saved settings. Neither one takes any currency. Each shows its answer right here.">
             <TestActions login={CHANNEL_LOGIN} />
           </Panel>
-          <ChecklistPanel checklist={checklist} now={now} />
-          <TryIt />
           <TestViewers viewers={settings.testViewers} />
         </div>
       )}

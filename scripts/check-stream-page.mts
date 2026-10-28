@@ -10,27 +10,25 @@ const { kv } = await import('../lib/db');
 const { awardsPaused, pauseAwards } = await import('../lib/twitch-awards');
 type Card = import('../lib/mixitup-page').StatusCard;
 
-// ── Every old tab id has a section; every section sub-tab resolves to itself ──
+// ── Every old tab id has a section; none has a sub-tab ──
 const OLD_TABS = ['overview', 'connection', 'paid', 'bigpulls', 'chat', 'commands', 'streamdeck', 'events', 'log'];
 for (const t of OLD_TABS) {
   ok(Object.hasOwn(s.OLD_TAB_SECTION, t), `old tab ${t} has a section`);
   const r = s.resolveStream(undefined, t);
   ok(s.SECTIONS.some(x => x.id === r.section), `old tab ${t} lands in a real section`);
-  if (r.section === 'viewers') ok(r.tab === null && r.card !== null, `old tab ${t} opens a card (What viewers get has no sub-tabs)`);
-  else if (t === 'connection') ok(r.tab === null && r.conn === null, 'the old connection tab is the Connections section, with no sub-tab');
-  else if (t !== 'overview') ok(r.tab === t, `old tab ${t} is still the sub-tab shown`);
+  ok(!('tab' in r), `old tab ${t} gives no sub-tab`);
+  if (r.section === 'viewers') ok(r.card !== null, `old tab ${t} opens a card`);
+  else if (t === 'connection') ok(r.conn === null, 'the old connection tab is the Connections section');
 }
 ok(s.resolveStream(undefined, 'overview').section === 'live', 'Overview is now Live');
 ok(s.resolveStream(undefined, 'paid').section === 'viewers' && s.resolveStream(undefined, 'events').section === 'viewers', 'viewer tabs are under What viewers get');
 ok(s.resolveStream(undefined, 'connection').section === 'connections' && s.resolveStream(undefined, 'log').section === 'history', 'connection and log have their sections');
 ok(s.resolveStream(undefined, undefined).section === 'live' && s.resolveStream('nope', 'nope').section === 'live', 'no or unknown params is Live');
-ok(s.resolveStream('history', undefined).tab === 'log', 'a section with sub-tabs opens its first');
-ok(s.resolveStream('history', 'connection').tab === 'log', 'a tab from another section falls back to the first');
-ok(!s.SUB_TABS.connections, 'Connections has no sub-tabs (63.4)');
+ok(s.resolveStream(undefined, 'log').section === 'history', '?tab=log lands on History');
+ok(!('tab' in s.resolveStream('history', 'log')) && !('SUB_TABS' in s), 'there are no sub-tabs');
 ok(s.resolveStream('viewers', undefined).card === null && s.resolveStream('live', undefined).card === null, 'the card grid has no card open, and other sections have none');
-ok(s.resolveStream('live', 'paid').tab === null && s.resolveStream('test', undefined).tab === null, 'Live and Test have no sub-tabs');
 ok(s.resolveStream('__proto__', '__proto__').section === 'live', 'a prototype name is not a section');
-ok(s.legacyStreamHref({ tab: 'log', filter: 'refused', note: 'hi' }) === '/admin/stream?section=history&tab=log&note=hi&filter=refused', 'the redirect keeps note and filter and maps the tab');
+ok(s.legacyStreamHref({ tab: 'log', filter: 'refused', note: 'hi' }) === '/admin/stream?section=history&note=hi&filter=refused', '?tab=log redirects to History and keeps note and filter');
 ok(s.legacyStreamHref({}) === '/admin/stream?section=live', 'the redirect with nothing is Live');
 ok(s.legacyStreamHref({ tab: 'commands', saved: 'mixitup', error: 'x y' }).startsWith('/admin/stream?section=viewers&card=commands&error=x+y&saved=mixitup'), 'the redirect keeps saved and error');
 

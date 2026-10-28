@@ -5,7 +5,7 @@ import { PendingButton } from '@/app/components/PendingButton';
 import type { ActionResult } from '../action-types';
 import { fieldClass } from '../components/ui';
 import { ObsRefresh } from '../settings/ObsRefresh';
-import { sendTestMessageAction, setAwardsPausedAction, setPausedAction, setStreamExtraAction, testBalanceAction } from './overview-actions';
+import { sendTestMessageAction, setAwardsPausedAction, setPausedAction, setStreamExtraAction, testViewerBalanceAction } from './overview-actions';
 
 const btn = 'btn btn-sm btn-outline';
 
@@ -26,11 +26,23 @@ export function Quick({ title, text, icon, label, pendingLabel, run }: { title: 
   );
 }
 
-/** The Test section's two quick tests. Each shows its answer inline. */
+/** The Test section's balance check and test chat message. The check takes any viewer (blank is the streamer). Each shows its answer inline. */
 export function TestActions({ login }: { login: string }) {
+  const [state, action] = useActionState(testViewerBalanceAction, null);
   return (
     <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
-      <Quick title="Test a balance check" text={`Asks Mix It Up for ${login}'s balance. Nothing is charged.`} icon="coins" label="Check my balance" pendingLabel="Asking…" run={testBalanceAction} />
+      <form action={action} className="space-y-2">
+        <p className="text-sm font-semibold text-white">Test a balance check</p>
+        <p className="text-xs text-gray-500">Asks Mix It Up for a viewer's balance. Nothing is charged.</p>
+        <div className="flex items-end gap-2">
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend"><label htmlFor="mx-who">Viewer</label></legend>
+            <input id="mx-who" name="who" placeholder={login} autoComplete="off" className={fieldClass} />
+          </fieldset>
+          <PendingButton pendingLabel="Asking…" className={btn}><Icon name="coins" />Check balance</PendingButton>
+        </div>
+        <Result state={state} />
+      </form>
       <Quick title="Send a test chat message" text="Sends the payment message with a made-up viewer and an amount of 0." icon="send" label="Send test message" pendingLabel="Sending…" run={sendTestMessageAction} />
     </div>
   );

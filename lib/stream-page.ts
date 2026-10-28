@@ -19,12 +19,7 @@ export const SECTIONS = [
 ] as const;
 export type Section = (typeof SECTIONS)[number]['id'];
 
-/** The old tabs that still hold the panels of the sections not built yet (63.5 replaces them). Sections with no entry have no sub-tabs; What viewers get uses cards (lib/viewers-cards.ts). */
-export const SUB_TABS: Partial<Record<Section, { id: string; label: string; icon: IconName }[]>> = {
-  history: [{ id: 'log', label: 'Log', icon: 'list' }],
-};
-
-/** Every id the old Mix It Up page took in `?tab=`, and the section it lives in now. Overview was split: its parts are in Live, Test and History. */
+/** Every id the old Mix It Up page took in `?tab=`, and the section it lives in now. Overview was split: its parts are in Live, Test and History. `log` is History. */
 export const OLD_TAB_SECTION: Record<string, Section> = {
   overview: 'live', connection: 'connections', paid: 'viewers', bigpulls: 'viewers', chat: 'viewers', commands: 'viewers', streamdeck: 'viewers', events: 'viewers', log: 'history',
 };
@@ -32,22 +27,20 @@ export const OLD_TAB_SECTION: Record<string, Section> = {
 const sectionOf = (raw: string | undefined): Section | undefined => SECTIONS.find(s => s.id === raw)?.id;
 
 /**
- * `?section=`, `?tab=` and `?card=` to the section, sub-tab and card to show. A bare old `?tab=` id (the old links, the save redirects) picks its section, and for
+ * `?section=`, `?tab=` and `?card=` to the section and card to show. A bare old `?tab=` id (the old links, the save redirects) picks its section, and for
  * What viewers get its card (`chat` is Stream start and end); an unknown value is Live. `card` is null for the card grid.
  */
-export function resolveStream(sectionRaw: string | undefined, tabRaw: string | undefined, cardRaw?: string, connRaw?: string): { section: Section; tab: string | null; card: CardId | null; conn: ConnId | null } {
+export function resolveStream(sectionRaw: string | undefined, tabRaw: string | undefined, cardRaw?: string, connRaw?: string): { section: Section; card: CardId | null; conn: ConnId | null } {
   const section = sectionOf(sectionRaw) ?? (pickCard(cardRaw) ? 'viewers' : tabRaw && Object.hasOwn(OLD_TAB_SECTION, tabRaw) ? OLD_TAB_SECTION[tabRaw] : 'live');
-  const subs = SUB_TABS[section];
-  return { section, tab: subs ? (subs.find(t => t.id === tabRaw)?.id ?? subs[0].id) : null, card: section === 'viewers' ? cardFor(cardRaw, tabRaw) : null, conn: section === 'connections' ? pickConn(connRaw) : null };
+  return { section, card: section === 'viewers' ? cardFor(cardRaw, tabRaw) : null, conn: section === 'connections' ? pickConn(connRaw) : null };
 }
 
-/** Where the redirect from the old `/admin/mixitup` page sends a request: the new address with `section`, the card or old tab where the section uses one, and `note`/`error`/`saved`/`filter` kept. */
+/** Where the redirect from the old `/admin/mixitup` page sends a request: the new address with `section`, the card where the section uses one, and `note`/`error`/`saved`/`filter` kept. */
 export function legacyStreamHref(q: Record<string, string | undefined>): string {
-  const { section, tab, card, conn } = resolveStream(undefined, q.tab, q.card, q.conn);
+  const { section, card, conn } = resolveStream(undefined, q.tab, q.card, q.conn);
   const out = new URLSearchParams({ section });
   if (card) out.set('card', card);
   if (conn) out.set('conn', conn);
-  if (tab) out.set('tab', tab);
   for (const k of ['note', 'error', 'saved', 'filter'] as const) if (q[k]) out.set(k, q[k]!);
   return `/admin/stream?${out}`;
 }

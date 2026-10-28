@@ -6,7 +6,6 @@ import { recordAudit } from '@/lib/audit';
 import { bridgePullTest, bridgeRunCommand, listBridges, readBridge, readObs } from '@/lib/bridge';
 import { cleanRulesInput, pullArgs, rulesFromForm, SAMPLE_PULL, shoutText } from '@/lib/pull-rules-core';
 import { getMixItUpSettings, saveMixItUpSettings } from '@/lib/mixitup';
-import { runBalanceTest, runSendTest } from './test-calls';
 import { EVENT_NAMES } from '@/lib/event-rewards-core';
 import { saveRewardAwards } from '@/lib/twitch-awards';
 import { cardHref, type CardId } from '@/lib/viewers-cards';
@@ -15,8 +14,6 @@ import { setupHref } from '@/lib/mixitup-wizard';
 import { connHref } from '@/lib/stream-connections';
 
 const go = (href: string, kind: 'saved' | 'error' | 'note', text: string): never => redirect(`${href}${href.includes('?') ? '&' : '?'}${kind}=${encodeURIComponent(text)}`);
-/** Back to the Test section, where Try it lives (63.4). */
-const backToTest = (kind: 'error' | 'note', text: string): never => go('/admin/stream?section=test', kind, text);
 /** Back to the card that was saved (63.3): What viewers get with that card open. */
 const onCard = (id: CardId, kind: 'saved' | 'error' | 'note', text: string): never => go(cardHref(id), kind, text);
 /** Back to a connection in Connections (63.4). */
@@ -137,18 +134,4 @@ export async function testPullRuleAction(id: string): Promise<void> {
   if (!(await listBridges()).length) return onCard('bigpulls', 'error', 'Pair TCG Bridge first.');
   const queued = (rule.commandId ? await bridgeRunCommand(rule.commandId, pullArgs(SAMPLE_PULL)) : false) || (rule.obs || rule.say ? await bridgePullTest({ ...rule.obs, ...(rule.say ? { text: shoutText(rule.say, SAMPLE_PULL) } : {}) }) : false);
   return queued ? onCard('bigpulls', 'note', 'Sent to TCG Bridge with a sample pull. Nothing waits for Mix It Up: if it did not run, look at the job list in the TCG Bridge window.') : onCard('bigpulls', 'error', 'The command could not be queued.');
-}
-
-/** Asks Mix It Up for one viewer's balance using the saved settings. Nothing is charged. (Try it, in the Test section.) */
-export async function checkBalanceAction(formData: FormData): Promise<void> {
-  await requireAdmin();
-  const r = await runBalanceTest(String(formData.get('who') ?? '').trim().toLowerCase().replace(/^@/, ''));
-  return backToTest(r.ok ? 'note' : 'error', r.message);
-}
-
-/** Sends the message with a made-up viewer and an amount of 0, so the command can be tried without a pull. (Try it, in the Test section.) */
-export async function sendTestAction(): Promise<void> {
-  await requireAdmin();
-  const r = await runSendTest();
-  return backToTest(r.ok ? 'note' : 'error', r.message);
 }
