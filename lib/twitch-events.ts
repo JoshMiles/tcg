@@ -1,18 +1,19 @@
 // Twitch EventSub events forwarded by TCG Bridge, the KV side (ROADMAP 58.2). The app holds the EventSub WebSocket; the site only records what it is
 // sent: a capped list of recent events, the app's connection report, and stream online / offline feeding the live state like the OBS report does.
-// Channel point redemptions run their reward's award (58.3, lib/twitch-awards.ts); the other events are only recorded. Pure shapes live in twitch-events-core.ts.
+// Channel point redemptions run their reward's award (58.3, lib/twitch-awards.ts); gifted subs, cheers and raids run the 55.4g event rules (58.4,
+// lib/event-rewards.ts); the rest are only recorded. Pure shapes live in twitch-events-core.ts.
 import { kv } from './db';
 import { setLiveFromBridge } from './twitch-live';
 import { readChannelStatus } from './twitch-channel';
 import { awardRedemption } from './twitch-awards';
+import { rewardTwitchEvent } from './event-rewards';
 import {
-  EVENTS_KEPT, EVENT_TYPES, SEEN_TTL_S, cleanEventSubReport, eventChannelId, eventText,
-  type CleanEvent, type EventLine, type EventSubReport,
+  EVENTS_KEPT, EVENT_TYPES, REWARD_EVENT, SEEN_TTL_S, eventChannelId, eventText,
+  type CleanEvent, type EventLine,
 } from './twitch-events-core';
 
 const EVENTS_KEY = 'twitch:events';
 const SEEN_PREFIX = 'twitch:event:';
-const STATE_KEY = 'twitch:eventsub';
 
 export type EventOutcome = { status: 'recorded'; live?: boolean } | { status: 'duplicate' } | { status: 'ignored'; reason: 'not_connected' | 'other_channel' };
 
@@ -29,7 +30,9 @@ export async function recordTwitchEvent(e: CleanEvent, now = Date.now()): Promis
   if (!(await kv.set(seenKey, 1, { nx: true, ex: SEEN_TTL_S }))) return { status: 'duplicate' };
   try {
     // 58.3: a redemption runs its reward's award (nothing when the reward has none); the result is recorded with the event. Never throws.
-    const result = e.type === 'channel.channel_points_custom_reward_redemption.add' ? await awardRedemption(e.event).catch(() => null) : null;
+    // 58.4: a gifted sub, cheer or raid runs the 55.4g event rules, the same ones the Mix It Up requests run (lib/event-rewards.ts). Never throws.
+    const result = e.type === 'channel.channel_points_custom_reward_redemption.add' ? await awardRedemption(e.event).catch(() => null)
+      : e.type in REWARD_EVENT ? await rewardTwitchEvent(e.type as keyof typeof REWARD_EVENT, e.event).catch(() => null) : null;
     const line: EventLine = { id: e.messageId, type: e.type, at: now, text: eventText(e.type, e.event), ...(result ? { result } : {}) };
     await kv.lpush(EVENTS_KEY, line);
     await kv.ltrim(EVENTS_KEY, 0, EVENTS_KEPT - 1);
@@ -59,16 +62,4 @@ export async function recentTwitchEvents(n = EVENTS_KEPT): Promise<EventLine[]> 
   });
 }
 
-export type StoredEventSub = EventSubReport & { pc: string; at: number };
-
-/** Keeps what the app says about its EventSub connection, with the PC's name and the time. */
-export async function storeEventSub(r: EventSubReport, pc: string): Promise<void> {
-  await kv.set(STATE_KEY, { ...r, pc, at: Date.now() } satisfies StoredEventSub);
-}
-
-export async function readEventSub(): Promise<StoredEventSub | null> {
-  const o = await kv.get<Record<string, unknown>>(STATE_KEY).catch(() => null);
-  if (!o || typeof o.pc !== 'string' || typeof o.at !== 'number') return null;
-  const r = cleanEventSubReport(o);
-  return r ? { ...r, pc: o.pc.slice(0, 40), at: o.at } : null;
-}
+export { readEventSub, storeEventSub, type StoredEventSub } from './twitch-eventsub';

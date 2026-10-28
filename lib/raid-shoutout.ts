@@ -1,5 +1,5 @@
 // The raid shout-out (ROADMAP 57.6): a raid of the set size or more puts the raider's best card on the overlay ("Raid from <name>") and says one
-// line in chat. Called by the Mix It Up raid event (lib/event-rewards.ts); Track 58.4 calls it from the Twitch raid event the same way.
+// line in chat. Called by lib/event-rewards.ts from the Mix It Up raid event, or (58.4) from the Twitch raid event while Twitch delivers raids.
 import { kv } from './db';
 import { recordAudit } from './audit';
 import { bridgeSay } from './bridge';

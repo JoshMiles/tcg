@@ -1,6 +1,6 @@
 // Twitch EventSub events forwarded by TCG Bridge, the pure part (ROADMAP 58.2): which events the site takes, how a body is checked and capped, the
 // one line each becomes in the recent list, and the app's connection report. No KV and no site imports; lib/twitch-events.ts holds the KV side.
-// Nothing here awards anything: redemptions, cheers, gifts and raids are only recorded (58.3 onwards use them).
+// Nothing here awards anything; 58.3 (redemptions) and 58.4 (gifts, cheers, raids) use these shapes.
 
 export const EVENT_TYPES = [
   'channel.channel_points_custom_reward_redemption.add',
@@ -82,6 +82,18 @@ export function cleanEventSubReport(raw: unknown): EventSubReport | null {
   }) : [];
   return { state: o.state, reason: str(o.reason, 200), login: str(o.login, 40), testing: o.testing === true, since: num(o.since), subs };
 }
+
+/** 58.4: the Twitch events that run the Mix It Up event rules (55.4g), and the rule each one is. */
+export const REWARD_EVENT = { 'channel.subscription.gift': 'gifted-subs', 'channel.cheer': 'bits', 'channel.raid': 'raid' } as const;
+export type RewardEventType = keyof typeof REWARD_EVENT;
+export const TWITCH_EVENT_OF = { 'gifted-subs': 'channel.subscription.gift', bits: 'channel.cheer', raid: 'channel.raid' } as const;
+
+/**
+ * 58.4: is Twitch delivering this event type, so the Mix It Up request for it is ignored? Only for the live channel (not a test account), with the app's
+ * latest report fresh, connected, and that event's subscription enabled. Anything less and Mix It Up keeps working, so a dropped socket loses nothing.
+ */
+export const twitchHandles = (type: EventType, channel: { testing: boolean } | null, r: (EventSubReport & { at: number }) | null, now: number): boolean =>
+  !!channel && !channel.testing && !!r && !r.testing && r.state === 'connected' && now - r.at <= REPORT_STALE_MS && r.subs.some(s => s.type === type && s.status === 'enabled');
 
 /** The card's line: "TCG Bridge listening on STREAM-PC since 19:02, last event 19:20". Null when the app is not listening (or has gone quiet). */
 export function listeningLine(r: (EventSubReport & { pc: string; at: number }) | null, last: EventLine | null, now: number, time: (ms: number) => string): string | null {
