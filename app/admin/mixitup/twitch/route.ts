@@ -12,7 +12,7 @@ import { channelConnectReady } from '@/lib/twitch-channel';
 export async function GET(req: NextRequest) {
   const staff = (await hasStaffCapability('admin')) ? await getStaff() : null;
   if (!staff) return NextResponse.redirect(new URL('/admin', req.url));
-  if (!channelConnectReady()) return NextResponse.redirect(new URL('/admin/mixitup?tab=connection&error=' +encodeURIComponent('the Twitch connection needs TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET and BACKUP_ENCRYPTION_KEY'), req.url));
+  if (!channelConnectReady()) return NextResponse.redirect(new URL('/admin/mixitup?tab=connection&error=' + encodeURIComponent('the Twitch connection needs TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET and BACKUP_ENCRYPTION_KEY'), req.url));
   const state = randomBytes(24).toString('base64url');
   const url = new URL(authorizeUrl(state, CHANNEL_SCOPES.join(' ')));
   url.searchParams.set('force_verify', 'true');

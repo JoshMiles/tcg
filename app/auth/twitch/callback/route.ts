@@ -30,7 +30,7 @@ async function channelReturn(req: NextRequest, code: string, state: string, cook
   return back(r.ok ? undefined : r.reason === 'scopes' ? 'Twitch did not grant every permission, connect again and allow them all' : 'Twitch would not connect the channel, try again');
 }
 
-const sameString =(a: string, b: string) => {
+const sameString = (a: string, b: string) => {
   const x = Buffer.from(a), y = Buffer.from(b);
   return x.length === y.length && timingSafeEqual(x, y);
 };
