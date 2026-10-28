@@ -141,7 +141,7 @@ The reward cards and the save-per-card pattern, with the one "Mix It Up commands
 ### 63.4 Connections and first-run setup (Done, #678)
 TCG Bridge PCs with their accounts, Mix It Up, OBS, the Twitch channel (from Track 58), the command check and error reports; direct addresses under Advanced; the Setup wizard as the first-run state.
 
-### 63.5 Test and History (Done, #PR)
+### 63.5 Test and History (Done, #679)
 Every test in one place (checklist, test pulls, one quick-tests panel, test viewers); History with the full log and filters, the ledger check, uptime and a line saying backups are kept by TCG Bridge on the stream PC (the site records no backup runs). Removes the sub-tabs.
 
 ## Track 62: native OBS plugin (2026-10-28)
