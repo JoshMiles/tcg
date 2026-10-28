@@ -37,8 +37,8 @@ export interface SummaryInput {
   commands: { name: string; enabled: boolean }[];
   /** Names of the buffs that answer the Stream Deck. */
   deckBuffs: string[];
-  /** The channel's channel point reward ids (empty when Twitch cannot list them) and the saved awards. */
-  rewardIds: string[];
+  /** The channel's channel point reward ids (empty when Twitch cannot list them; null when not asked, which is the grid: Twitch is only called when the card is open) and the saved awards. */
+  rewardIds: string[] | null;
   awardIds: string[];
 }
 
@@ -53,7 +53,7 @@ export function cardSummaries(i: SummaryInput): Record<CardId, CardSummary> {
   const ev = EVENT_NAMES.filter(n => s.eventRewards[n].on);
   const rules = s.pullRules;
   const cmds = i.commands.filter(c => c.enabled).map(c => `!${c.name}`);
-  const given = i.rewardIds.length ? i.rewardIds.filter(id => i.awardIds.includes(id)).length : i.awardIds.length;
+  const given = i.rewardIds?.length ? i.rewardIds.filter(id => i.awardIds.includes(id)).length : i.awardIds.length;
   const sh = s.eventRewards.raidShoutout;
   return {
     paid: s.enabled
@@ -64,9 +64,11 @@ export function cardSummaries(i: SummaryInput): Record<CardId, CardSummary> {
       ? { on: true, text: `${ev.length} of ${EVENT_NAMES.length} events give something: ${names(ev.map(n => EVENT_INFO[n].label.toLowerCase()), 4)}` }
       : { on: false, text: 'All off: no event gives anything' },
     shoutout: sh.on ? { on: true, text: `On for raids of ${num(sh.minViewers)} or more viewers` } : { on: false, text: 'Off' },
-    points: i.rewardIds.length
-      ? { on: given > 0, text: `${given} of ${i.rewardIds.length} rewards give something` }
-      : { on: given > 0, text: given > 0 ? `${plural(given, 'award')} saved (rewards not listed right now)` : 'No channel points rewards to show' },
+    points: i.rewardIds === null
+      ? { on: given > 0, text: given > 0 ? `${plural(given, 'reward')} give${given === 1 ? 's' : ''} something` : 'No reward gives anything yet' }
+      : i.rewardIds.length
+        ? { on: given > 0, text: `${given} of ${i.rewardIds.length} rewards give something` }
+        : { on: given > 0, text: given > 0 ? `${plural(given, 'award')} saved (rewards not listed right now)` : 'No channel points rewards to show' },
     startend: s.chat.startOn || s.chat.endOn
       ? { on: true, text: [s.chat.startOn ? 'Says hello when the stream starts' : '', s.chat.endOn ? 'posts the top pull when it ends' : ''].filter(Boolean).join('; ').replace(/^./, c => c.toUpperCase()) }
       : { on: false, text: 'Both lines are off' },

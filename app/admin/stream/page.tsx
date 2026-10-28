@@ -152,12 +152,12 @@ export default async function StreamPage({ searchParams }: { searchParams: Promi
     );
   };
   const viewers = async () => {
-    const [defs, season, commands, points, awards, hook, viaBridge] = await Promise.all([getBuffDefs(), getActiveSeasonWithPacks(), getCommands(), fetchRewards(), readAwards(), getWebhookSettings(), twitchHandlesEvent(CHAT_EVENT)]);
+    const [defs, season, commands, points, awards, hook, viaBridge] = await Promise.all([getBuffDefs(), getActiveSeasonWithPacks(), getCommands(), card === 'points' ? fetchRewards() : null, readAwards(), getWebhookSettings(), twitchHandlesEvent(CHAT_EVENT)]);
     const packs = (season?.packs ?? []).filter(p => p.cards.length > 0).map(p => ({ id: p.pack.id, name: p.pack.name, price: p.pack.price }));
     const deck = defs.filter(b => b.streamDeck);
     const summaries = cardSummaries({
       settings, packCount: packs.length, commands, deckBuffs: deck.map(b => b.name),
-      rewardIds: points.ok ? points.rewards.map(r => r.id) : [], awardIds: Object.keys(awards),
+      rewardIds: !points ? null : points.ok ? points.rewards.map(r => r.id) : [], awardIds: Object.keys(awards),
     });
     const open = card && CARDS.find(c => c.id === card);
     return (
@@ -185,7 +185,7 @@ export default async function StreamPage({ searchParams }: { searchParams: Promi
             {card === 'packs' && <PacksCard settings={settings} packs={packs} />}
             {card === 'events' && <EventsCard rewards={settings.eventRewards} buffs={defs} />}
             {card === 'shoutout' && <ShoutoutCard rewards={settings.eventRewards} />}
-            {card === 'points' && <ChannelPoints list={points} awards={awards} buffs={defs} paused={await awardsPaused()} />}
+            {card === 'points' && points && <ChannelPoints list={points} awards={awards} buffs={defs} paused={await awardsPaused()} />}
             {card === 'startend' && <StartEndCard chat={settings.chat} />}
             {card === 'bigpulls' && <PullRules rules={settings.pullRules} commands={bridge.commands} obs={{ scenes: obs?.scenes ?? [], sources: obs?.sources ?? [] }} />}
             {card === 'commands' && (

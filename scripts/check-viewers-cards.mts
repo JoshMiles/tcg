@@ -35,6 +35,7 @@ ok(paid.on && paid.text === '200 Brie Bucks a pull, 5 per viewer each stream', `
 ok(!sum().paid.on, 'paid off when charging is off');
 ok(sum({ rewardIds: ['a', 'b', 'c', 'd', 'e'], awardIds: ['a', 'c'] }).points.text === '2 of 5 rewards give something', 'channel points line');
 ok(sum({ rewardIds: ['a'], awardIds: [] }).points.on === false, 'no awards is off');
+ok(sum({ rewardIds: null, awardIds: ['a', 'c'] }).points.text === '2 rewards give something', 'the grid does not ask Twitch: the saved awards are counted');
 const evOn = { ...base, eventRewards: { ...base.eventRewards, bits: { ...base.eventRewards.bits, on: true }, raid: { ...base.eventRewards.raid, on: true } } };
 ok(/^2 of 4 events give something/.test(sum({}, evOn).events.text), `events line: ${sum({}, evOn).events.text}`);
 ok(sum({}, { ...base, eventRewards: { ...base.eventRewards, raidShoutout: { on: true, minViewers: 8 } } }).shoutout.text === 'On for raids of 8 or more viewers', 'shout-out line');
