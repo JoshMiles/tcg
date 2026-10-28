@@ -22,8 +22,7 @@ Track 55 is done except 55.5 (#603, waits for Josh). This file goes once the ite
 - lib/staff-token.ts, app/auth/staff/route.ts, app/api/auth/logout/route.ts (47.3); lib/rate-limit.ts (47.9); lib/security-headers.ts (47.5); lib/user-admin.ts (46.6)
 
 ## Open questions
-- Pack prices apply only to `!pack <name>`; a plain `!pack` draws after the price is fixed. Charge pack prices on plain pulls too (needs the pack picked before the reservation)?
-- Event reward packs go through while pulls are paused or the viewer is blocked (same as Stream Deck free packs). Keep, or stop them?
+- (none)
 
 ## Decisions
 - 2026-10-26: v0.0.2 = Track 34 in full (Josh). 34.7 may move to a later version after its planning pass.
@@ -67,3 +66,5 @@ Track 55 is done except 55.5 (#603, waits for Josh). This file goes once the ite
 - 2026-10-27: Josh picked all eight 55.4 settings; Opus wrote the designs (price order fixed at reserve, free packs count toward the limit, event packs never do, 10 packs per event cap, broadcaster exempt from cooldown) in ROADMAP 55.4. Track 55 done items archived (#604).
 - 2026-10-27: Josh: proceed with the 55.4 build; Opus merges each PR on green CI with comments read (docs/git-and-prs.md), one agent at a time.
 - 2026-10-27: 55.4 built (#605 to #612). Opus fixes on review: the in-flight total never counts below this pull's price (#606); the queue cap form regex lost its backslash (#609). Briefs now say to edit code with the Edit tool, not shell.
+- 2026-10-28: Josh: a plain `!pack` rolls a random pack from the season (same weights) before the reservation and charges that pack's price (#614).
+- 2026-10-28: Josh: event reward packs keep going through while pulls are paused or the viewer is blocked, like Stream Deck free packs (for now).
