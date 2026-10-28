@@ -5,7 +5,7 @@
 export interface EventLine { at: number; time: string; event: string; viewer: string; amount: string; ok: boolean; result: string }
 export const EVENTS_KEEP = 30;
 
-const LABELS: Record<string, string> = { 'gifted-subs': 'Gifted subs', bits: 'Bits', raid: 'Raid', redeem: 'Channel point redeem' };
+const LABELS: Record<string, string> = { 'gifted-subs': 'Gifted subs', bits: 'Bits', raid: 'Raid', redeem: 'Channel point redeem', 'stream-online': 'Stream online', 'stream-offline': 'Stream offline' };
 const text = (v: unknown, max: number): string => (typeof v === 'string' ? v.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max) : '');
 const pad = (n: number): string => String(n).padStart(2, '0');
 

@@ -17,6 +17,15 @@ export function eventsChecks(): void {
   assert.equal(cleanEvent({ at, username: 'cat', event: 'gifted-subs', amount: 5, ok: true, detail: '' })!.event, 'Gifted subs');
   assert.equal(cleanEvent({ at, username: 'cat', event: 'something-new', ok: true, detail: '' })!.event, 'something-new', 'an unknown event is shown as sent');
 
+  // Twitch events (58.5): a redemption with its award result, one refused while awards are paused, and the stream going online or offline (no viewer).
+  assert.deepEqual(cleanEvent({ at, username: 'cat', event: 'redeem', ok: true, detail: 'Twitch channel points: redeemed Open a pack' }),
+    { at, time: '14:05:09', event: 'Channel point redeem', viewer: 'cat', amount: '-', ok: true, result: 'Twitch channel points: redeemed Open a pack' });
+  assert.equal(cleanEvent({ at, username: 'cat', event: 'redeem', ok: false, detail: 'Twitch channel points: Open a pack failed for Open a pack: awards paused' })!.result,
+    'Ignored: Twitch channel points: Open a pack failed for Open a pack: awards paused', 'a paused award says why');
+  assert.deepEqual(cleanEvent({ at, username: '', event: 'stream-online', ok: true, detail: 'The stream went online' }),
+    { at, time: '14:05:09', event: 'Stream online', viewer: '-', amount: '-', ok: true, result: 'The stream went online' });
+  assert.equal(cleanEvent({ at, username: '', event: 'stream-offline', ok: true, detail: 'The stream went offline' })!.event, 'Stream offline');
+
   // Junk is dropped or made safe: nothing here can become markup (the windows use textContent), control characters and long text are cut.
   assert.equal(cleanEvent(null), null);
   assert.equal(cleanEvent({ username: 'x', event: 'bits' }), null, 'no time');

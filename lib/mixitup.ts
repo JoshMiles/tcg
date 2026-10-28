@@ -62,11 +62,15 @@ const LOG_KEEP = 50; // the site's calls out and Mix It Up's requests in (ROADMA
 export type MixItUpEvent = Pick<MixItUpLogEntry, 'at' | 'username' | 'ok' | 'detail'> & { event: string; amount?: number };
 const EVENTS = 'mixitup:events';
 export const EVENTS_KEEP = 30;
+/** One line for the app's event feed only, no log line (Twitch stream online / offline, 58.5). Never throws. */
+export async function noteFeedEvent(e: MixItUpEvent): Promise<void> {
+  try { await kv.lpush(EVENTS, { at: e.at, username: e.username, event: e.event, ...(e.amount ? { amount: e.amount } : {}), ok: e.ok, detail: e.detail } satisfies MixItUpEvent); await kv.ltrim(EVENTS, 0, EVENTS_KEEP - 1); } catch { /* never breaks a reward */ }
+}
 export async function logMixItUp(e: Omit<MixItUpLogEntry, 'at'>, event?: { name: string; amount?: number }): Promise<void> {
   const at = Date.now();
   try { await kv.lpush(LOG, { ...e, at }); await kv.ltrim(LOG, 0, LOG_KEEP - 1); } catch { /* the log never breaks a pull */ }
   // shortcut: the event feed is its own short list (the log's 50 lines are mostly chat pulls), written with the same line; upgrade if the two ever need to be one store.
-  if (event) try { await kv.lpush(EVENTS, { at, username: e.username, event: event.name, ...(event.amount ? { amount: event.amount } : {}), ok: e.ok, detail: e.detail } satisfies MixItUpEvent); await kv.ltrim(EVENTS, 0, EVENTS_KEEP - 1); } catch { /* never breaks a reward */ }
+  if (event) await noteFeedEvent({ at, username: e.username, event: event.name, amount: event.amount, ok: e.ok, detail: e.detail });
   if (e.what === 'refused') await noteRefusal(e.detail.split(':')[0].trim(), e.username); // a staff notice, throttled (55.13)
 }
 /** The last event rewards, newest first; only those after `after` (a time in ms) when given. */

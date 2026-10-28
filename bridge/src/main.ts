@@ -76,6 +76,7 @@ let deckFacts = { found: false, installed: '' };
 let hotkeys: Hotkeys | null = null;
 let hotkeyErrors: Partial<Record<HotkeyName, string>> = {};
 let paused: boolean | null = null; // pulls paused on the site; null until the site has said
+let awardsPaused: boolean | null = null; // channel point awards paused on the site (58.5); null until the site has said
 let pauseReason = ''; // why pulls are paused: "scene <name>" when a chosen OBS scene did it (57.2), else ''
 let happy: HappyFacts | null = null; // the site's running happy hour (57.3), as the site last said; never decided here
 let commandsMissing: string[] | null = null; // the Mix It Up commands the site expects and does not find (57.8); null until the site has said. Shown only, nothing in Mix It Up is changed
@@ -188,7 +189,7 @@ const appState = (): object => demoState ?? ({
   home: { feed: mergeFeed(pulls, eventLines, service?.state.jobs ?? [], FEED_KEEP), numbers: streamNumbers(pulls, ledger?.all() ?? [], streamSince) },
   commandsMissing,
   obsStats: { map: settings.obsStats, texts: service?.obs.textSources() ?? [], stats: STAT_IDS.map(id => ({ id, label: STAT_LABELS[id] })) },
-  control: { error: control?.error ?? '', paused, reason: pauseReason, happy, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
+  control: { error: control?.error ?? '', paused, awardsPaused, reason: pauseReason, happy, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
   appVersion: app.getVersion(),
   about: aboutParts(app.getVersion(), build),
   update: updateText(update),
@@ -237,7 +238,7 @@ function push(): void {
   tickAlerts();
   deck?.broadcast();
   scenePause?.update(settings.scenePause, !!service?.state.obs.connected, service?.state.obs.scene ?? '');
-  const menu =`${paused}${!!client}${!!happy}${staff}${tradingPaused}${staff ? sceneList().join('|') : ''}${update.stage === 'available' ? update.version : ''}`;
+  const menu =`${paused}${awardsPaused}${!!client}${!!happy}${staff}${tradingPaused}${staff ? sceneList().join('|') : ''}${update.stage === 'available' ? update.version : ''}`;
   if (menu !== menuFor) { menuFor = menu; tray?.setContextMenu(trayMenu()); }
   if (service?.state.site === 'revoked' && settings.token) { // the site revoked this PC: forget the token so a restart does not retry it
     log('The site revoked this PC');
@@ -262,6 +263,7 @@ async function runControl(a: ControlAction): Promise<ControlResult> {
   try {
     const r = await client.action(a);
     if (typeof r.paused === 'boolean') { paused = r.paused; pauseReason = r.reason ?? ''; }
+    if (typeof r.awardsPaused === 'boolean') awardsPaused = r.awardsPaused;
     if (r.happyHour !== undefined) happy = r.happyHour;
     lastControl = r.message;
     log(`Control ${a.action}: ${r.ok ? 'ok' : 'failed'}, ${r.message}`);
@@ -330,6 +332,7 @@ async function loadStatus(): Promise<void> {
     if (!r) return;
     paused = r.paused ?? paused;
     if (typeof r.paused === 'boolean') pauseReason = r.reason ?? '';
+    awardsPaused = r.awardsPaused ?? awardsPaused;
     buffs = r.buffs ?? buffs;
     if (r.happyHour !== undefined) happy = r.happyHour;
     commandsMissing = r.commandsMissing ?? commandsMissing;
@@ -421,6 +424,7 @@ async function disconnect(): Promise<void> {
   service = null;
   client = null;
   paused = null;
+  awardsPaused = null;
   happy = null;
   commandsMissing = null;
   pauseReason = '';
@@ -653,6 +657,7 @@ const trayMenu = () => Menu.buildFromTemplate([
   { label: 'Open TCG Bridge', click: showWindow },
   { label: 'Checklist', enabled: !!client, click: () => { void checklist().then(r => { if (Notification.isSupported()) new Notification({ title: 'Pre-stream checklist', body: r.text }).show(); }); } },
   { label: 'Pause pulls', type: 'checkbox', checked: !!paused, enabled: !!client, click: () => { void runControl({ action: 'pause' }); } },
+  { label: 'Pause channel point awards', type: 'checkbox', checked: !!awardsPaused, enabled: !!client, click: () => { void runControl({ action: 'pause-awards' }); } },
   { label: 'Happy hour', enabled: !!client, submenu: [
     ...HAPPY_PRESETS.map(p => ({ label: p.label, click: () => { void runControl(p.body); } })),
     { type: 'separator' as const },
@@ -725,7 +730,7 @@ async function checklist(): Promise<TestResult> {
   const c = client;
   const svc = service;
   if (!c || !svc) return { ok: false, text: 'Pair TCG Bridge first' };
-  const r = await runChecklist({ mix: new MixItUpClient(), channel: svc.state.channel, currencyId: svc.state.currencyId, facts: () => c.checklistFacts(), obsEnabled: settings.obsEnabled, obsCheck: () => svc.obs.checkNow() });
+  const r = await runChecklist({ mix: new MixItUpClient(), channel: svc.state.channel, currencyId: svc.state.currencyId, facts: () => c.checklistFacts(), obsEnabled: settings.obsEnabled, obsCheck: () => svc.obs.checkNow(), twitch: svc.state.twitch });
   lastChecklist = { ...r, at: Date.now() };
   log(`Checklist: ${r.summary} ${r.lines.filter(l => l.tone === 'bad').map(l => l.label).join(', ')}`.trim());
   push();
@@ -834,6 +839,7 @@ function setupIpc(): void {
 
   // ── Control from the PC (55.9): the pause switch, the hotkeys, the queue and the Stream Deck buttons ──
   ipcMain.handle('pause', (_e, on: boolean) => runControl({ action: 'pause', on: !!on }));
+  ipcMain.handle('pause-awards', (_e, on: boolean) => runControl({ action: 'pause-awards', on: !!on }));
   ipcMain.handle('happy-start', (_e, minutes: number, kind: string, percent: number) => runControl({ action: 'happy-hour-start', minutes: Number(minutes), kind: kind === 'free' ? 'free' : 'discount', percent: Number(percent) })); // the site checks the numbers
   ipcMain.handle('happy-end', () => runControl({ action: 'happy-hour-end' }));
   // ── Stream Deck plugin (57.13) ──

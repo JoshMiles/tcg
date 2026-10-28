@@ -23,6 +23,16 @@ const AWARDS_KEY = 'twitch:reward-awards';
 export const readAwards = async (): Promise<Awards> => normalizeAwards(await kv.get(AWARDS_KEY).catch(() => null));
 export const saveAwards = async (a: Awards): Promise<void> => { await kv.set(AWARDS_KEY, a); };
 
+const PAUSED_KEY = 'twitch:awards-paused';
+export const AWARDS_PAUSED_WHY = 'awards paused';
+export const awardsPaused = async (): Promise<boolean> => !!(await kv.get(PAUSED_KEY).catch(() => null));
+/** Pauses or resumes channel point awards (58.5). True when the state changed. Redemptions are still recorded while paused; only the award is skipped. */
+export async function setAwardsPaused(on: boolean): Promise<boolean> {
+  if ((await awardsPaused()) === on) return false;
+  if (on) await kv.set(PAUSED_KEY, 1); else await kv.del(PAUSED_KEY);
+  return true;
+}
+
 /** The Stream Deck buffs an award may use: the same list as the event rewards (one viewer, switched on for the Stream Deck, not an achievement). */
 export const usableBuffIds = async (): Promise<Set<string>> => new Set((await getBuffDefs()).filter(b => b.streamDeck && b.scope !== 'community' && b.type !== 'grant-achievement').map(b => b.id));
 
@@ -113,9 +123,11 @@ export async function awardRedemption(event: Record<string, unknown>): Promise<A
   if (!award) return null;
   const username = cleanLogin(red.login);
   const what = award.kind === 'buff' ? awardLabel(award, (await getBuffDef(award.buffId).catch(() => null))?.name) : awardLabel(award);
-  const done: Done = username ? await runAward(award, username, red.title) : fail('That is not a Twitch name.');
+  // 58.5: paused = the redemption is recorded and logged, the award is not run, and the failed-award notice says why (a mod refunds it by hand).
+  const done: Done = !username ? fail('That is not a Twitch name.') : (await awardsPaused()) ? fail(AWARDS_PAUSED_WHY) : await runAward(award, username, red.title);
   const who = username || red.login.slice(0, 40);
-  const log = (what2: 'pull' | 'buff' | 'command') => logMixItUp({ username: who, what: what2, ok: done.ok, detail: done.ok ? `Twitch channel points: ${done.text}` : `Twitch channel points: ${what} failed for ${red.title || 'a reward'}: ${done.why}` });
+  // The `redeem` event also puts the line in the app's event feed (57.7).
+  const log = (what2: 'pull' | 'buff' | 'command') => logMixItUp({ username: who, what: what2, ok: done.ok, detail: done.ok ? `Twitch channel points: ${done.text}` : `Twitch channel points: ${what} failed for ${red.title || 'a reward'}: ${done.why}` }, { name: 'redeem' });
   await log(award.kind === 'buff' ? 'buff' : award.kind === 'happyhour' ? 'command' : 'pull');
   if (done.ok) return { ok: true, text: done.text };
   await noteAwardFailed(who, red.title, done.why);
