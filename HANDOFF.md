@@ -1,7 +1,8 @@
 # HANDOFF
 
 ## Goal
-Build Track 55.4a to 55.4h (Mix It Up settings, ROADMAP.md) one at a time: a fresh Sonnet worktree agent per item, Opus reviews each PR, merges on green, then starts the next. 55.5 (#603) waits for Josh to test-import a file.
+Track 55 is done except 55.5 (#603, waits for Josh). This file goes once the items under Left are handed over.
+
 ## Done
 - Track 45 (#480 to #483), 34.8 (#484, panel 0.0.2 submitted, under Twitch review).
 - Track 46: #485 to #490, and #499 (46.6, archives Track 46).
@@ -9,7 +10,9 @@ Build Track 55.4a to 55.4h (Mix It Up settings, ROADMAP.md) one at a time: a fre
 - Track 47 ROADMAP cleanup committed locally on `roadmap-47-cleanup` (a5b91340): done items archived, 47.4 in Track 53, 47.8 rewritten to PR 2 to 4, new 47.10 (security L-2) and 47.11 (trial readouts).
 
 ## Left
-- 55.4 progress: a (replies) next; then b, c, d, e, f, g, h. Update this line as each merges.
+- 55.4a to 55.4h merged (#605 to #612), archived.
+- Josh to test in real Mix It Up: one event of each kind from the Events tab (single gift, mass gift, bits, raid, redeem); a `!pack <name>`; and a 55.5 file import (#603).
+- Old worktrees from the Track 55 run under .claude/worktrees/agent-* (one holds the open 55.5 branch): clean once #603 merges.
 - Waiting: 43.3 and Track 53 (panel review), 47.11 (Josh, from 2026-11-02), 40.2f (field data, about 2026-11-09), 35.1 (Josh), 50.3 trial readout (from 2026-11-24).
 - Flaky checks: check-achievements and check-recent-arrivals; verify sometimes fails one check on a first run and passes on a rerun.
 - Cleanup for Josh: stray remote branch 51-6-staff-reports-to-admins; stray node process on port 4111; stale worktrees under .claude/worktrees/.
@@ -62,3 +65,6 @@ Build Track 55.4a to 55.4h (Mix It Up settings, ROADMAP.md) one at a time: a fre
 - 2026-10-27: 50.3 swap finder shipped (#574); 4-week trial, readout from 2026-11-24 (Opus).
 - 2026-10-27: Josh picked all eight 55.4 settings; Opus wrote the designs (price order fixed at reserve, free packs count toward the limit, event packs never do, 10 packs per event cap, broadcaster exempt from cooldown) in ROADMAP 55.4. Track 55 done items archived (#604).
 - 2026-10-27: Josh: proceed with the 55.4 build; Opus merges each PR on green CI with comments read (docs/git-and-prs.md), one agent at a time.
+- 2026-10-27: 55.4 built (#605 to #612). Opus fixes on review: the in-flight total never counts below this pull's price (#606); the queue cap form regex lost its backslash (#609). Briefs now say to edit code with the Edit tool, not shell.
+- 2026-10-28: Josh: a plain `!pack` rolls a random pack from the season (same weights) before the reservation and charges that pack's price (#614).
+- 2026-10-28: Josh: event reward packs keep going through while pulls are paused or the viewer is blocked, like Stream Deck free packs (for now).

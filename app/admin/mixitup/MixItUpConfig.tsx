@@ -33,7 +33,7 @@ export function MixItUpConfig({ settings: s, happyHour, packs }: { settings: Mix
 
       <PendingButton type="submit" className="btn btn-primary btn-sm self-start">Save paid pulls</PendingButton>
     </form>
-    <Panel title="Packs viewers can ask for" icon="list" hint={<>A viewer types <code>!pack &lt;name&gt;</code> (the whole name, or the start of it if only one pack starts that way). Prices are set on each pack&rsquo;s editor; the base price is {s.cost.toLocaleString()} {s.currency}. A pack&rsquo;s price is charged when it is asked for by name; a plain <code>!pack</code> uses the role price or the base price.</>}>
+    <Panel title="Packs viewers can ask for" icon="list" hint={<>A viewer types <code>!pack &lt;name&gt;</code> (the whole name, or the start of it if only one pack starts that way). Prices are set on each pack&rsquo;s editor; the base price is {s.cost.toLocaleString()} {s.currency}. Every paid pull is charged the price of the pack it opens (pack price, else role price, else base), including a plain <code>!pack</code>, which opens a random pack.</>}>
       {packs.length === 0 ? <p className="text-sm text-gray-500">The active season has no pack with cards to open.</p> : (
         <table className="table table-sm">
           <thead><tr><th>Pack</th><th className="text-right">Price</th><th /></tr></thead>

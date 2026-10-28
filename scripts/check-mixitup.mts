@@ -246,4 +246,53 @@ ok((await m.reservePaidPull(offMix, 'zed', 'cd12', fake)).ok && (await m.reserve
 const log = await m.getMixItUpLog();
 ok(log.length > 0 && log.length <= 50 && log.some(e => e.what === 'refused') && log.some(e => e.what === 'deduct' && !e.ok), 'the log keeps the last 50, refusals and failed charges included');
 
+// ── First pack free (ROADMAP 55.4h) ──
+await kvLib.seedSeason1();
+const ffColl = (await kvLib.getActiveSeason())!.collectionName;
+await kvLib.updateCollection(ffColl, ['oldtimer'], () => ({ result: 0, cards: { oldtimer: [1] } }));
+for (const u of ['newa', 'newb', 'newc', 'newd', 'newe', 'newf', 'oldtimer', 'testy']) balances[u] = 1000;
+const ffMix = c.normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', cost: 100, limit: 0, firstPackFree: true });
+const ffAsked = (u: string) => calls.filter(x => x.username === u).length;
+ok(d.firstPackFree === false && ffMix.firstPackFree && c.normalizeMixItUp({ firstPackFree: 'on' }).firstPackFree === false, 'first pack free is off by default and only a real true switches it on');
+ok(c.pullPrice({ cost: 100, priceByRole: { vip: 40 } }, { role: 'vip', packPrice: 250, happyHour: { kind: 'discount', percent: 50, endsAt: Date.now() + 60000, by: 'x' }, firstFree: true }) === 0 && c.pullPrice({ cost: 100, priceByRole: {} }, { firstFree: false }) === 100, 'a first free pack is the last step of the price: 0 after pack, role and happy hour');
+const fa1 = await m.reservePaidPull(ffMix, 'newa', 'ff1', fake);
+ok(fa1.ok && fa1.price === 0 && fa1.firstFree && ffAsked('newa') === 0 && (await kv.get('mixitup:pending:newa')) == null && (await kv.get('user:newa:firstfree')) !== null, 'the first pull is free: no balance request, nothing in flight, flag set');
+const faClaim = await m.claimPaidPull('ff1', 'newa');
+const ffBefore = calls.length;
+ok(faClaim?.amount === 0 && (await m.chargePaidPull(ffMix, faClaim, { cardName: 'X', variant: 'Regular', stars: 1, packName: 'P', cardNumber: 1 }, fake)).applied && calls.length === ffBefore, 'claiming it takes no deduct');
+const fa2 = await m.reservePaidPull(ffMix, 'newa', 'ff2', fake);
+ok(fa2.ok && fa2.price === 100 && !fa2.firstFree && ffAsked('newa') === 1, 'the second pull is charged the normal price');
+const [fb1, fb2] = await Promise.all([m.reservePaidPull(ffMix, 'newb', 'ff3', fake), m.reservePaidPull(ffMix, 'newb', 'ff4', fake)]);
+ok(fb1.ok && fb2.ok && [fb1, fb2].filter(r => r.ok && r.price === 0).length === 1, 'two quick pulls give only one free');
+// A refused first pull leaves the viewer eligible: cooldown, limit, Mix It Up down.
+await kv.set('mixitup:cd:newc', 1, { ex: 60 });
+const fc1 = await m.reservePaidPull({ ...ffMix, cooldownSeconds: 30 }, 'newc', 'ff5', fake);
+ok(!fc1.ok && fc1.reason === 'cooldown' && (await kv.get('user:newc:firstfree')) === null, 'a cooldown refusal leaves the first pack unused');
+await kv.del('mixitup:cd:newc');
+await kv.set(`mixitup:cnt:${await m.currentStreamKey()}:newd`, 1);
+const fd1 = await m.reservePaidPull(c.normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', cost: 100, limit: 1, firstPackFree: true }), 'newd', 'ff6', fake);
+ok(!fd1.ok && fd1.reason === 'limit_reached' && (await kv.get('user:newd:firstfree')) === null, 'a limit refusal leaves the first pack unused');
+mode = 'down';
+ok((await m.reservePaidPull(ffMix, 'newc', 'ff7', fake)).ok, 'a free first pull needs no balance, so Mix It Up being down does not stop it');
+await m.releasePaidPull('ff7');
+mode = 'ok';
+ok((await kv.get('user:newc:firstfree')) === null, 'releasing the reservation (no pack to open) gives the first pack back');
+const fc2 = await m.reservePaidPull(ffMix, 'newc', 'ff8', fake);
+ok(fc2.ok && fc2.price === 0, 'so the viewer still gets it afterwards');
+// Queue cap refuses before any reservation, so it cannot touch the flag.
+const { queuePull } = await import('../lib/pull-queue');
+await m.saveMixItUpSettings({ ...ffMix, queueCap: 1 });
+await queuePull('qfill', { free: true });
+const capped = await queuePull('newe', { chat: true });
+ok(capped.reason === 'queue_full' && (await kv.get('user:newe:firstfree')) === null, 'a queue cap refusal leaves the first pack unused');
+// A viewer who pulled before the setting existed is not eligible, and a test pull never touches the real flag.
+const fo = await m.reservePaidPull(ffMix, 'oldtimer', 'ff9', fake);
+ok(fo.ok && fo.price === 100 && !fo.firstFree, 'a viewer with cards in a season is charged');
+ok(ffAsked('oldtimer') === 1 && (await m.reservePaidPull(ffMix, 'oldtimer', 'ff10', fake)).price === 100, 'and is not looked up again on every pull (the flag marks them)');
+const ft = await m.reservePaidPull(ffMix, 'testy', 'ff11', fake, undefined, undefined, true);
+ok(ft.ok && ft.price === 100 && (await kv.get('user:testy:firstfree')) === null, 'a test pull is charged and never sets the real flag');
+const ffOff = await m.reservePaidPull({ ...ffMix, firstPackFree: false }, 'newf', 'ff12', fake);
+ok(ffOff.ok && ffOff.price === 100 && (await kv.get('user:newf:firstfree')) === null, 'off = no change: charged, no flag');
+await m.saveMixItUpSettings(c.normalizeMixItUp({}));
+
 console.log('mixitup checks passed');

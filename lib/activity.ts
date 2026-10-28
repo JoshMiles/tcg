@@ -25,7 +25,7 @@ export type ActivityDetail =
   | { type: 'reset'; scope: 'season' | 'all' | 'everyone' }
   | { type: 'delete' }
   // something asked the overlay to draw / show a collection: an incoming webhook, or an admin quick action
-  | { type: 'trigger'; kind: 'pull' | 'collection' | 'card'; source?: 'webhook' | 'admin'; count?: number; cardName?: string }
+  | { type: 'trigger'; kind: 'pull' | 'collection' | 'card'; source?: 'webhook' | 'admin'; count?: number; cardName?: string; /** Why a free pack was queued, such as "3 packs for 300 bits" (event rewards, ROADMAP 55.4g). */ reason?: string }
   | { type: 'collection_shown' }                      // overlay displayed a viewer's collection
   | { type: 'buff'; cardNumber: number; cardName: string; buffName: string; buffType: string; magnitude: number; duration?: string; copyId?: string; uid?: number };
 

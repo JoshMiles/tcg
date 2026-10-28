@@ -7,7 +7,7 @@ import { recordActivity } from './activity';
 import { getMixItUpSettings, logMixItUp, releasePaidPull, reservePaidPull } from './mixitup';
 import { inSandbox } from './db';
 import { queueLength } from './webhooks';
-import { dropDraw, issueDraw } from './draw';
+import { dropDraw, issueDraw, rollPack } from './draw';
 import { traceStep } from './mixitup-trace';
 import { isPullsPaused, PAUSED_MESSAGE } from './pull-pause';
 import { blockedRefusal } from './pull-block';
@@ -26,8 +26,10 @@ export interface PullOptions {
   free?: boolean;
   /** A viewer's chat !pack arriving on the pull webhook: the only caller the queue cap (55.4e) refuses. Everything else leaves it unset. */
   chat?: boolean;
-  /** What the webhook sent as `pack` (ROADMAP 55.4f): the pack a viewer asked for by name. Missing or blank = the usual choice. */
+  /** What the webhook sent as `pack` (ROADMAP 55.4f): the pack a viewer asked for by name. Missing or blank = a pack is rolled. */
   pack?: unknown;
+  /** Why a free pull was given (ROADMAP 55.4g), such as "3 packs for 300 bits". Shown in the live activity feed. */
+  reason?: string;
 }
 
 /** Returns the JSON the webhook answers with. Throws only when the queue itself fails (after undoing what was reserved). */
@@ -61,32 +63,37 @@ export async function queuePull(username: string, o: PullOptions = {}): Promise<
     await note('balance', 'failed', message);
     return { ok: true, ignored: true, reason: 'queue_full', message };
   }
-  // Pick a pack (55.4f): `!pack <name>`. Settled before the reservation, so an unknown name charges nothing, starts no cooldown and counts
-  // toward no limit. No name = the season's usual weighted choice. Only the packs the draw could open count (the ones with cards).
+  // Pick the pack (55.4f) BEFORE the reservation, so its price is the one charged. `!pack <name>`: that pack; an unknown name charges nothing,
+  // starts no cooldown and counts toward no limit. No name: a weighted roll among the same openable packs (the ones with cards), so every
+  // pull has its pack here and a free pull simply ignores the price. No openable pack = no `chosen`, and issueDraw answers no_packs below.
   let chosen: Pack | undefined;
   const asked = cleanPackArg(o.pack);
-  if (asked) {
-    const openable = ((await getActiveSeasonWithPacks())?.packs ?? []).filter(p => p.cards.length > 0).map(p => p.pack);
-    if (openable.length > 0) {
-      chosen = pickPack(openable, asked) ?? undefined;
+  const openable = ((await getActiveSeasonWithPacks())?.packs ?? []).filter(p => p.cards.length > 0);
+  if (openable.length > 0) {
+    if (asked) {
+      chosen = pickPack(openable.map(p => p.pack), asked) ?? undefined;
       if (!chosen) {
-        const message = replyText('unknown_pack', mix.replies, { username, packs: openable.map(p => p.name).join(', ') });
+        const message = replyText('unknown_pack', mix.replies, { username, packs: openable.map(p => p.pack.name).join(', ') });
         await logMixItUp({ username, what: 'refused', ok: false, detail: `unknown_pack: ${asked}` });
         await note('balance', 'failed', message);
         return { ok: true, ignored: true, reason: 'unknown_pack', message };
       }
+    } else {
+      chosen = rollPack(openable)?.pack;
     }
   }
   const paid = mix.enabled && !o.free && !(await inSandbox());
   let known: { left?: number; balance?: number } = {};
   let cost = mix.cost; // a paid pull shows the price stored on its reservation
+  let firstFree = false;
   if (paid) {
-    const r = await reservePaidPull(mix, username, id, undefined, o.role, chosen?.price);
+    const r = await reservePaidPull(mix, username, id, undefined, o.role, chosen?.price, !!o.test);
     if (!r.ok) {
       await note('balance', 'failed', r.message);
       return { ok: true, ignored: true, reason: r.reason, message: r.message, ...(r.balance !== undefined ? { balance: r.balance } : {}) };
     }
     cost = r.price ?? mix.cost;
+    firstFree = !!r.firstFree;
     known = { ...(r.left !== undefined ? { left: r.left } : {}), ...(r.balance !== undefined ? { balance: r.balance } : {}) };
     await note('balance', 'ok', `Mix It Up answered and ${username} can pay ${cost.toLocaleString()} ${mix.currency}`);
   } else {
@@ -108,7 +115,8 @@ export async function queuePull(username: string, o: PullOptions = {}): Promise<
     throw e;
   }
   await note('queued', 'ok', 'A ticket was rolled and the pull is waiting for the overlay');
-  await recordActivity({ type: 'trigger', kind: 'pull', username, ...(o.test ? { test: true as const } : {}) });
-  const message = replyText('queued', mix.replies, { username, cost: cost.toLocaleString(), currency: mix.currency, left: known.left, balance: known.balance?.toLocaleString() });
+  await recordActivity({ type: 'trigger', kind: 'pull', username, ...(o.reason ? { reason: o.reason } : {}), ...(o.test ? { test: true as const } : {}) });
+  // A first free pack has its own reply; blank uses the normal one, not the suggested text.
+  const message = replyText(firstFree && mix.replies.queued_first_free ? 'queued_first_free' : 'queued', mix.replies, { username, cost: cost.toLocaleString(), currency: mix.currency, left: known.left, balance: known.balance?.toLocaleString() });
   return { ok: true, message, ...known };
 }

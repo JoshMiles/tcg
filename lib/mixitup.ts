@@ -8,7 +8,7 @@ import { noteOutgoing, outKindOf } from './mixitup-health';
 import { noteRefusal } from './bridge-notice';
 import { bridgePullStart, bridgeRunCommand, callBridge, feedOn } from './bridge';
 import { feedOf, matchRule, pullArgs, shoutText, type PullFacts } from './pull-rules-core';
-import { getActiveSeason, withLock } from './kv';
+import { getActiveSeason, getUserCards, listSeasons, withLock } from './kv';
 import { getLiveStatus } from './twitch-live';
 import { notifySystem } from './discord';
 import { getHappyHour } from './happyhour';
@@ -177,11 +177,12 @@ const cntKey = (stream: string, user: string) => `mixitup:cnt:${stream}:${user}`
 const pendKey = (user: string) => `mixitup:pending:${user}`;
 const payKey = (id: string) => `mixitup:pay:${id}`;
 const cdKey = (user: string) => `mixitup:cd:${user}`;
+const ffKey = (user: string) => `user:${user}:firstfree`;
 
-/** `amount` is the price worked out when the pull was reserved (ROADMAP 55.4b); a record from before has none. */
-interface PayRecord { username: string; amount: number; stream: string; at: number; credit?: boolean }
-/** `left` = paid pulls left this stream after this one (only with a limit); `balance` = what Mix It Up said before the price is taken; `price` = what this pull costs (stored on the reservation). */
-export type Reservation = { ok: true; left?: number; balance?: number; price?: number } | { ok: false; reason: RefusalReason; message: string; balance?: number };
+/** `amount` is the price worked out when the pull was reserved (ROADMAP 55.4b); a record from before has none. `firstFree` = this pull holds the viewer's first-free flag (55.4h). */
+interface PayRecord { username: string; amount: number; stream: string; at: number; credit?: boolean; firstFree?: boolean }
+/** `left` = paid pulls left this stream after this one (only with a limit); `balance` = what Mix It Up said before the price is taken; `price` = what this pull costs (stored on the reservation); `firstFree` = the price is 0 because it is their first pack. */
+export type Reservation = { ok: true; left?: number; balance?: number; price?: number; firstFree?: boolean } | { ok: false; reason: RefusalReason; message: string; balance?: number };
 
 /** The window "per stream" counts in: the live Twitch stream's start, else the UTC day. */
 export async function currentStreamKey(): Promise<string> {
@@ -193,9 +194,10 @@ export async function currentStreamKey(): Promise<string> {
 /**
  * Before a pull is queued: is the viewer under their limit and able to pay? On success the pull is reserved under `payId` (limit
  * and in-flight counts raised, until the pull is claimed or the reservation expires). A sandbox never calls out and never charges.
- * `packPrice` is the price of the pack the viewer asked for by name (55.4f); it sets the price before role price, base price and happy hour.
+ * `packPrice` is the price of the pack the pull opens (55.4f); it sets the price before role price, base price and happy hour.
+ * `test` = a simulated pull (55.14): it never takes or holds the real viewer's first-free flag.
  */
-export async function reservePaidPull(s: MixItUpSettings, username: string, payId: string, doFetch?: Fetch, role?: unknown, packPrice?: number): Promise<Reservation> {
+export async function reservePaidPull(s: MixItUpSettings, username: string, payId: string, doFetch?: Fetch, role?: unknown, packPrice?: number, test = false): Promise<Reservation> {
   const user = username.toLowerCase();
   const stream = await currentStreamKey();
 
@@ -209,11 +211,21 @@ export async function reservePaidPull(s: MixItUpSettings, username: string, payI
 
   // Their own limit replaces the role default. A this-stream bonus adds on top. 0 = no limit, and bonuses cannot change that.
   const extra = streamBuffAmount(await getStreamBuff(), stream) + await extraPullsFromBuffs(user);
-  const price = pullPrice(s, { role: pullRole(role, user), happyHour: await getHappyHour(), packPrice });
+  // First pack free (55.4h): SET NX takes the flag so two quick !packs cannot both be free. The flag stays set (forever) for a viewer who
+  // already has cards in any season, which also means that history is read once per viewer, not on every !pack. An unreadable history
+  // frees the flag again and charges normally.
+  let ffHeld = false;
+  if (s.firstPackFree && !test && (await kv.set(ffKey(user), 1, { nx: true }))) {
+    const had = await Promise.all((await listSeasons()).map(x => getUserCards(x.collectionName, user))).then(all => all.some(cards => cards.length > 0), () => null);
+    if (had === false) ffHeld = true;
+    else if (had === null) await kv.del(ffKey(user));
+  }
+  const price = pullPrice(s, { role: pullRole(role, user), happyHour: await getHappyHour(), packPrice, firstFree: ffHeld });
   const limit = effectiveLimit(roleLimitOf(s, pullRole(role, user)), await getUserPullLimit(user), Date.now(), extra).limit;
   let cdHeld = false; // this pull holds the viewer's cooldown key (below)
   const refuse = async (reason: RefusalReason, balance?: number, why?: string, wait?: number): Promise<Reservation> => {
     if (cdHeld) await kv.del(cdKey(user)); // a refused pull does not start a cooldown
+    if (ffHeld) await kv.del(ffKey(user)); // and does not use up the first free pack
     await logMixItUp({ username: user, what: 'refused', ok: false, detail: `${reason}${why ? `: ${why}` : ''}` });
     return { ok: false, reason, message: refusalMessage(reason, { ...s, cost: price, limit }, user, balance, wait), ...(balance !== undefined ? { balance } : {}) };
   };
@@ -250,8 +262,8 @@ export async function reservePaidPull(s: MixItUpSettings, username: string, payI
       return refuse('insufficient_balance', balance);
     }
   }
-  await kv.set(payKey(payId), { username: user, amount: price, stream, at: Date.now() } satisfies PayRecord, { ex: PAY_TTL_S });
-  return { ok: true, price, ...(balance !== undefined ? { balance } : {}), ...(left !== undefined ? { left } : {}) };
+  await kv.set(payKey(payId), { username: user, amount: price, stream, at: Date.now(), ...(ffHeld ? { firstFree: true } : {}) } satisfies PayRecord, { ex: PAY_TTL_S });
+  return { ok: true, price, ...(ffHeld ? { firstFree: true } : {}), ...(balance !== undefined ? { balance } : {}), ...(left !== undefined ? { left } : {}) };
 }
 
 /** How many paid pulls a viewer has used in the current stream window (for the admin's user page). */
@@ -294,6 +306,7 @@ export async function releasePaidPull(payId: string): Promise<void> {
   await kv.incrby(pendKey(rec.username), -(typeof rec.amount === 'number' ? rec.amount : 0)).catch(() => {});
   if (rec.credit) await releaseExtraPackCredit(rec.username);
   else await kv.del(cdKey(rec.username)).catch(() => {}); // the pull never happened, so no cooldown either
+  if (rec.firstFree) await kv.del(ffKey(rec.username)).catch(() => {}); // and the first free pack is still theirs
   await releaseCount({ payId, username: rec.username, amount: rec.amount, stream: rec.stream, credit: rec.credit });
 }
 
