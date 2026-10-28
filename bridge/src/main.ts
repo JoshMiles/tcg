@@ -8,7 +8,7 @@ import { Alerts, snapshotOf } from './alerts';
 import { aboutParts, commitUrl, readBuildInfo, stampText } from './buildinfo';
 import { Ledger } from './bucks';
 import { buttonUrl, ControlServer, HOTKEY_ACTION, HOTKEYS, Hotkeys, newControlKey, type ControlAction, type ControlResult, type HotkeyMap, type HotkeyName } from './control';
-import { DeckServer, deckStaff, deckStats, runStaffKey, runStaffPcKey } from './deck';
+import { DeckServer, deckChecklist, deckStaff, deckStats, runStaffKey, runStaffPcKey } from './deck';
 import type { DeckStaff, DeckState } from './deckprotocol';
 import { installedPluginVersion, PLUGIN_FILE, pluginOutdated, realEnv, streamDeckAppFound } from './deckinstall';
 import { diagnosticsText } from './diagnostics';
@@ -138,7 +138,7 @@ function deckInfo() {
   };
 }
 const deckStaffNow = (): DeckStaff | null => deckStaff(staff && !!staffTools, staffShown(settings), tradingPaused, service?.obs.state.scene ?? '', sceneList());
-const deckState = (): DeckState => ({ ready: !!client, paused, reason: pauseReason, happy, buffs, stats: deckStats(statFacts), staff: deckStaffNow() });
+const deckState = (): DeckState => ({ ready: !!client, paused, reason: pauseReason, happy, buffs, stats: deckStats(statFacts), staff: deckStaffNow(), live: service?.state.obs.streaming === true, checklist: deckChecklist(lastChecklist) });
 /** The Stream Deck link's part of the Connections facts. */
 function deckLink() {
   const d = deckInfo();
@@ -285,6 +285,7 @@ async function applyDeck(): Promise<void> {
         return r;
       },
       staff: body => runStaffKey(staffTools, staff, body, log, staffShown(settings)),
+      checklist,
       staffPc: r => runStaffPcKey({
         staff: deckStaffNow,
         setTrading: pause => setTrading(pause, false),

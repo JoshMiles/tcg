@@ -43,7 +43,12 @@ export interface DeckState {
   stats: DeckStats;
   /** For the staff keys; null = not a staff PC (an app older than the plugin sends none). */
   staff: DeckStaff | null;
+  /** OBS says the stream is live (61.5): Test pull and Show a card then play on the live overlay, so those keys need a 1 second hold. An older app sends none (= false). */
+  live: boolean;
+  /** The last pre-stream checklist run (61.5): how many lines it had and how many were red; null = none run yet. An older app sends none. */
+  checklist: DeckChecklist | null;
 }
+export interface DeckChecklist { total: number; failing: number }
 
 /** What a key asks the app to do. Each one is run by the same code as the Control tab and the tray. */
 export type DeckRequest =
@@ -53,7 +58,9 @@ export type DeckRequest =
   | { what: 'happy-start'; minutes: number; kind: 'free' | 'discount'; percent: number }
   | { what: 'happy-end' }
   | { what: 'test-pull' }
-  | { what: 'show-card'; username: string }
+  | { what: 'show-card'; username: string; card?: string }
+  | { what: 'refresh' }
+  | { what: 'checklist' }
   | { what: 'skip' }
   | { what: 'clear-queue' }
   | { what: 'trading'; pause: boolean }
@@ -82,7 +89,9 @@ export function parseRequest(v: unknown): DeckRequest | null {
     case 'preview': return { what: 'preview' };
     case 'trading': return typeof v.pause === 'boolean' ? { what: 'trading', pause: v.pause } : null;
     case 'scene': return text(v.name, 80) && v.name ? { what: 'scene', name: v.name } : null;
-    case 'show-card': return text(v.username, 40) && v.username ? { what: 'show-card', username: v.username } : null;
+    case 'refresh': return { what: 'refresh' };
+    case 'checklist': return { what: 'checklist' };
+    case 'show-card': return text(v.username, 40) && v.username ? { what: 'show-card', username: v.username, ...(text(v.card, 80) && v.card ? { card: v.card } : {}) } : null;
     case 'happy-start': return num(v.minutes) && num(v.percent) && (v.kind === 'free' || v.kind === 'discount') ? { what: 'happy-start', minutes: v.minutes, kind: v.kind, percent: v.percent } : null;
     default: return null;
   }
@@ -111,7 +120,9 @@ function parseState(v: unknown): DeckState | null {
   if (isObject(s) && Array.isArray(s.can) && typeof s.tradingPaused === 'boolean' && text(s.scene, 80) && Array.isArray(s.scenes)) {
     staff = { can: s.can.filter((x): x is string => text(x, 30)).slice(0, 20), tradingPaused: s.tradingPaused, scene: s.scene, scenes: s.scenes.filter((x): x is string => text(x, 80)).slice(0, 200) };
   }
-  return { ready: v.ready, paused: v.paused, reason: v.reason, happy: h === null ? null : { what: (h as { what: string }).what, endsAt: (h as { endsAt: number }).endsAt }, buffs, stats, staff };
+  const c = v.checklist;
+  const checklist = isObject(c) && num(c.total) && num(c.failing) ? { total: c.total, failing: c.failing } : null;
+  return { ready: v.ready, paused: v.paused, reason: v.reason, happy: h === null ? null : { what: (h as { what: string }).what, endsAt: (h as { endsAt: number }).endsAt }, buffs, stats, staff, live: v.live === true, checklist };
 }
 
 const json = (raw: string): unknown => { try { return JSON.parse(raw); } catch { return null; } };
