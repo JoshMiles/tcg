@@ -1,7 +1,9 @@
 name: TCG Bridge
 
-# Pull requests that touch the desktop app typecheck it and run its checks. A pushed tag `bridge-v<version>` (the version in
-# bridge/package.json) builds the Windows installer and attaches it to a GitHub Release, which the app updates itself from.
+# Pull requests that touch the desktop app typecheck it, run its checks and enforce the version rule (a change under bridge/ raises the minor
+# of bridge/package.json). A push to main that changes that version builds the Windows installer and publishes the release `bridge-v<version>`
+# itself, in the same run (a tag pushed with the workflow's token would not start another run). A hand-pushed tag `bridge-v<version>` still
+# builds and publishes the same way. The app updates itself from that release.
 on:
   pull_request:
     branches: [main]
@@ -9,14 +11,15 @@ on:
       - 'bridge/**'
       - '.github/workflows/bridge.yml'
   push:
+    branches: [main]
     tags: ['bridge-v*']
 
 permissions:
   contents: read
 
 concurrency:
-  group: bridge-${{ github.ref }}
-  cancel-in-progress: true
+  group: bridge-${{ github.event_name == 'pull_request' && github.ref || github.sha }} # a push is its own group: a quick second merge must not replace a waiting release run
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
@@ -30,21 +33,69 @@ jobs:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1' # the checks and the typecheck need no Electron binary
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # the merge commit and main's side of it (HEAD^1), for the version rule
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: bridge/package-lock.json
       - run: npm ci
+      - name: Version rule (a change under bridge/ raises the minor version above main's)
+        run: npx tsx scripts/check-version.ts HEAD^1
       - run: npm run typecheck
       - run: npm run check
 
+  # Decides whether this push releases: a hand-pushed tag always does; a push to main does when bridge/package.json's version differs from the
+  # previous commit's. Either way it skips (with a notice) when that release already exists.
+  plan:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      build: ${{ steps.plan.outputs.build }}
+      version: ${{ steps.plan.outputs.version }}
+      tag: ${{ steps.plan.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # this commit and the one before it
+      - id: plan
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(node -p "require('./bridge/package.json').version")
+          tag="bridge-v$version"
+          build=true
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            if [ "$GITHUB_REF_NAME" != "$tag" ]; then echo "::error::Tag $GITHUB_REF_NAME does not match bridge/package.json version $version"; exit 1; fi
+          else
+            previous=$(git show HEAD~1:bridge/package.json 2>/dev/null | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version" 2>/dev/null || true)
+            if [ "$previous" = "$version" ]; then
+              echo "::notice::bridge/package.json is still $version, so there is nothing to release"
+              build=false
+            fi
+          fi
+          if [ "$build" = "true" ] && gh release view "$tag" >/dev/null 2>&1; then
+            echo "::notice::The release $tag already exists, so it is not built again"
+            build=false
+          fi
+          { echo "build=$build"; echo "version=$version"; echo "tag=$tag"; } >> "$GITHUB_OUTPUT"
+
   release:
-    if: startsWith(github.ref, 'refs/tags/bridge-v')
+    needs: plan
+    if: needs.plan.outputs.build == 'true'
     runs-on: windows-latest
     timeout-minutes: 20
     permissions:
-      contents: write # attaches the installer to the release
+      contents: write # creates the tag and the release, and attaches the installer
+      pull-requests: read # the merged PR's title and changelog for the release notes
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ needs.plan.outputs.tag }}
+      VERSION: ${{ needs.plan.outputs.version }}
     defaults:
       run:
         working-directory: bridge
@@ -57,17 +108,32 @@ jobs:
           cache: npm
           cache-dependency-path: bridge/package-lock.json
       - run: npm ci
-      - name: The tag must match the app version
-        run: |
-          version=$(node -p "require('./package.json').version")
-          if [ "$GITHUB_REF_NAME" != "bridge-v$version" ]; then echo "Tag $GITHUB_REF_NAME does not match package.json version $version"; exit 1; fi
       - run: npm run typecheck
       - run: npm run check
-      - run: npm run dist
-      - name: Publish the release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm run dist # stamps the commit into the app first (scripts/stamp.mjs), then builds release/*.exe and release/latest.yml
+      - name: Release notes (the merged PR's title and changelog, and the commit)
         run: |
-          gh release create "$GITHUB_REF_NAME" release/*.exe release/*.exe.blockmap release/latest.yml \
-            --title "TCG Bridge ${GITHUB_REF_NAME#bridge-v}" \
-            --notes "Windows installer for TCG Bridge. This build is not code-signed: Windows SmartScreen shows \"More info\", then \"Run anyway\"."
+          subject=$(git log -1 --format=%s)
+          pr=$(printf '%s' "$subject" | sed -nE 's/.*\(#([0-9]+)\)$/\1/p')
+          title=""
+          bullets=""
+          if [ -n "$pr" ]; then
+            title=$(gh pr view "$pr" --json title --jq .title 2>/dev/null | tr -d '\r' || true)
+            bullets=$(gh pr view "$pr" --json body --jq .body 2>/dev/null | tr -d '\r' | awk '/^## Changelog/{f=1;next} /^## /{f=0} f && /^[-*] +[^ ]/' || true)
+          fi
+          {
+            echo "${title:-$subject}"
+            echo
+            if [ -n "$bullets" ]; then echo "$bullets"; echo; fi
+            echo "Commit: https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
+            if [ -n "$pr" ]; then echo "Pull request: https://github.com/$GITHUB_REPOSITORY/pull/$pr"; fi
+            echo
+            echo "Windows installer for TCG Bridge. This build is not code-signed: Windows SmartScreen shows \"More info\", then \"Run anyway\"."
+          } > release/notes.md
+          cat release/notes.md
+      - name: Publish the release (creates the tag at this commit when it does not exist)
+        run: |
+          gh release create "$TAG" release/*.exe release/*.exe.blockmap release/latest.yml \
+            --target "$GITHUB_SHA" \
+            --title "TCG Bridge $VERSION" \
+            --notes-file release/notes.md

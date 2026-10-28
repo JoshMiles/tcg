@@ -98,7 +98,20 @@ function render() {
   if (!state) return;
   const svc = state.service;
   $('version').textContent = `v${state.appVersion}`;
-  $('about-version').textContent = `Version ${state.appVersion}`;
+  const about = $('about-version'); // "Version 0.12.0, built from <sha> (PR #N) on <date>", the sha opens the commit on GitHub; "dev build" in a dev run
+  const aboutKey = JSON.stringify(state.about);
+  if (about.dataset.key !== aboutKey) {
+    about.dataset.key = aboutKey;
+    const { head, sha, tail } = state.about ?? { head: `Version ${state.appVersion}, dev build`, sha: '', tail: '' }; // the demo state has none
+    about.replaceChildren(head);
+    if (sha) {
+      const link = document.createElement('a');
+      link.href = '#';
+      link.textContent = sha;
+      link.addEventListener('click', e => { e.preventDefault(); window.bridge.openCommit(); });
+      about.append(link, tail);
+    }
+  }
   $('pairing').hidden = state.paired;
   $('status').hidden = !state.paired;
   $('unpair').hidden = !state.paired;
