@@ -74,6 +74,7 @@ function renderControl() {
   $('control-reason').hidden = !byScene;
   $('control-reason').textContent = byScene ? 'Paused by scene: ' + c.reason.slice(6) : '';
   if (c.last) $('control-last').textContent = c.last;
+  renderHappy();
   $('control-error').textContent = c.error;
   if (!hotkeysFilled) { // once; later renders must not overwrite what is being typed
     hotkeysFilled = true;
@@ -324,6 +325,22 @@ $('control-pause').addEventListener('change', async e => {
   $('control-pause-result').textContent = r.text;
   $('control-pause-result').className = 'result ' + (r.ok ? 'ok' : 'fail');
 });
+// Happy hour (57.3): the site keeps the end time; this only counts down to the `endsAt` it last sent.
+const clockText = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+function renderHappy() {
+  const h = state && state.control && state.control.happy;
+  const left = h ? h.endsAt - Date.now() : 0;
+  $('happy-now').textContent = h && left > 0 ? `Happy hour: ${h.what}, ${clockText(left)} left` : 'No happy hour is running.';
+  $('happy-end').disabled = !(h && left > 0);
+}
+setInterval(renderHappy, 1000);
+$('happy-kind').addEventListener('change', () => { $('happy-percent-label').hidden = $('happy-kind').value !== 'discount'; });
+const happyResult = r => { $('happy-result').textContent = r.text; $('happy-result').className = 'result ' + (r.ok ? 'ok' : 'fail'); };
+$('happy-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  happyResult(await window.bridge.happyStart($('happy-minutes').value, $('happy-kind').value, $('happy-percent').value));
+});
+$('happy-end').addEventListener('click', async () => happyResult(await window.bridge.happyEnd()));
 $('hotkey-form').addEventListener('submit', e => {
   e.preventDefault();
   const map = {};

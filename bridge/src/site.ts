@@ -6,10 +6,16 @@ export interface BridgeJob { id: string; kind: string; username?: string; amount
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeCurrency { id: string; name: string }
 export interface BridgeCommand { id: string; name: string }
-export interface SiteAction { ok: boolean; message: string; paused?: boolean; /** "scene <name>" when a chosen OBS scene paused pulls (57.2). */ reason?: string; buffs?: { id: string; name: string }[]; staff?: boolean; tradingPaused?: boolean }
+export interface SiteAction { ok: boolean; message: string; paused?: boolean; /** "scene <name>" when a chosen OBS scene paused pulls (57.2). */ reason?: string; buffs?: { id: string; name: string }[]; staff?: boolean; tradingPaused?: boolean; /** 57.3: present on `status` and the happy hour actions; null = none running. */ happyHour?: { what: string; endsAt: number } | null }
 /** What /api/bridge/staff answers to an action (ROADMAP 55.12). */
 export interface StaffReply { ok: boolean; message: string; needsForce?: boolean }
 export interface QueueRow { id: string; kind: string; username: string; pack: string; waitedS: number }
+
+/** `{ happyHour }` for the site's answer: an object, null (none running), or nothing when an older site did not say. */
+const happyHourOf = (v: unknown): Pick<SiteAction, 'happyHour'> => {
+  const h = v as { what?: unknown; endsAt?: unknown } | null | undefined;
+  return h && typeof h.what === 'string' && typeof h.endsAt === 'number' ? { happyHour: { what: h.what.slice(0, 80), endsAt: h.endsAt } } : h === null ? { happyHour: null } : {};
+};
 
 /** The token was revoked (or never valid): stop polling and ask for a new pairing. */
 export class Unauthorized extends Error { constructor() { super('Pair again'); } }
@@ -77,7 +83,7 @@ export class SiteClient {
   async action(body: Record<string, unknown>): Promise<SiteAction> {
     const r = await this.call('/api/bridge/action', body, AbortSignal.timeout(15_000));
     if (r.status !== 200) throw new SiteError(r.status, `The site answered ${r.status}`);
-    return { ok: r.json.ok === true, message: typeof r.json.message === 'string' ? r.json.message : '', ...(typeof r.json.paused === 'boolean' ? { paused: r.json.paused } : {}), ...(typeof r.json.reason === 'string' ? { reason: r.json.reason.slice(0, 200) } : {}), ...(typeof r.json.staff === 'boolean' ? { staff: r.json.staff } : {}), ...(typeof r.json.tradingPaused === 'boolean' ? { tradingPaused: r.json.tradingPaused } : {}), ...(Array.isArray(r.json.buffs) ? { buffs: (r.json.buffs as SiteAction['buffs'])!.filter(b => typeof b?.id === 'string' && typeof b?.name === 'string') } : {}) };
+    return { ok: r.json.ok === true, message: typeof r.json.message === 'string' ? r.json.message : '', ...(typeof r.json.paused === 'boolean' ? { paused: r.json.paused } : {}), ...(typeof r.json.reason === 'string' ? { reason: r.json.reason.slice(0, 200) } : {}), ...(typeof r.json.staff === 'boolean' ? { staff: r.json.staff } : {}), ...(typeof r.json.tradingPaused === 'boolean' ? { tradingPaused: r.json.tradingPaused } : {}), ...(happyHourOf(r.json.happyHour)), ...(Array.isArray(r.json.buffs) ? { buffs: (r.json.buffs as SiteAction['buffs'])!.filter(b => typeof b?.id === 'string' && typeof b?.name === 'string') } : {}) };
   }
 
   /** One staff action (ROADMAP 55.12). A 403 means the admin has not switched staff tools on for this PC. */

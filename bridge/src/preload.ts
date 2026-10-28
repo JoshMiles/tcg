@@ -26,6 +26,8 @@ contextBridge.exposeInMainWorld('bridge', {
   setNotice: (kind: string, on: boolean): Promise<void> => ipcRenderer.invoke('set-notice', kind, !!on),
   setStartObs: (on: boolean): Promise<void> => ipcRenderer.invoke('start-obs-with-bridge', !!on),
   chooseObsExe: (): Result => ipcRenderer.invoke('choose-obs'),
+  happyStart: (minutes: number, kind: string, percent: number): Result => ipcRenderer.invoke('happy-start', Number(minutes), String(kind), Number(percent)),
+  happyEnd: (): Result => ipcRenderer.invoke('happy-end'),
   openLogs: (): Result => ipcRenderer.invoke('open-logs'),
   openBackups: (): Result => ipcRenderer.invoke('open-backups'),
   copyDiagnostics: (): Result => ipcRenderer.invoke('copy-diagnostics'),
