@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('bridge', {
   setStartMixItUp: (on: boolean): Promise<void> => ipcRenderer.invoke('start-mix-with-bridge', !!on),
   setFeed: (f: Record<string, unknown>): Promise<void> => ipcRenderer.invoke('set-feed', f),
   setSummary: (on: boolean): Promise<void> => ipcRenderer.invoke('set-summary', !!on),
+  setScenePause: (cfg: { on: boolean; scenes: string[] }): Promise<void> => ipcRenderer.invoke('set-scene-pause', cfg),
   setNotice: (kind: string, on: boolean): Promise<void> => ipcRenderer.invoke('set-notice', kind, !!on),
   setStartObs: (on: boolean): Promise<void> => ipcRenderer.invoke('start-obs-with-bridge', !!on),
   chooseObsExe: (): Result => ipcRenderer.invoke('choose-obs'),

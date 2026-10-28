@@ -27,7 +27,7 @@ export function Quick({ title, text, icon, label, pendingLabel, run }: { title: 
 }
 
 /** The Overview's quick actions. Each shows its answer inline, so nothing leaves the page. */
-export function OverviewActions({ obsPaired, streamExtra, paused, pauseChat, login }: { obsPaired: boolean; streamExtra: number; paused: boolean; pauseChat: boolean; login: string }) {
+export function OverviewActions({ obsPaired, streamExtra, paused, pauseReason, pauseChat, login }: { obsPaired: boolean; streamExtra: number; paused: boolean; pauseReason: string; pauseChat: boolean; login: string }) {
   const [extra, setExtra] = useActionState(setStreamExtraAction, null);
   const [pause, setPause] = useActionState(setPausedAction, null);
   return (
@@ -43,7 +43,7 @@ export function OverviewActions({ obsPaired, streamExtra, paused, pauseChat, log
       )}
       <form action={setPause} className="space-y-2">
         <p className="text-sm font-semibold text-white">Pause pulls</p>
-        <p className="text-xs text-gray-500">{paused ? <><strong className="text-amber-200">Paused now.</strong> A paid pull or !pack answers &quot;Packs are paused, back soon&quot; and nothing is charged.</> : 'Open. Pause to turn away new pulls without switching Mix It Up off. Pulls already waiting still play.'}</p>
+        <p className="text-xs text-gray-500">{paused ? <><strong className="text-amber-200">{pauseReason.startsWith('scene ') ? `Paused by scene: ${pauseReason.slice(6)}.` : 'Paused now.'}</strong> A paid pull or !pack answers &quot;Packs are paused, back soon&quot; and nothing is charged.</> : 'Open. Pause to turn away new pulls without switching Mix It Up off. Pulls already waiting still play.'}</p>
         <label className="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" name="chat" defaultChecked={pauseChat} className="checkbox checkbox-xs" />Say it in chat when this changes (needs TCG Bridge)</label>
         <PendingButton name="intent" value={paused ? 'resume' : 'pause'} className={btn}><Icon name={paused ? 'play' : 'pause'} />{paused ? 'Resume pulls' : 'Pause pulls'}</PendingButton>
         <Result state={pause} />

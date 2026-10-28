@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { HOTKEYS, noHotkeys, type HotkeyMap } from './control';
 import { cleanFeedSettings, defaultFeed, type FeedSettings } from './feed';
 import { cleanNoticeSwitches, defaultNotices, type NoticeSwitches } from './notices';
+import { cleanScenePause, defaultScenePause, type ScenePauseSettings } from './scenepause';
 
 export interface Settings {
   site: string; token: string; pairedAs: string; startWithWindows: boolean; obsEnabled: boolean; obsAddress: string; obsPassword: string; obsStartReplay: boolean;
@@ -14,9 +15,11 @@ export interface Settings {
   feed: FeedSettings; summary: boolean; startObs: boolean; obsPath: string;
   /** Which staff notices to show (ROADMAP 55.13); the site sends them only to a PC with staff tools on. */
   notices: NoticeSwitches;
+  /** Pause pulls while a chosen OBS scene is on air (ROADMAP 57.2), off until switched on. */
+  scenePause: ScenePauseSettings;
 }
 export const DEFAULT_SITE = 'https://cheesytcg.app';
-export const defaults = (): Settings => ({ site: DEFAULT_SITE, token: '', pairedAs: '', startWithWindows: true, obsEnabled: false, obsAddress: 'ws://127.0.0.1:4455', obsPassword: '', obsStartReplay: false, alerts: true, startMixItUp: false, mixItUpPath: '', lastSeenVersion: '', controlKey: '', hotkeys: noHotkeys(), feed: defaultFeed(), summary: false, startObs: false, obsPath: '', notices: defaultNotices() });
+export const defaults = (): Settings => ({ site: DEFAULT_SITE, token: '', pairedAs: '', startWithWindows: true, obsEnabled: false, obsAddress: 'ws://127.0.0.1:4455', obsPassword: '', obsStartReplay: false, alerts: true, startMixItUp: false, mixItUpPath: '', lastSeenVersion: '', controlKey: '', hotkeys: noHotkeys(), feed: defaultFeed(), summary: false, startObs: false, obsPath: '', notices: defaultNotices(), scenePause: defaultScenePause() });
 
 export interface Cipher { encrypt(plain: string): Promise<Buffer>; decrypt(data: Buffer): Promise<string> }
 export interface SettingsStore { load(): Promise<Settings>; save(s: Settings): Promise<void> }
@@ -46,6 +49,7 @@ export class FileSettingsStore implements SettingsStore {
       if (typeof raw.startObs === 'boolean') s.startObs = raw.startObs;
       if (typeof raw.obsPath === 'string') s.obsPath = raw.obsPath;
       s.notices = cleanNoticeSwitches(raw.notices);
+      s.scenePause = cleanScenePause(raw.scenePause);
       const hk = raw.hotkeys as Record<string, unknown> | undefined;
       for (const k of HOTKEYS) if (typeof hk?.[k] === 'string') s.hotkeys[k] = (hk[k] as string).slice(0, 40);
       if (typeof raw.obsPassword === 'string' && raw.obsPassword) s.obsPassword = await this.cipher.decrypt(Buffer.from(raw.obsPassword, 'base64')).catch(() => '');
@@ -59,7 +63,7 @@ export class FileSettingsStore implements SettingsStore {
     const seal = async (plain: string) => (plain ? (await this.cipher.encrypt(plain)).toString('base64') : '');
     const out = {
       site: s.site, pairedAs: s.pairedAs, startWithWindows: s.startWithWindows, obsEnabled: s.obsEnabled, obsAddress: s.obsAddress, obsStartReplay: s.obsStartReplay,
-      alerts: s.alerts, startMixItUp: s.startMixItUp, mixItUpPath: s.mixItUpPath, lastSeenVersion: s.lastSeenVersion, controlKey: s.controlKey, hotkeys: s.hotkeys, feed: s.feed, summary: s.summary, startObs: s.startObs, obsPath: s.obsPath, notices: s.notices,
+      alerts: s.alerts, startMixItUp: s.startMixItUp, mixItUpPath: s.mixItUpPath, lastSeenVersion: s.lastSeenVersion, controlKey: s.controlKey, hotkeys: s.hotkeys, feed: s.feed, summary: s.summary, startObs: s.startObs, obsPath: s.obsPath, notices: s.notices, scenePause: s.scenePause,
       obsPassword: await seal(s.obsPassword), token: await seal(s.token),
     };
     const tmp = this.file + '.tmp';

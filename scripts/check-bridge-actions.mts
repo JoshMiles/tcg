@@ -25,7 +25,7 @@ const code = await b.createPairCode('josh');
 const token = (await b.pairBridge(code.code, 'Stream PC'))!.token;
 const act = async (body: Record<string, unknown>, tok: string | null = token) => {
   const res = await actionRoute.POST(new Request('http://localhost/api/bridge/action', { method: 'POST', headers: { 'content-type': 'application/json', ...(tok ? { authorization: `Bearer ${tok}` } : {}) }, body: JSON.stringify(body) }));
-  return { status: res.status, ...(await res.json()) } as { status: number; ok: boolean; message: string; paused?: boolean; buffs?: { id: string; name: string }[] };
+  return { status: res.status, ...(await res.json()) } as { status: number; ok: boolean; message: string; paused?: boolean; reason?: string; buffs?: { id: string; name: string }[] };
 };
 const getQueue = (tok: string | null = token) => queueRoute.GET(new Request('http://localhost/api/bridge/queue', { headers: tok ? { authorization: `Bearer ${tok}` } : {} }));
 
@@ -63,6 +63,31 @@ ok(viaRoute.rows.map(x => x.username).join() === 'dan,eve', 'the queue route ans
 r = await act({ action: 'pause', on: false });
 ok(r.ok && r.paused === false && !(await isPullsPaused()), 'resume opens pulls');
 ok((await act({ action: 'pause' })).paused === true && (await act({ action: 'pause' })).paused === false, 'with no value it toggles both ways');
+
+// ── Pause on a scene (ROADMAP 57.2): the reason is kept, only a scene pause is lifted by a scene, a hand pause wins ──
+ok((await act({ action: 'status' })).reason === '', 'open pulls have no reason');
+r = await act({ action: 'scene-pause', scene: 'Just Chatting' });
+ok(r.paused === true && r.reason === 'scene Just Chatting', `a listed scene pauses with its name as the reason: ${JSON.stringify(r)}`);
+ok((await act({ action: 'status' })).reason === 'scene Just Chatting', 'status carries the reason');
+r = await act({ action: 'scene-pause', scene: 'BRB' });
+ok(r.paused === true && r.reason === 'scene BRB', 'moving to another listed scene changes the reason only');
+r = await act({ action: 'pause', on: true });
+ok(r.paused === true && r.reason === '', 'a hand pause while scene-paused takes over (no reason)');
+r = await act({ action: 'scene-pause', scene: null });
+ok(r.paused === true && r.reason === '' && (await isPullsPaused()), 'leaving the scene does not lift a hand pause');
+r = await act({ action: 'scene-pause', scene: 'BRB' });
+ok(r.paused === true && r.reason === '', 'a scene does not turn a hand pause into a scene pause');
+await act({ action: 'pause', on: false });
+r = await act({ action: 'scene-pause', scene: null });
+ok(r.paused === false && r.reason === '', 'leaving a scene with nothing paused changes nothing');
+await act({ action: 'scene-pause', scene: 'BRB' });
+r = await act({ action: 'scene-pause', scene: null });
+ok(r.paused === false && !(await isPullsPaused()), 'leaving the scene resumes the pause it made');
+await kv.set('pulls:paused', 1);
+ok((await act({ action: 'status' })).reason === '', 'an older pause with no reason reads as a hand pause');
+r = await act({ action: 'scene-pause', scene: null });
+ok(r.paused === true, 'and a scene change does not lift it');
+await act({ action: 'pause', on: false });
 
 // ── Skip next: the oldest goes, a paid pull is refunded ──
 const pay = async (user: string, id: string) => { // a paid pull waiting for the overlay, made the way queuePull makes one
