@@ -2,7 +2,7 @@
 // JSON, so in "bridge" mode a call to Mix It Up becomes a job on a KV list; the desktop app on the stream PC long-polls for jobs, runs
 // them through Mix It Up's local Developer API and posts a result, which the waiting call reads. Keys: `bridge:jobs` (list),
 // `bridge:result:<id>` (60 s), `bridge:pair:<code>` (600 s), `bridge:tokens` (hash: sha256 of a token -> record), `mixitup:bridge` (hash:
-// at, version, currencies, commands; the health row, the currency select and the pull rules' command select), `bridge:obs` (what the bridge last saw in OBS, 55.6b).
+// at, appVersion, mixitupVersion, commit, currencies, commands; the health row, the currency select and the pull rules' command select), `bridge:obs` (what the bridge last saw in OBS, 55.6b).
 import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { kv, inSandbox } from './db';
@@ -263,16 +263,17 @@ async function touchBridge(hash: string, version?: string, now = Date.now()): Pr
   }
   // shortcut: a revoke between the read and this write could bring the token back, when it matters make it one EVAL.
   await kv.hset(TOKENS, { [hash]: { ...rec, lastSeen: now } });
-  await kv.hset(STATE, { at: now, ...(version ? { version } : {}) });
+  await kv.hset(STATE, { at: now, ...(version ? { appVersion: version } : {}) });
   return true;
 }
 
-export interface BridgeState { at: number | null; version: string; commit: string; currencies: BridgeCurrency[]; commands: BridgeCommand[] }
+/** `appVersion` is TCG Bridge's own (sent with every poll), `mixitupVersion` is Mix It Up's (sent with the hello). An old stored `version` was one or the other, so it is ignored. */
+export interface BridgeState { at: number | null; appVersion: string; mixitupVersion: string; commit: string; currencies: BridgeCurrency[]; commands: BridgeCommand[] }
 /** What the bridge last said (for the currency select and the health chip). */
 export async function readBridge(): Promise<BridgeState> {
-  const h = await kv.hgetall<{ at?: number | string; version?: string; commit?: string; currencies?: BridgeCurrency[]; commands?: BridgeCommand[] }>(STATE).catch(() => null);
+  const h = await kv.hgetall<{ at?: number | string; appVersion?: string; mixitupVersion?: string; commit?: string; currencies?: BridgeCurrency[]; commands?: BridgeCommand[] }>(STATE).catch(() => null);
   const at = Number(h?.at);
-  return { at: Number.isFinite(at) && at > 0 ? at : null, version: h?.version ?? '', commit: h?.commit ?? '', currencies: Array.isArray(h?.currencies) ? h.currencies : [], commands: Array.isArray(h?.commands) ? h.commands : [] };
+  return { at: Number.isFinite(at) && at > 0 ? at : null, appVersion: h?.appVersion ?? '', mixitupVersion: h?.mixitupVersion ?? '', commit: h?.commit ?? '', currencies: Array.isArray(h?.currencies) ? h.currencies : [], commands: Array.isArray(h?.commands) ? h.commands : [] };
 }
 
 // ── The API routes' side ──
@@ -351,10 +352,10 @@ export async function readObs(): Promise<ObsSnapshot | null> {
   return o && Number.isFinite(at) ? { at, ...o } : null;
 }
 
-/** Stores what a bridge announces: its version, its commit (empty from an older app or a dev run, so a stale one never stays), the currencies the select offers and the Mix It Up commands the rules offer. An older app sends no commands: the stored list is kept. False when the shape is wrong. */
+/** Stores what a bridge announces: the Mix It Up version it found (the app's own version comes with each poll), its commit (empty from an older app or a dev run, so a stale one never stays), the currencies the select offers and the Mix It Up commands the rules offer. An older app sends no commands: the stored list is kept. False when the shape is wrong. */
 export async function storeHello(raw: unknown): Promise<boolean> {
   const h = cleanHello(raw);
   if (!h) return false;
-  await kv.hset(STATE, { at: Date.now(), version: h.version, commit: h.commit ?? '', currencies: h.currencies, ...(h.commands ? { commands: h.commands } : {}) });
+  await kv.hset(STATE, { at: Date.now(), mixitupVersion: h.version, commit: h.commit ?? '', currencies: h.currencies, ...(h.commands ? { commands: h.commands } : {}) });
   return true;
 }

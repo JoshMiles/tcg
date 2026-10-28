@@ -13,7 +13,7 @@ const now = 1_800_000_000_000;
 const ago = (at: number, n: number) => `${Math.round((n - at) / 1000)}s ago`;
 const none: import('../lib/mixitup-health').MixItUpHealth = { seen: {}, out: {} };
 const settings = { connection: 'bridge' as const, currencyId: 'c1', currency: 'Brie Bucks', balanceUrl: '', deductUrl: '', addUrl: '', viewersUrl: '' };
-const bridge = { at: now - 5_000, version: '1.2.0', currencies: [{ id: 'c1', name: 'Brie Bucks' }] };
+const bridge = { at: now - 5_000, appVersion: '1.2.0', mixitupVersion: '1.10.0.0', currencies: [{ id: 'c1', name: 'Brie Bucks' }] };
 const obsOk = { at: now - 5_000, connected: true, scene: 'Game', overlay: { found: true, inProgram: true, visible: true, sourceName: 'TCG' } };
 const input = (over: Partial<import('../lib/mixitup-page').StatusInput> = {}) => ({ health: none, settings, bridge, paired: 1, obs: obsOk, now, ago, ...over });
 const card = (id: string, over?: Partial<import('../lib/mixitup-page').StatusInput>) => p.statusCards(input(over)).find(x => x.id === id)!;
@@ -119,10 +119,10 @@ ok(c.REPLY_KEYS.every(k => c.REPLY_LABELS[k] && c.renderReply(c.REPLY_DEFAULTS[k
 // ── The setup wizard (55.1): which steps are done, and where it opens ──
 const wz = await import('../lib/mixitup-wizard');
 const wizCards = (over: Partial<import('../lib/mixitup-page').StatusInput> = {}) => p.statusCards(input(over));
-let d = wz.stepsDone(wizCards({ paired: 0, bridge: { at: null, version: '', currencies: [] }, obs: null }), none, false);
+let d = wz.stepsDone(wizCards({ paired: 0, bridge: { at: null, appVersion: '', mixitupVersion: '', currencies: [] }, obs: null }), none, false);
 ok(!d.need && !d.incoming && !d.outgoing && wz.pickStep(undefined, d) === 'need', 'a fresh install opens on the first step');
 const heard = { seen: { '/api/webhooks/pull': { okAt: now - 1_000 } }, out: {} };
-d = wz.stepsDone(wizCards({ health: heard, paired: 0, bridge: { at: null, version: '', currencies: [] }, obs: null }), heard, false);
+d = wz.stepsDone(wizCards({ health: heard, paired: 0, bridge: { at: null, appVersion: '', mixitupVersion: '', currencies: [] }, obs: null }), heard, false);
 ok(d.need && d.incoming && !d.outgoing && wz.pickStep(undefined, d) === 'outgoing', 'once Mix It Up reached the site, reopening lands on the next step that is not done');
 ok(wz.pickStep('incoming', d) === 'incoming' && wz.pickStep('nope', d) === 'outgoing', 'any step can be revisited; an unknown step falls back');
 d = wz.stepsDone(wizCards({ health: heard }), { seen: { ...heard.seen, '/api/webhooks/stream': { okAt: now } }, out: {} }, true);

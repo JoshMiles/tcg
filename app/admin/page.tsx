@@ -2,7 +2,8 @@ import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '@/app/components/PendingButton';
 import { NewPackButton } from './components/NewPackButton';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
+import { BridgeReleaseCard } from './BridgeRelease';
 import { getActiveSeasonWithPacks, getPackCards, getPacksForSeason, listSeasons } from '@/lib/kv';
 import { seedSeason1 } from './actions/seasons';
 import { OverlayStatus } from './components/OverlayStatus';
@@ -92,6 +93,10 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
       </div>
 
       <HealthStrip />
+
+      <Suspense fallback={null}>
+        <BridgeReleaseCard />
+      </Suspense>
 
       <DashboardControls seasons={seasons.map(s => ({ id: s.id, name: s.name, active: s.active }))} seasonId={season.id} range={range} />
 
