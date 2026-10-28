@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Happy hour</title>
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+<label for="preset">Happy hour</label>
+<select id="preset">
+  <option value="p15">15 minutes, free packs</option>
+  <option value="p30">30 minutes, 50% off</option>
+  <option value="p60">60 minutes, 25% off</option>
+  <option value="custom">Custom</option>
+</select>
+<div id="custom" class="hide">
+  <label for="minutes">Minutes (1 to 240)</label>
+  <input id="minutes" type="number" min="1" max="240" step="1">
+  <label for="kind">Kind</label>
+  <select id="kind"><option value="free">Free packs</option><option value="discount">Discount</option></select>
+  <div id="pct"><label for="percent">Percent off (1 to 99)</label><input id="percent" type="number" min="1" max="99" step="1"></div>
+</div>
+<div class="note">Press to start. While one runs the key counts down; hold it for 1 second to end it.</div>
+<script src="pi.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+function show(s) {
+  $('preset').value = typeof s.preset === 'string' && ['p15', 'p30', 'p60'].includes(s.preset) ? s.preset : (s.preset === undefined ? 'p15' : 'custom');
+  $('custom').classList.toggle('hide', $('preset').value !== 'custom');
+  $('minutes').value = typeof s.minutes === 'number' ? s.minutes : 15;
+  $('kind').value = s.kind === 'discount' ? 'discount' : 'free';
+  $('percent').value = typeof s.percent === 'number' ? s.percent : 25;
+  $('pct').classList.toggle('hide', $('kind').value !== 'discount');
+}
+onSettings = show;
+function read() {
+  if ($('preset').value !== 'custom') return { preset: $('preset').value };
+  return { preset: 'custom', minutes: Number($('minutes').value), kind: $('kind').value, percent: Number($('percent').value) };
+}
+for (const id of ['preset', 'minutes', 'kind', 'percent']) {
+  $(id).addEventListener('change', () => { save(read()); show(settings); });
+}
+</script>
+</body>
+</html>

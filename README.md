@@ -110,7 +110,7 @@ There is no browser test suite; changes are also checked by running the app. TCG
 | Workflow | What it runs |
 |:---------|:-------------|
 | [`ci.yml`](.github/workflows/ci.yml) | On every pull request and push to `main`: typecheck, the checks, the overlay syntax checks and a build with no secrets |
-| [`bridge.yml`](.github/workflows/bridge.yml) | For changes under `bridge/`: typecheck, the checks and the version rule. On `main` it also builds and publishes the installer |
+| [`bridge.yml`](.github/workflows/bridge.yml) | For changes under `bridge/` or `streamdeck/`: typecheck, the checks, the version rule and packing the Stream Deck plugin. On `main` it also builds and publishes the installer, with the plugin inside |
 | [`pr-body.yml`](.github/workflows/pr-body.yml) | Checks the PR description against the template (`scripts/check-pr-body.mjs`) and that the docs, staff wiki and README were updated for the code the PR changes (`scripts/check-docs.mjs`, mapped in `docs/doc-map.json`) |
 | [`claude-code-review.yml`](.github/workflows/claude-code-review.yml), [`claude.yml`](.github/workflows/claude.yml) | Claude reviews pull requests and answers `@claude` mentions |
 
@@ -118,7 +118,7 @@ There is no browser test suite; changes are also checked by running the app. TCG
 
 Pushing a branch builds a Vercel Preview; merging to `main` deploys production at `cheesytcg.app`. The scheduled jobs (nightly encrypted backup, account check, weekly and per-minute jobs) are in `vercel.json`. The **site version** is `<major>.<PR number>`, for example `1.437`: the major is the first part of `package.json`'s `version`, the PR number comes from the squash-merge commit. It shows in the admin sidebar. Environment variables, backups and data health are in [`docs/hosting.md`](docs/hosting.md).
 
-**TCG Bridge** has its own semver in `bridge/package.json`. Every PR that changes anything under `bridge/` (except `bridge/README.md`) raises the minor version, and CI fails otherwise. When that PR merges, the workflow builds the installer and publishes the GitHub release `bridge-v<version>` by itself, with no hand tag. The installed app updates itself from that release. More in [`bridge/README.md`](bridge/README.md).
+**TCG Bridge** has its own semver in `bridge/package.json`. Every PR that changes anything under `bridge/` (except `bridge/README.md`) or `streamdeck/` (the Stream Deck plugin, shipped inside the app with the same version) raises the minor version, and CI fails otherwise. When that PR merges, the workflow builds the installer and publishes the GitHub release `bridge-v<version>` by itself, with no hand tag. The installed app updates itself from that release. More in [`bridge/README.md`](bridge/README.md).
 
 ## Documentation
 

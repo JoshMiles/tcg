@@ -25,7 +25,7 @@ export function parseButton(rest: string): ControlAction | null {
 
 export const buttonUrl = (key: string, path: string, port = CONTROL_PORT): string => `http://127.0.0.1:${port}/${key}/${path}`;
 
-const same = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
+export const same = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
 export class ControlServer {
   private server: Server | null = null;

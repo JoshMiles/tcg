@@ -1,0 +1,105 @@
+// The messages between TCG Bridge (the server, bridge/src/deck.ts) and the Stream Deck plugin (the client, streamdeck/src/link.ts), ROADMAP 57.13.
+// This file exists twice, byte for byte: streamdeck/src/protocol.ts and bridge/src/deckprotocol.ts (the two build separately). bridge/scripts/check-deck.ts fails
+// when they differ, so change both. No imports.
+
+/** Raised when the messages change in a way an old plugin or app cannot read. */
+export const PROTOCOL = 1;
+/** The server listens on this PC only. */
+export const DECK_HOST = '127.0.0.1';
+/** The first free port in this list is used; the port in use is in streamdeck.json. */
+export const DECK_PORTS: readonly number[] = [47654, 47655, 47656, 47657, 47658];
+/** A client that has not sent a valid hello by then is closed. */
+export const HELLO_MS = 5000;
+/** The largest message either side accepts. */
+export const MAX_MESSAGE = 4096;
+/** The WebSocket close code for a refused client (a wrong token, a wrong first message, a protocol it cannot speak). */
+export const CLOSE_REFUSED = 4401;
+
+/** What the bridge writes to streamdeck.json for the plugin to read. */
+export interface DeckLinkFile { port: number; token: string }
+
+/** What a key may show, pushed by the app. `ready` = paired with the site; `paused` null = the site has not said yet; `reason` is "scene <name>" for a scene pause. */
+export interface DeckState {
+  ready: boolean;
+  paused: boolean | null;
+  reason: string;
+  /** The running happy hour: `endsAt` is epoch milliseconds; null = none. */
+  happy: { what: string; endsAt: number } | null;
+  /** The buffs and quick actions switched on for the Stream Deck (ROADMAP 55.2). */
+  buffs: { id: string; name: string }[];
+}
+
+/** What a key asks the app to do. Each one is run by the same code as the Control tab and the tray. */
+export type DeckRequest =
+  | { what: 'buff'; id: string }
+  | { what: 'last-buff' }
+  | { what: 'pause' }
+  | { what: 'happy-start'; minutes: number; kind: 'free' | 'discount'; percent: number }
+  | { what: 'happy-end' };
+
+export type ClientMessage = { t: 'hello'; token: string; protocol: number; version: string } | { t: 'do'; n: number; req: DeckRequest };
+export type ServerMessage = { t: 'welcome'; version: string; state: DeckState } | { t: 'state'; state: DeckState } | { t: 'done'; n: number; ok: boolean; text: string };
+
+const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const text = (v: unknown, max: number): v is string => typeof v === 'string' && v.length <= max;
+const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/** One request, or null when it is not a request this protocol knows. */
+export function parseRequest(v: unknown): DeckRequest | null {
+  if (!isObject(v)) return null;
+  switch (v.what) {
+    case 'buff': return text(v.id, 100) && v.id ? { what: 'buff', id: v.id } : null;
+    case 'last-buff': return { what: 'last-buff' };
+    case 'pause': return { what: 'pause' };
+    case 'happy-end': return { what: 'happy-end' };
+    case 'happy-start': return num(v.minutes) && num(v.percent) && (v.kind === 'free' || v.kind === 'discount') ? { what: 'happy-start', minutes: v.minutes, kind: v.kind, percent: v.percent } : null;
+    default: return null;
+  }
+}
+
+function parseState(v: unknown): DeckState | null {
+  if (!isObject(v) || typeof v.ready !== 'boolean' || !(v.paused === null || typeof v.paused === 'boolean') || !text(v.reason, 200) || !Array.isArray(v.buffs)) return null;
+  const h = v.happy;
+  if (h !== null && !(isObject(h) && text(h.what, 80) && num(h.endsAt))) return null;
+  const buffs: DeckState['buffs'] = [];
+  for (const b of v.buffs.slice(0, 200)) if (isObject(b) && text(b.id, 100) && text(b.name, 100)) buffs.push({ id: b.id, name: b.name });
+  return { ready: v.ready, paused: v.paused, reason: v.reason, happy: h === null ? null : { what: (h as { what: string }).what, endsAt: (h as { endsAt: number }).endsAt }, buffs };
+}
+
+const json = (raw: string): unknown => { try { return JSON.parse(raw); } catch { return null; } };
+
+/** What the app receives from a client, or null for anything else (too long, not JSON, an unknown shape). */
+export function parseClient(raw: string): ClientMessage | null {
+  if (raw.length > MAX_MESSAGE) return null;
+  const v = json(raw);
+  if (!isObject(v)) return null;
+  if (v.t === 'hello') return text(v.token, 200) && num(v.protocol) && text(v.version, 40) ? { t: 'hello', token: v.token, protocol: v.protocol, version: v.version } : null;
+  if (v.t === 'do') {
+    const req = parseRequest(v.req);
+    return num(v.n) && req ? { t: 'do', n: v.n, req } : null;
+  }
+  return null;
+}
+
+/** What the plugin receives from the app, or null for anything else. The state is rebuilt field by field. */
+export function parseServer(raw: string): ServerMessage | null {
+  if (raw.length > 65_536) return null;
+  const v = json(raw);
+  if (!isObject(v)) return null;
+  if (v.t === 'welcome') {
+    const state = parseState(v.state);
+    return text(v.version, 40) && state ? { t: 'welcome', version: v.version, state } : null;
+  }
+  if (v.t === 'state') {
+    const state = parseState(v.state);
+    return state ? { t: 'state', state } : null;
+  }
+  if (v.t === 'done') return num(v.n) && typeof v.ok === 'boolean' && text(v.text, 500) ? { t: 'done', n: v.n, ok: v.ok, text: v.text } : null;
+  return null;
+}
+
+/** The streamdeck.json the plugin reads: a port and a token, or null for anything else. */
+export function parseLinkFile(raw: string): DeckLinkFile | null {
+  const v = json(raw);
+  return isObject(v) && num(v.port) && Number.isInteger(v.port) && v.port >= 1024 && v.port <= 65_535 && text(v.token, 200) && v.token ? { port: v.port, token: v.token } : null;
+}
