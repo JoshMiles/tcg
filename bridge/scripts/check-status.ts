@@ -25,6 +25,6 @@ export function statusChecks(): void {
   assert.deepEqual(ids({ paired: false, site: 'offline', mixFound: false, updateVersion: '0.28.0' }), ['update', 'pair'], 'not paired: only the update and the pairing, no link noise');
   for (const i of attentionItems({ ...good, updateVersion: '1', startNote: 'x', site: 'revoked', mixFound: false, obsConnected: false })) {
     assert.ok(i.text && i.detail && i.button, `${i.id} has text, a reason and a button`);
-    assert.ok(!/[—–]/.test(i.text + i.detail), `${i.id} has no long dash`);
+    assert.ok(![8212, 8211].some(c => (i.text + i.detail).includes(String.fromCharCode(c))), `${i.id} has no long dash`);
   }
 }
