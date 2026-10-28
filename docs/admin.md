@@ -12,4 +12,4 @@
 | [admin/ux-conventions.md](admin/ux-conventions.md) | page titles, tabs, shared admin components, the command palette, confirmations, widths and responsiveness, dates, outgoing URL checks |
 | [admin/discord.md](admin/discord.md) | Discord channels, event kinds, the stream recap or the weekly digest |
 | [admin/feedback.md](admin/feedback.md) | the feedback inbox or account deletion requests |
-| [admin/mixitup.md](admin/mixitup.md) | paid pulls, webhook grants or Mix It Up chat commands |
+| [admin/mixitup.md](admin/mixitup.md) | the Stream page (`/admin/stream`, was Mix It Up): paid pulls, webhook grants, Mix It Up chat commands, TCG Bridge and Twitch |

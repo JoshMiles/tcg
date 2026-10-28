@@ -29,7 +29,7 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     { href: '/admin/achievements', label: 'Achievement Editor', icon: 'award', key: 'l', keywords: ['achievements', 'goals', 'badges', 'milestones', 'custom goals', 'trophies'] },
     { href: '/admin/assets', label: 'Assets', icon: 'image', key: 'e', keywords: ['images', 'sounds', 'media', 'storage'] },
     { href: '/admin/overlay', label: 'Overlay Editor', icon: 'palette', key: 'o', keywords: ['obs', 'look', 'layout', 'holo'] },
-    { href: '/admin/mixitup', label: 'Mix It Up', icon: 'coins', key: 'm', keywords: ['brie bucks', 'paid pulls', 'chat bot', 'commands', 'currency', 'price', 'webhook'] },
+    { href: '/admin/stream', label: 'Stream', icon: 'coins', key: 'm', keywords: ['mix it up', 'brie bucks', 'paid pulls', 'pause', 'queue', 'live', 'chat bot', 'commands', 'currency', 'price', 'webhook'] },
   ] },
   { title: 'Community', items: [
     { href: '/admin/users', label: 'Users', icon: 'users', key: 'u', keywords: ['viewers', 'collectors'] },

@@ -32,6 +32,12 @@ export async function setAwardsPaused(on: boolean): Promise<boolean> {
   if (on) await kv.set(PAUSED_KEY, 1); else await kv.del(PAUSED_KEY);
   return true;
 }
+/** `setAwardsPaused` plus the audit line, written once and only when the state changed. TCG Bridge's `pause-awards` action and the Stream page's button both end here (63.2). `by` is "TCG Bridge" or "<login> on the Stream page". */
+export async function pauseAwards(on: boolean, by: string): Promise<boolean> {
+  const changed = await setAwardsPaused(on);
+  if (changed) await recordAudit('everyone', `${by}: channel point awards ${on ? 'paused' : 'resumed'}`);
+  return changed;
+}
 
 /** The Stream Deck buffs an award may use: the same list as the event rewards (one viewer, switched on for the Stream Deck, not an achievement). */
 export const usableBuffIds = async (): Promise<Set<string>> => new Set((await getBuffDefs()).filter(b => b.streamDeck && b.scope !== 'community' && b.type !== 'grant-achievement').map(b => b.id));

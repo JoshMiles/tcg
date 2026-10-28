@@ -5,7 +5,7 @@ import { timeAgo } from '@/lib/site-data';
 import { Panel } from '../components/ui';
 import { LocalTime } from './LocalTime';
 
-/** The log rows, newest first. Shared by the Log tab and the Overview's last five. */
+/** The log rows, newest first. Shared by the History log and the Live feed's tests. */
 export function LogRows({ log, now, empty = 'Nothing yet.' }: { log: MixItUpLogEntry[]; now: number; empty?: string }) {
   if (log.length === 0) return <p className="text-sm text-gray-500">{empty}</p>;
   return (
@@ -29,7 +29,7 @@ export function MixItUpLog({ log, filter, now }: { log: MixItUpLogEntry[]; filte
     <Panel title="Recent requests" icon="list" hint={<>The last 50 requests Mix It Up made to the site (<em>pull</em>, <em>grant</em>, <em>buff</em>, with the refusal reason) and calls the site made to Mix It Up, and the last 20 chat commands. A <em>revoked</em> line is a pull that was not given, or a refund that could not be made; refund that viewer by hand if Mix It Up did take the currency.</>}>
       <nav aria-label="Log filter" className="flex flex-wrap gap-2">
         {LOG_FILTERS.map(f => (
-          <Link key={f.id} href={f.id === 'all' ? '/admin/mixitup?tab=log' : `/admin/mixitup?tab=log&filter=${f.id}`} scroll={false} aria-current={f.id === filter ? 'true' : undefined}
+          <Link key={f.id} href={f.id === 'all' ? '/admin/stream?section=history&tab=log' : `/admin/stream?section=history&tab=log&filter=${f.id}`} scroll={false} aria-current={f.id === filter ? 'true' : undefined}
             className={`btn btn-sm ${f.id === filter ? 'btn-primary' : 'btn-outline'}`}>{f.label}</Link>
         ))}
       </nav>

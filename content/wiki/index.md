@@ -20,7 +20,7 @@ Signing in is the normal Twitch login. After that, a staff member with an admin 
 - **OBS overlay.** The browser source on stream. It plays pack openings, shows a collection, and saves a pull only when the server issued a ticket for it.
 - **Public site.** Home, profiles, binder, card dex, leaderboard, stats, trading, account, settings, feedback. Production is `https://cheesytcg.app`.
 - **Twitch Extension panel.** The panel on the channel. It can show the season, a collection, trades and upgrades. It is a separate front end from the website.
-- **Admin panel (`/admin`).** Seasons, packs, cards, assets, the Overlay Editor, Mix It Up, users, trades, feedback, prints, staff, sandboxes, settings.
+- **Admin panel (`/admin`).** Seasons, packs, cards, assets, the Overlay Editor, Stream (Mix It Up, TCG Bridge and Twitch), users, trades, feedback, prints, staff, sandboxes, settings.
 - **Mod panel (`/mod`).** A smaller set: activity, viewers, trades, feedback, the tester list (read only), and the staff What's new page.
 
 ## What a viewer's data actually is

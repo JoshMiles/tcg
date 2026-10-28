@@ -21,7 +21,7 @@ export async function revokeBridgeAction(id: string): Promise<void> {
   await requireAdmin();
   const name = await revokeBridge(String(id));
   if (name) await recordAudit('everyone', 'TCG Bridge revoked', name);
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
 }
 
 /** Switches "Staff tools on this PC" on or off (ROADMAP 55.12). Off by default; revoking the PC ends it too. */
@@ -29,21 +29,21 @@ export async function setBridgeStaffAction(id: string, on: boolean): Promise<voi
   await requireAdmin();
   const name = await setBridgeStaff(String(id), on === true);
   if (name) await recordAudit('everyone', on ? 'TCG Bridge staff tools switched on' : 'TCG Bridge staff tools switched off', name);
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
 }
 
 /** Disconnects the Twitch channel (ROADMAP 58.1): the token is revoked at Twitch and the stored one deleted. */
 export async function disconnectTwitchChannelAction(): Promise<void> {
   await requireAdmin();
   await disconnectChannel();
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
 }
 
 /** Disconnects the chat bot account (ROADMAP 58.6): the token is revoked at Twitch, the stored one deleted and an audit line written; replies go back to the channel account. */
 export async function disconnectTwitchBotAction(): Promise<void> {
   await requireAdmin();
   await disconnectBot();
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
 }
 
 /** "Reply as: channel / bot" (ROADMAP 58.6). The bot choice needs a connected bot account. */
@@ -51,7 +51,7 @@ export async function setReplyAsAction(value: string): Promise<void> {
   await requireAdmin();
   if (value === 'bot' && !(await readBotStatus())) return;
   await setReplyAs(value === 'bot' ? 'bot' : 'channel');
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
 }
 
 /** Lifts a block from pulls (the Blocked from pulls list on the Mix It Up page). */
@@ -59,5 +59,5 @@ export async function liftPullBlockAction(username: string): Promise<void> {
   await requireAdmin();
   const lower = String(username).toLowerCase();
   if (await liftPullBlock(lower)) await recordAudit(lower, 'Pull block lifted');
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
 }

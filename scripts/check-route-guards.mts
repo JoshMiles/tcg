@@ -103,8 +103,10 @@ const R: Record<string, Kind[] | { public: string }> = {
   'app/api/bridge/twitch-token/route.ts': ['bridge'],
   'app/api/bridge/twitch-event/route.ts': ['bridge'], // a Twitch EventSub notification from TCG Bridge (58.2): admin PCs only
   'app/api/bridge/chat-commands/route.ts': ['bridge'], // the chat commands the app forwards (58.6): admin PCs only
-  'app/admin/mixitup/twitch/route.ts': ['staff'], // Connect Twitch channel (58.1): admins only
-  'app/admin/mixitup/twitch-bot/route.ts': ['staff'], // Connect bot account (58.6): admins only
+  'app/admin/stream/twitch/route.ts': ['staff'], // Connect Twitch channel (58.1): admins only
+  'app/admin/stream/twitch-bot/route.ts': ['staff'], // Connect bot account (58.6): admins only
+  'app/admin/mixitup/twitch/route.ts': ['staff'], // old address (63.2): redirects admins to /admin/stream/twitch
+  'app/admin/mixitup/twitch-bot/route.ts': ['staff'], // old address (63.2): redirects admins to /admin/stream/twitch-bot
   'app/api/bridge/staff/route.ts': ['bridge'],
   'app/api/collection/route.ts': ['overlay', 'staff'], // GET: the overlay key; POST: a ticket, or staff for a whole-collection replace
   // open by design

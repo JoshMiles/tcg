@@ -35,7 +35,7 @@ export async function noteDeploy(info: Pick<BuildInfo, 'version' | 'commitFull'>
 export async function noteAwardFailed(viewer: string, reward: string, why: string): Promise<boolean> {
   try {
     if (!(await kv.set('bridge:award-failed', 1, { nx: true, ex: 60 }))) return false;
-    return await sendNotice({ kind: 'attention', title: `Refund ${viewer}'s ${reward || 'reward'} by hand`, text: why.slice(0, 200), href: '/admin/mixitup?tab=events' });
+    return await sendNotice({ kind: 'attention', title: `Refund ${viewer}'s ${reward || 'reward'} by hand`, text: why.slice(0, 200), href: '/admin/stream?tab=events' });
   } catch {
     return false;
   }
@@ -46,7 +46,7 @@ export async function noteRefusal(reason: string, username: string): Promise<boo
   try {
     if (reason === 'insufficient_balance') return false;
     if (!(await kv.set(`bridge:refusal:${reason}`, 1, { nx: true, ex: 60 }))) return false;
-    return await sendNotice({ kind: 'refusal', title: `Pull refused: ${REFUSAL_LABELS[reason] ?? reason}`, text: username, href: '/admin/mixitup' });
+    return await sendNotice({ kind: 'refusal', title: `Pull refused: ${REFUSAL_LABELS[reason] ?? reason}`, text: username, href: '/admin/stream' });
   } catch {
     return false;
   }

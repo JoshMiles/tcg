@@ -18,7 +18,7 @@ export async function decideLinkAction(formData: FormData): Promise<void> {
   const role = allow ? await liveRole(session.username, session.twitchId) : null;
   const outcome = await decideLink(id, { userId: session.twitchId, login: session.username, role }, allow);
   const what = `${pc?.name ?? 'a PC'} by ${session.username}`;
-  if (outcome === 'allowed') { await recordAudit('everyone', 'TCG Bridge linked with Twitch', `${what} (${ROLE_LABELS[role!]})`); revalidatePath('/admin/mixitup'); }
+  if (outcome === 'allowed') { await recordAudit('everyone', 'TCG Bridge linked with Twitch', `${what} (${ROLE_LABELS[role!]})`); revalidatePath('/admin/stream'); }
   else if (outcome === 'no-role') await recordAudit('everyone', 'TCG Bridge link refused, no staff role', what);
   else if (outcome === 'denied') await recordAudit('everyone', 'TCG Bridge link denied', what);
   back(outcome === 'gone' ? 'gone' : outcome);

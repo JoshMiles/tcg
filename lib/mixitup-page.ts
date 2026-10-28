@@ -33,7 +33,7 @@ export interface StatusInput {
   watchdogAt?: number | null;
 }
 
-const TAB = (id: string) => `/admin/mixitup?tab=${id}`;
+const TAB = (id: string) => `/admin/stream?tab=${id}`; // an old tab id; app/admin/stream/page.tsx puts it in its section (lib/stream-page.ts)
 const CONNECTION = { href: TAB('connection'), label: 'Open Connection' };
 
 /** The three cards: Mix It Up to the site, the site to Mix It Up, OBS. */

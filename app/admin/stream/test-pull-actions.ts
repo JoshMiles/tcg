@@ -19,7 +19,7 @@ export async function simulatePullAction(_prev: TestPullState | null, formData: 
   const paid = formData.get('mode') === 'paid';
   const r = await startTestPull({ username: formData.get('username'), paid, force: formData.get('force') === 'on' });
   if (r.ok) await recordAudit(String(formData.get('username')), 'Test pull simulated', `${paid ? 'paid' : 'free'} (${r.id})`);
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   revalidatePath('/admin/activity');
   return { ...r, ...(r.ok ? { startedAt: Date.now() } : {}) };
 }
@@ -35,11 +35,11 @@ export async function undoTestPullAction(id: string): Promise<ActionResult> {
   await requireAdmin();
   const r = await undoTestPull(id);
   if (r.ok && r.username) await recordAudit(r.username, 'Test pull undone', r.detail);
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return { ok: r.ok, message: r.message };
 }
 
-const back = (kind: 'note' | 'error', text: string): never => redirect(`/admin/mixitup?tab=connection&${kind}=${encodeURIComponent(text)}`);
+const back = (kind: 'note' | 'error', text: string): never => redirect(`/admin/stream?tab=connection&${kind}=${encodeURIComponent(text)}`);
 
 /** Adds a test viewer (at most 5), for example a throwaway Twitch account. */
 export async function addTestViewerAction(formData: FormData): Promise<void> {
@@ -51,7 +51,7 @@ export async function addTestViewerAction(formData: FormData): Promise<void> {
   if (s.testViewers.length >= TEST_VIEWERS_MAX) return back('error', `At most ${TEST_VIEWERS_MAX} test viewers. Remove one first.`);
   await saveMixItUpSettings({ ...s, testViewers: [...s.testViewers, login] });
   await recordAudit(login, 'Test viewer added');
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return back('note', `${login} can now be used for test pulls.`);
 }
 
@@ -60,6 +60,6 @@ export async function removeTestViewerAction(login: string): Promise<void> {
   const s = await getMixItUpSettings();
   await saveMixItUpSettings({ ...s, testViewers: s.testViewers.filter(v => v !== login) });
   await recordAudit(login, 'Test viewer removed');
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return back('note', `${login} is no longer a test viewer.`);
 }

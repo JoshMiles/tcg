@@ -9,13 +9,13 @@ import type { ActionResult } from '../action-types';
 export async function startHappyHourAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   const staff = await requireAdmin();
   const r = await startHappyHour({ minutes: formData.get('minutes'), kind: formData.get('kind'), percent: formData.get('percent') }, staff.login);
-  if (r.ok) revalidatePath('/admin/mixitup');
+  if (r.ok) revalidatePath('/admin/stream');
   return r;
 }
 
 export async function endHappyHourAction(): Promise<ActionResult> {
   const staff = await requireAdmin();
   const r = await endHappyHour(staff.login);
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return { ok: true, message: r.message };
 }

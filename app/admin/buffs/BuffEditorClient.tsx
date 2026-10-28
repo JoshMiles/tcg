@@ -347,7 +347,7 @@ export function BuffEditorClient({
 
           {form.type === 'currency-grant' && !mixItUpReady && (
             <p role="alert" className="rounded-lg border border-amber-500/30 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
-              Mix It Up is off or has no add address, so this buff cannot be applied yet (community scope also needs the chat viewers address). Set it up on the <Link href="/admin/mixitup" className="underline">Mix It Up page</Link>.
+              Mix It Up is off or has no add address, so this buff cannot be applied yet (community scope also needs the chat viewers address). Set it up on the <Link href="/admin/stream" className="underline">Stream page</Link>.
             </p>
           )}
 

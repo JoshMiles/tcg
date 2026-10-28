@@ -9,13 +9,13 @@ import type { ActionResult } from '../action-types';
 export async function setPackGoalAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   const staff = await requireAdmin();
   const r = await setPackGoal({ target: formData.get('target'), label: formData.get('label'), reward: formData.get('reward'), buffId: formData.get('buffId'), amount: formData.get('amount') }, staff.login);
-  if (r.ok) revalidatePath('/admin/mixitup');
+  if (r.ok) revalidatePath('/admin/stream');
   return { ok: r.ok, message: r.message };
 }
 
 export async function clearPackGoalAction(): Promise<ActionResult> {
   const staff = await requireAdmin();
   const r = await clearPackGoal(staff.login);
-  revalidatePath('/admin/mixitup');
+  revalidatePath('/admin/stream');
   return { ok: true, message: r.message };
 }

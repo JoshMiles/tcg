@@ -6,7 +6,7 @@ import { Panel, fieldClass, selectClass } from '../components/ui';
 import type { MixItUpSettings } from '@/lib/mixitup-core';
 import type { BridgeState } from '@/lib/bridge';
 import { saveConnectionAction, checkBalanceAction, sendTestAction } from './mixitup-actions';
-import { BridgeCard, type BlockRow, type BridgeRow } from './BridgeCard';
+import { BridgeCard, type BridgeRow } from './BridgeCard';
 import { CommandCheckCard } from './CommandCheckCard';
 import { TwitchChannelCard, type TwitchChannelView } from './TwitchChannelCard';
 import { BridgeErrorsCard, type ErrorsView } from './BridgeErrorsCard';
@@ -20,10 +20,10 @@ const help = 'text-[11px] text-gray-500 leading-relaxed';
 const secondary = 'btn btn-sm btn-outline';
 
 /** Mix It Up → Connection: TCG Bridge (download, pairing, paired apps), how the site talks to Mix It Up, the currency, the direct addresses (Advanced) and the Try it buttons. */
-export function ConnectionTab({ settings: s, bridge, bridges, blocks, commandCheck, errors, twitch, twitchReady }: { settings: MixItUpSettings; bridge: BridgeState; bridges: BridgeRow[]; blocks: BlockRow[]; commandCheck: CommandCheckRow[] | null; errors: ErrorsView; twitch: TwitchChannelView | null; twitchReady: boolean }) {
+export function ConnectionTab({ settings: s, bridge, bridges, commandCheck, errors, twitch, twitchReady }: { settings: MixItUpSettings; bridge: BridgeState; bridges: BridgeRow[]; commandCheck: CommandCheckRow[] | null; errors: ErrorsView; twitch: TwitchChannelView | null; twitchReady: boolean }) {
   return (
     <div className="space-y-6">
-      <BridgeCard version={bridge.appVersion} bridges={bridges} blocks={blocks} />
+      <BridgeCard version={bridge.appVersion} bridges={bridges} />
       {bridges.length > 0 && <Suspense fallback={null}><BridgeVersionLine running={bridge.appVersion} /></Suspense>}
       {commandCheck && <CommandCheckCard rows={commandCheck} />}
       <BridgeErrorsCard errors={errors} />

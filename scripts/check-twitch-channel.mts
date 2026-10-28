@@ -49,7 +49,7 @@ const junk = await core.refreshAccessToken('old', creds, 'https://id.example', s
 ok(!junk.ok && !junk.rejected, 'a 200 without a token is not a rejection');
 
 // ── The callback's state check ──
-const cookie = JSON.stringify({ state: 'abc123', channel: true, by: 'josh', returnTo: '/admin/mixitup' });
+const cookie = JSON.stringify({ state: 'abc123', channel: true, by: 'josh', returnTo: '/admin/stream' });
 ok(ch.channelStateOk(cookie, 'abc123', 'josh'), 'the matching state for the same admin passes');
 ok(!ch.channelStateOk(cookie, 'abc124', 'josh') && !ch.channelStateOk(cookie, 'abc12', 'josh') && !ch.channelStateOk(cookie, null, 'josh'), 'a different, short or missing state fails');
 ok(!ch.channelStateOk(cookie, 'abc123', 'someone-else'), 'another admin cannot finish it');

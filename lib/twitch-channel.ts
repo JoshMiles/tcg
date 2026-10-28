@@ -95,7 +95,7 @@ export async function connectAccount(kind: AccountKind, code: string, by: string
 async function markDisconnected(a: ChannelAuth): Promise<void> {
   await kv.del(CHANNEL_AUTH_KEY);
   await audit('Twitch channel disconnected, Twitch rejected the token', a.login);
-  try { await (await import('./bridge')).sendNotice({ kind: 'attention', title: 'Twitch channel disconnected', text: `Twitch rejected the connection for ${a.login}. Connect it again.`, href: '/admin/mixitup' }); } catch { /* a nicety */ }
+  try { await (await import('./bridge')).sendNotice({ kind: 'attention', title: 'Twitch channel disconnected', text: `Twitch rejected the connection for ${a.login}. Connect it again.`, href: '/admin/stream' }); } catch { /* a nicety */ }
 }
 
 export type ChannelToken = { ok: true; accessToken: string; expiresAt: number; userId: string; login: string } | { ok: false; error: 'not-connected' | 'rejected' | 'busy' | 'unavailable' };

@@ -5,7 +5,7 @@ import { CONNECTED_MS } from '@/lib/bridge-core';
 import { bridgeVersionLine, latestBridgeRelease, type BridgeRelease } from '@/lib/bridge-release';
 import { timeAgo } from '@/lib/site-data';
 
-const CONNECTION = '/admin/mixitup?tab=connection';
+const CONNECTION = '/admin/stream?tab=connection';
 const link = 'text-yellow-400 hover:underline';
 const sha = (c: string) => c.slice(0, 7);
 
