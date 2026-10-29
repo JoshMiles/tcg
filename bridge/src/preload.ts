@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('bridge', {
   chooseObsExe: (): Result => ipcRenderer.invoke('choose-obs'),
   setStreamDeck: (on: boolean): Promise<void> => ipcRenderer.invoke('deck-switch', !!on),
   installStreamDeck: (): Result => ipcRenderer.invoke('deck-install'),
+  installObsPlugin: (): Result => ipcRenderer.invoke('obs-plugin-install'),
   dismissDeckOffer: (): Promise<void> => ipcRenderer.invoke('deck-dismiss-offer'),
   happyStart: (minutes: number, kind: string, percent: number): Result => ipcRenderer.invoke('happy-start', Number(minutes), String(kind), Number(percent)),
   happyEnd: (): Result => ipcRenderer.invoke('happy-end'),

@@ -1,7 +1,7 @@
 name: TCG Bridge
 
 # Pull requests that touch the desktop app typecheck it, run its checks and enforce the version rule (a change under bridge/ or streamdeck/ raises
-# the minor of bridge/package.json). The Stream Deck plugin in streamdeck/ is typechecked and built here too, and packed into the installer by `npm run dist`. A push to main that changes that version builds the Windows installer and publishes the release `bridge-v<version>`
+# the minor of bridge/package.json). The Stream Deck plugin in streamdeck/ is typechecked and built here too, and packed into the installer by `npm run dist`; the OBS plugin (obs-plugin.yml, called by the release job) is built only for a release and packed the same way, and `npm run dist` stops when either is missing. A push to main that changes that version builds the Windows installer and publishes the release `bridge-v<version>`
 # itself, in the same run (a tag pushed with the workflow's token would not start another run). A hand-pushed tag `bridge-v<version>` still
 # builds and publishes the same way. The app updates itself from that release.
 on:
@@ -10,6 +10,7 @@ on:
     paths:
       - 'bridge/**'
       - 'streamdeck/**'
+      - 'obs-plugin/**' # shipped in the app, so a change there follows the version rule too
       - '.github/workflows/bridge.yml'
   push:
     branches: [main]
@@ -90,8 +91,16 @@ jobs:
           fi
           { echo "build=$build"; echo "version=$version"; echo "tag=$tag"; } >> "$GITHUB_OUTPUT"
 
-  release:
+  # The OBS plugin (obs-plugin/, pinned to OBS 31) is built only for a release; the installer ships it (62.5). A pull request does not need it.
+  obs-plugin:
     needs: plan
+    if: needs.plan.outputs.build == 'true'
+    uses: ./.github/workflows/obs-plugin.yml
+    permissions:
+      contents: read
+
+  release:
+    needs: [plan, obs-plugin]
     if: needs.plan.outputs.build == 'true'
     runs-on: windows-latest
     timeout-minutes: 20
@@ -113,6 +122,11 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: bridge/package-lock.json
+      - name: The OBS plugin built by the obs-plugin job (npm run dist stops if it is missing)
+        uses: actions/download-artifact@v4
+        with:
+          name: tcg-obs-windows-x64
+          path: obs-plugin/release/tcg-obs
       - run: npm ci
       - run: npm run typecheck
       - run: npm run check

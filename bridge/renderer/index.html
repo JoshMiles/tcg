@@ -463,6 +463,15 @@
                   <dt>Stream</dt><dd id="obs-stream"></dd>
                   <dt>Overlay</dt><dd id="obs-overlay"></dd>
                 </dl>
+                <h3>TCG dock for OBS</h3>
+                <dl>
+                  <dt>OBS plugin</dt><dd id="obsplugin-state"></dd>
+                  <dt>OBS version</dt><dd id="obsplugin-version"></dd>
+                </dl>
+                <p id="obsplugin-warning" class="note" role="status" hidden></p>
+                <div class="row tools"><button type="button" id="obsplugin-install" class="btn plain"><svg class="i"><use href="#i-download"/></svg><span id="obsplugin-install-label">Install OBS plugin</span></button></div>
+                <p id="obsplugin-install-result" class="result" role="status"></p>
+                <p class="uses muted small">Adds a TCG dock to OBS (View &gt; Docks) with the live controls. Close OBS first; install turns on the Stream Deck link, which the dock talks through.</p>
                 <h3>Settings</h3>
                 <form id="obs-form">
                   <label class="inline"><input id="obs-on" type="checkbox"> Talk to OBS</label>
