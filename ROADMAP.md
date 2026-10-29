@@ -148,8 +148,20 @@ Every test in one place (checklist, test pulls, one quick-tests panel, test view
 
 Josh: a native OBS plugin (not a browser dock) for TCG Bridge. After Track 58, before the wiki (Track 60).
 
-### 62.1 Design pass (Needs design: Opus, then Josh)
-Decide what the plugin does that a browser dock or the app cannot: a native dock with the live controls (pause pulls, happy hour, queue, feed), TCG sources (the overlay, live stats, pack goal) added and kept in the right scene by the plugin, scene-change hooks without the WebSocket, or all of these. How it talks to TCG Bridge (the same local link as the Stream Deck plugin, a token in a file the app writes). Build: C/C++ from the obs-plugintemplate with CMake, Windows x64 only, built in CI against the OBS version range it supports, shipped inside TCG Bridge and installed from the app like the Stream Deck plugin; what happens when OBS updates. Its version follows the bridge's. Mockups and a build split (62.2 onward) for Josh before any build.
+### 62.1 Design pass (Done 2026-10-29)
+Josh's choices: v1 is a native dock with the live controls only (pause pulls, pause channel point awards, happy hour, queue skip and clear, the live feed); no TCG sources or scene hooks yet. It talks to TCG Bridge over the Stream Deck link (the local WebSocket on 127.0.0.1 and the token file TCG Bridge writes), ships inside TCG Bridge and is installed from it, and is built only for the OBS major version on the stream PC (31 unless Josh says otherwise). Mockup: https://claude.ai/artifact/2sfyCrnvDc284RFP5HW24P (the live dock, and the dock when TCG Bridge is not running).
+
+### 62.2 Link additions (Done #680)
+The three things the dock needs that the Stream Deck link lacks: a `pause-awards` request (the same action as the control server's), the queue list (viewer, what, seconds waiting; the first one marked showing) and the live feed (time, kind pulls / requests / events / problems, one line of text, the last 30) in the pushed state. Both copies of the protocol file stay identical and the Stream Deck plugin keeps working unchanged. Site and TCG Bridge only, no C++.
+
+### 62.3 Plugin skeleton (Ready, M)
+`obs-plugin/` from obs-plugintemplate: C++, CMake, Windows x64, built in CI against OBS 31. It reads the token file, connects to TCG Bridge, and shows a dock with only "TCG Bridge connected" or the not-running state from the mockup, reconnecting by itself.
+
+### 62.4 The dock (Ready, M)
+The dock as in the mockup, in Qt: header (live time, connection), the pulls and awards buttons, happy hour (time left, End, three presets), the queue with Skip and Clear, the feed with its filters, the Stream page link and the plugin version. Buttons are 44 px tall where the dock allows, readable by screen readers, and work from the keyboard.
+
+### 62.5 Install from TCG Bridge (Ready, S; TCG Bridge release)
+An "Install OBS plugin" button next to the Stream Deck one: copies the plugin from TCG Bridge into OBS's plugin folder (asks to close OBS first), and warns when the installed OBS is a newer major version than the plugin was built for. The plugin's version follows TCG Bridge's. README and the docs updated.
 
 ## Track 60: staff wiki refresh (2026-10-28)
 
