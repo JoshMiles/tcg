@@ -115,6 +115,7 @@ bool Link::attempt()
 					std::lock_guard<std::mutex> lock(m_);
 					welcomed = true;
 				}
+				cv_.notify_all();
 				set(appTooOld(*v) ? LinkState::NeedsUpdate : LinkState::Connected, *v);
 			}
 		} else if (msg->type == ix::WebSocketMessageType::Close || msg->type == ix::WebSocketMessageType::Error) {
@@ -130,7 +131,10 @@ bool Link::attempt()
 	{
 		std::unique_lock<std::mutex> lock(m_);
 		// Safety net: a connection that never says anything is given up after 15 seconds (the app itself closes one without a hello after 5).
-		cv_.wait_for(lock, std::chrono::seconds(15), [&] { return stopping_ || ended || (retry_ && !welcomed); });
+		cv_.wait_for(lock, std::chrono::seconds(15), [&] { return stopping_ || ended || welcomed || retry_; });
+		// Once welcomed, the link stays up until it drops or the dock goes.
+		if (welcomed)
+			cv_.wait(lock, [&] { return stopping_ || ended; });
 	}
 	ws.stop();
 	std::lock_guard<std::mutex> lock(m_);
