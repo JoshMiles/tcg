@@ -23,8 +23,8 @@ export async function obsInstallChecks(): Promise<void> {
   // Paths: the per-machine ProgramData layout OBS 30 and 31 load from (no admin).
   const env = (files: Record<string, string>): ObsEnv => ({ programData: 'C:\\ProgramData', exePaths: ['D:\\Obs\\obs64.exe', 'C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe'], exists: p => p in files, read: p => { if (!(p in files)) throw new Error('missing'); return files[p]; } });
   const none = env({});
-  assert.equal(pluginRoot(none), 'C:\\ProgramData\\obs-studio\\plugins\\tcg-obs');
-  assert.equal(pluginDll(none), 'C:\\ProgramData\\obs-studio\\plugins\\tcg-obs\\bin\\64bit\\tcg-obs.dll');
+  assert.equal(pluginRoot(none), join('C:\\ProgramData', 'obs-studio', 'plugins', 'tcg-obs'));
+  assert.equal(pluginDll(none), join(pluginRoot(none), 'bin', '64bit', 'tcg-obs.dll'));
 
   // OBS found: the first path that exists.
   assert.equal(obsExeFound(none), '');
@@ -32,7 +32,7 @@ export async function obsInstallChecks(): Promise<void> {
   assert.equal(obsExeFound(env({ 'D:\\Obs\\obs64.exe': '', 'C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe': '' })), 'D:\\Obs\\obs64.exe', 'the saved path wins');
 
   // Installed version: needs the marker and the DLL.
-  const marker = 'C:\\ProgramData\\obs-studio\\plugins\\tcg-obs\\version.txt';
+  const marker = join(pluginRoot(none), 'version.txt');
   assert.equal(installedObsPluginVersion(none), '');
   assert.equal(installedObsPluginVersion(env({ [marker]: '0.44.0\n' })), '', 'a marker without the DLL is not installed');
   assert.equal(installedObsPluginVersion(env({ [pluginDll(none)]: '' })), '', 'a DLL without a marker is not read back');
