@@ -16,9 +16,20 @@ std::string defaultLinkFile()
 	return appdata && *appdata ? std::string(appdata) + "\\TCG Bridge\\streamdeck.json" : std::string();
 }
 
-Link::Link(std::string file, std::string pluginVersion, std::function<void(LinkState, std::string)> onChange)
-	: file_(std::move(file)), version_(std::move(pluginVersion)), onChange_(std::move(onChange))
+Link::Link(std::string file, std::string pluginVersion, std::function<void(LinkState, std::string)> onChange,
+	   std::function<void(const std::string &)> onMessage)
+	: file_(std::move(file)), version_(std::move(pluginVersion)), onChange_(std::move(onChange)), onMessage_(std::move(onMessage))
 {
+}
+
+int Link::send(const std::string &req)
+{
+	std::lock_guard<std::mutex> lock(sendM_);
+	if (!ws_ || !up_)
+		return 0;
+	int n = ++nextN_;
+	ws_->send(buildDo(n, req));
+	return n;
 }
 
 Link::~Link()
@@ -116,8 +127,15 @@ bool Link::attempt()
 					welcomed = true;
 				}
 				cv_.notify_all();
-				set(appTooOld(*v) ? LinkState::NeedsUpdate : LinkState::Connected, *v);
+				bool old = appTooOld(*v);
+				{
+					std::lock_guard<std::mutex> lock(sendM_);
+					up_ = !old; // requests only go to an app the dock understands
+				}
+				set(old ? LinkState::NeedsUpdate : LinkState::Connected, *v);
 			}
+			if (onMessage_)
+				onMessage_(msg->str);
 		} else if (msg->type == ix::WebSocketMessageType::Close || msg->type == ix::WebSocketMessageType::Error) {
 			{
 				std::lock_guard<std::mutex> lock(m_);
@@ -126,6 +144,11 @@ bool Link::attempt()
 			cv_.notify_all();
 		}
 	});
+	{
+		std::lock_guard<std::mutex> lock(sendM_);
+		ws_ = &ws;
+		up_ = false;
+	}
 	ws.start();
 
 	{
@@ -135,6 +158,11 @@ bool Link::attempt()
 		// Once welcomed, the link stays up until it drops or the dock goes.
 		if (welcomed)
 			cv_.wait(lock, [&] { return stopping_ || ended; });
+	}
+	{
+		std::lock_guard<std::mutex> lock(sendM_);
+		ws_ = nullptr; // no send can reach the socket from here on
+		up_ = false;
 	}
 	ws.stop();
 	std::lock_guard<std::mutex> lock(m_);

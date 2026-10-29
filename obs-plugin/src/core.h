@@ -294,4 +294,71 @@ inline int retryDelayMs(int failures)
 	return steps[failures];
 }
 
+// ---- The dock's controls (ROADMAP 62.4): requests, the minutes left, the waiting text and the feed filter. Still no Qt: the dock parses the state with QJsonDocument. ----
+
+// The request bodies of DeckRequest in deckprotocol.ts, and the 'do' message that carries one (the app answers {t:'done', n, ok, text}).
+inline std::string reqPause()
+{
+	return "{\"what\":\"pause\"}";
+}
+// `on` = the awards should be paused afterwards: an explicit target, so a second press that arrives late cannot flip it back.
+inline std::string reqPauseAwards(bool on)
+{
+	return std::string("{\"what\":\"pause-awards\",\"on\":") + (on ? "true" : "false") + "}";
+}
+inline std::string reqHappyEnd()
+{
+	return "{\"what\":\"happy-end\"}";
+}
+inline std::string reqSkip()
+{
+	return "{\"what\":\"skip\"}";
+}
+inline std::string reqClearQueue()
+{
+	return "{\"what\":\"clear-queue\"}";
+}
+// The app wants `percent` as a number even for a free hour (it ignores it then).
+inline std::string reqHappyStart(int minutes, bool discount, int percent)
+{
+	return "{\"what\":\"happy-start\",\"minutes\":" + std::to_string(minutes) + ",\"kind\":" + (discount ? "\"discount\"" : "\"free\"") +
+	       ",\"percent\":" + std::to_string(discount ? percent : 0) + "}";
+}
+inline std::string buildDo(int n, const std::string &req)
+{
+	return "{\"t\":\"do\",\"n\":" + std::to_string(n) + ",\"req\":" + req + "}";
+}
+
+// Whole minutes left of a happy hour (rounded up, so the last minute reads "1 min left"), never below 0. Both times are epoch milliseconds.
+inline int minutesLeft(long long endsAtMs, long long nowMs)
+{
+	long long ms = endsAtMs - nowMs;
+	if (ms <= 0)
+		return 0;
+	long long m = (ms + 59999) / 60000;
+	return m > 100000 ? 100000 : (int)m;
+}
+
+// The right side of a queue row: "showing" for the one on screen, else the seconds it has waited ("12s").
+inline std::string waitingText(int waitingSec, bool showing)
+{
+	if (showing)
+		return "showing";
+	return std::to_string(waitingSec < 0 ? 0 : waitingSec) + "s";
+}
+
+// The feed chips: All shows every line, the others the lines of that kind (DECK_FEED_KINDS in deckprotocol.ts).
+enum class FeedFilter { All, Pulls, Requests, Events, Problems };
+inline bool feedShows(FeedFilter f, const std::string &kind)
+{
+	switch (f) {
+	case FeedFilter::All: return true;
+	case FeedFilter::Pulls: return kind == "pulls";
+	case FeedFilter::Requests: return kind == "requests";
+	case FeedFilter::Events: return kind == "events";
+	case FeedFilter::Problems: return kind == "problems";
+	}
+	return true;
+}
+
 } // namespace tcg
