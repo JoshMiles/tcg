@@ -13,6 +13,7 @@ import { DeckServer, deckChecklist, deckStaff, deckStats, runStaffKey, runStaffP
 import { DECK_FEED_MAX, type DeckStaff, type DeckState } from './deckprotocol';
 import { installedPluginVersion, PLUGIN_FILE, pluginOutdated, realEnv, streamDeckAppFound } from './deckinstall';
 import { diagnosticsText } from './diagnostics';
+import { installedObsPluginVersion, installObsPlugin, OBS_BUTTON_LABEL, OBS_PLUGIN_RESOURCE, OBS_STATE_LABEL, obsExeFound, obsExeVersion, obsPluginState, obsVersionWarning, realObsEnv } from './obsinstall';
 import { HAPPY_PRESETS, happyText, type HappyFacts } from './happyhour';
 import { cleanFeed, cleanFeedSettings, cleanSummary, shouldPlay, summaryMarkdown, type FeedSettings, type Summary } from './feed';
 import { defaultMixItUpPath, defaultObsPath, isMixItUpExe, isObsExe, obsRunning, startMixItUp, startObs } from './launch';
@@ -75,6 +76,10 @@ let deck: DeckServer | null = null; // the link to the Stream Deck plugin (deck.
 let deckUpAt = 0; // when the link to the plugin last came up (or the app started), for the status pill's grace
 let deckFactsAt = 0; // the Stream Deck app and the installed plugin are looked up at most every 5 seconds
 let deckFacts = { found: false, installed: '' };
+let obsPluginFactsAt = 0; // the OBS install and the installed OBS plugin are looked up at most every 5 seconds
+let obsPluginFacts = { exe: '', installed: '', version: '' };
+let obsVersionFor = '';
+let obsVersionAt = 0;
 let hotkeys: Hotkeys | null = null;
 let hotkeyErrors: Partial<Record<HotkeyName, string>> = {};
 let paused: boolean | null = null; // pulls paused on the site; null until the site has said
@@ -140,6 +145,22 @@ function deckInfo() {
     offer: settings.deckOfferedFor !== app.getVersion() && pluginOutdated(deckFacts.installed, app.getVersion()), // "Update the Stream Deck plugin", once per app version
   };
 }
+/** What the Connections page shows about the OBS plugin (62.5): OBS found, the installed plugin's version and OBS's own version (read in the background, then pushed). */
+function obsPluginInfo() {
+  const env = realObsEnv([settings.obsPath, defaultObsPath()]);
+  if (Date.now() - obsPluginFactsAt >= 5000) {
+    obsPluginFactsAt = Date.now();
+    const exe = obsExeFound(env);
+    obsPluginFacts = { exe, installed: installedObsPluginVersion(env), version: obsPluginFacts.exe === exe ? obsPluginFacts.version : '' };
+    if (exe && (obsVersionFor !== exe || Date.now() - obsVersionAt >= 300_000)) {
+      obsVersionFor = exe;
+      obsVersionAt = Date.now();
+      void obsExeVersion(exe).then(v => { if (obsPluginFacts.exe === exe && v !== obsPluginFacts.version) { obsPluginFacts.version = v; push(); } });
+    }
+  }
+  const state = obsPluginState(!!obsPluginFacts.exe, obsPluginFacts.installed, app.getVersion());
+  return { state, stateLabel: OBS_STATE_LABEL[state], button: OBS_BUTTON_LABEL[state], installed: obsPluginFacts.installed, obsVersion: obsPluginFacts.version, warning: obsVersionWarning(obsPluginFacts.version) };
+}
 const deckStaffNow = (): DeckStaff | null => deckStaff(staff && !!staffTools, staffShown(settings), tradingPaused, service?.obs.state.scene ?? '', sceneList());
 const deckState = (): DeckState => ({ ready: !!client, paused, reason: pauseReason, happy, buffs, stats: deckStats(statFacts), staff: deckStaffNow(), live: service?.state.obs.streaming === true, checklist: deckChecklist(lastChecklist), awardsPaused, queue: deckQueue(queueRows), feed: deckFeed(mergeFeed(pulls, eventLines, service?.state.jobs ?? [], DECK_FEED_MAX)) });
 /** The Stream Deck link's part of the Connections facts. */
@@ -166,6 +187,7 @@ function twitchView() {
 const pluginFile = (): string => (app.isPackaged ? join(process.resourcesPath, PLUGIN_FILE) : join(__dirname, '..', '..', 'streamdeck', 'dist', PLUGIN_FILE));
 const appState = (): object => demoState ?? ({
   deck: deckInfo(),
+  obsPlugin: obsPluginInfo(),
   connections: connectionsView(),
   twitch: twitchView(),
   liveSince: wasLive ? streamSince : 0, // when OBS went live (as this app saw it), for the OBS detail's "Live for"
@@ -325,6 +347,28 @@ async function installDeck(): Promise<{ ok: boolean; text: string }> {
   deckFactsAt = 0;
   push();
   return error ? { ok: false, text: 'Could not open the plugin file.' } : { ok: true, text: 'Opened. The Stream Deck app asks you to confirm; then find "TCG Bridge" in its list of actions.' };
+}
+
+const obsPluginDir = (): string => (app.isPackaged ? join(process.resourcesPath, OBS_PLUGIN_RESOURCE) : join(__dirname, '..', '..', 'obs-plugin', 'release', 'tcg-obs'));
+
+/** Install OBS plugin (62.5): copies the plugin into OBS's per-machine plugin folder. OBS must be closed (it loads the DLL), so it asks, and never closes OBS itself. Turns the Stream Deck link on, which the dock talks through. */
+async function installObsPluginNow(): Promise<{ ok: boolean; text: string }> {
+  if (!obsExeFound(realObsEnv([settings.obsPath, defaultObsPath()]))) return { ok: false, text: 'OBS not found. Install OBS Studio, or press Choose obs64.exe... below, then try again.' };
+  while (await obsRunning()) {
+    const options = { type: 'question' as const, buttons: ['Try again', 'Cancel'], defaultId: 0, cancelId: 1, title: 'Close OBS first', message: 'Close OBS before installing the plugin.', detail: 'OBS loads the plugin when it starts. Close OBS completely (also from the tray), then press Try again.' };
+    const answer = win && !win.isDestroyed() && win.isVisible() ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options);
+    if (answer.response !== 0) return { ok: false, text: 'Not installed. Close OBS and press the button again.' };
+  }
+  const r = installObsPlugin(obsPluginDir(), realObsEnv([settings.obsPath, defaultObsPath()]), app.getVersion());
+  log(`OBS plugin install: ${r.ok ? 'ok' : 'failed'}, ${r.text}`);
+  obsPluginFactsAt = 0;
+  if (r.ok && !settings.streamDeck) {
+    settings = { ...settings, streamDeck: true };
+    await store.save(settings);
+    await applyDeck();
+  }
+  push();
+  return r;
 }
 
 /** Asks the site whether pulls are paused and which buffs have a button. Quiet when the site cannot be reached. */
@@ -859,6 +903,7 @@ function setupIpc(): void {
     await applyDeck();
   });
   ipcMain.handle('deck-install', () => installDeck());
+  ipcMain.handle('obs-plugin-install', () => installObsPluginNow());
   ipcMain.handle('deck-dismiss-offer', async () => { // the update offer is shown once per app version
     settings = { ...settings, deckOfferedFor: app.getVersion() };
     await store.save(settings);

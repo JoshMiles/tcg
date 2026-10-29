@@ -1,8 +1,9 @@
 name: OBS plugin
 
 # Builds obs-plugin/ (the TCG dock for OBS, ROADMAP Track 62) against OBS 31.1.1 with the prebuilt obs-deps and Qt6 that obs-plugin/buildspec.json pins,
-# runs its tests and keeps the built plugin as an artifact.
+# runs its tests and keeps the built plugin as an artifact. bridge.yml calls it (workflow_call) for a TCG Bridge release, which ships that artifact inside the installer (62.5).
 on:
+  workflow_call:
   pull_request:
     branches: [main]
     paths:
@@ -18,8 +19,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: obs-plugin-${{ github.ref }}
-  cancel-in-progress: true
+  group: obs-plugin-${{ github.event_name == 'pull_request' && github.ref || github.run_id }} # a push or a call from bridge.yml is its own group: it must never cancel a release build
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -49,6 +50,12 @@ jobs:
 
       - name: Install
         run: cmake --install build_x64 --config RelWithDebInfo --prefix "${{ github.workspace }}/obs-plugin/release"
+
+      - name: Check the install layout (TCG Bridge copies this folder into OBS's plugin folder)
+        run: |
+          foreach ($f in 'bin/64bit/tcg-obs.dll', 'data/locale/en-US.ini') {
+            if (-not (Test-Path "release/tcg-obs/$f")) { throw "release/tcg-obs/$f is missing" }
+          }
 
       - name: Keep the plugin
         uses: actions/upload-artifact@v4

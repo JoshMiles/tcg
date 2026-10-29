@@ -427,6 +427,17 @@ function renderDeck() {
   $('deck-install-label').textContent = d.offer ? 'Update the Stream Deck plugin' : d.installed ? 'Reinstall Stream Deck plugin' : 'Install Stream Deck plugin';
 }
 
+// The OBS plugin (62.5): installed or not, the button's wording and the warning when OBS is a newer major than the plugin was built for.
+function renderObsPlugin() {
+  const o = state.obsPlugin;
+  if (!o) return;
+  $('obsplugin-state').textContent = o.installed ? `${o.stateLabel} (${o.installed})` : o.stateLabel;
+  $('obsplugin-version').textContent = o.obsVersion || (o.state === 'not-found' ? 'Not found' : 'Unknown');
+  $('obsplugin-install-label').textContent = o.button;
+  $('obsplugin-warning').hidden = !o.warning;
+  $('obsplugin-warning').textContent = o.warning;
+}
+
 // The Twitch channel (58.2): which account, since when, the last event and each subscription. textContent only.
 function renderTwitch() {
   const t = state.twitch;
@@ -481,6 +492,7 @@ function render() {
   renderFeed('history');
   renderControl();
   renderDeck();
+  renderObsPlugin();
   renderTwitch();
   renderScenePause();
   renderObsStats();
@@ -674,6 +686,7 @@ $('whatsnew-refresh').addEventListener('click', async () => {
   $('whatsnew-refresh').disabled = false;
 });
 action('deck-install', 'deck-install-result', () => window.bridge.installStreamDeck());
+action('obsplugin-install', 'obsplugin-install-result', () => window.bridge.installObsPlugin());
 
 $('control-pause').addEventListener('click', async () => {
   const c = state && state.control;

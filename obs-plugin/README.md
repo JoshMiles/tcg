@@ -1,6 +1,6 @@
 # TCG for OBS
 
-A native OBS Studio plugin (ROADMAP Track 62): a dock called **TCG** that talks to TCG Bridge on the same PC. The dock has the live controls (62.4): pause pulls, pause channel point awards, happy hour, the queue and the live feed. The install button in TCG Bridge comes with 62.5.
+A native OBS Studio plugin (ROADMAP Track 62): a dock called **TCG** that talks to TCG Bridge on the same PC. The dock has the live controls (62.4): pause pulls, pause channel point awards, happy hour, the queue and the live feed. TCG Bridge ships the plugin and installs it (62.5): see "Install" below.
 
 - Windows x64, OBS 31 (built against OBS 31.1.1), C++17, CMake, Qt6 Widgets for the dock.
 - The plugin has TCG Bridge's version (CMake reads `bridge/package.json` when it configures, so a build from the repo is always the app's version). The dock footer shows it.
@@ -39,6 +39,12 @@ It uses the Stream Deck link, with nothing to type or switch on in the dock:
 
 Only plain `ws://` to `127.0.0.1` is used; the plugin never talks to the internet. All of this runs on a thread of its own; the dock gets changes as queued Qt calls, so OBS's interface never waits on the network.
 
+## Install
+
+TCG Bridge (0.44.0 and newer) carries `tcg-obs.dll` and its `data/` folder in its installer. Its Connections page, OBS part, **TCG dock for OBS**, has the **Install OBS plugin** button (also **Update** / **Reinstall**). It asks you to close OBS first, then copies the plugin to `%ProgramData%\obs-studio\plugins\tcg-obs\` (`bin\64bit\tcg-obs.dll`, `data\`, and a `version.txt` with the version installed), which OBS 30 and 31 load without administrator rights. Start OBS and open View > Docks > TCG. If OBS is a newer major version than the one the plugin is built for (31), TCG Bridge shows a warning that it may not load (it still installs). Details: [bridge/README.md](../bridge/README.md), "Install OBS plugin".
+
+The plugin's folder reaches TCG Bridge's release build as the `tcg-obs-windows-x64` artifact of this folder's workflow, which the bridge release workflow calls; a release fails when it is missing. Changes under `obs-plugin/` follow TCG Bridge's version rule (raise the minor).
+
 ## Files
 
 - `src/core.h`: the parts with no OBS or Qt (token-file parsing, the hello message, version comparison, the retry wait, and for the controls the request bodies, minutes left, the waiting text and the feed filter). `tests/core_test.cpp` tests them; `ctest` runs it.
@@ -58,10 +64,10 @@ ctest --preset windows-x64
 cmake --install build_x64 --config RelWithDebInfo --prefix release
 ```
 
-The first configure downloads about 1 GB (OBS sources, obs-deps, Qt6) and builds OBS's `libobs` and `obs-frontend-api` once. `release/tcg-obs/` then holds `bin/64bit/tcg-obs.dll` (and its `.pdb`) and `data/`; copy that folder to `%ProgramData%\obs-studio\plugins\` to try it by hand. To build against another OBS 31 release, change the versions and hashes in `buildspec.json` (the template's `buildspec.json` lists them).
+The first configure downloads about 1 GB (OBS sources, obs-deps, Qt6) and builds OBS's `libobs` and `obs-frontend-api` once. `release/tcg-obs/` then holds `bin/64bit/tcg-obs.dll` (and its `.pdb`) and `data/`; copy that folder to `%ProgramData%\obs-studio\plugins\` to try it by hand (or let TCG Bridge do it, above). To build against another OBS 31 release, change the versions and hashes in `buildspec.json` (the template's `buildspec.json` lists them).
 
-CI (`.github/workflows/obs-plugin.yml`) does the same on `windows-2022` for changes under `obs-plugin/`, runs the tests and keeps `release/tcg-obs` as the `tcg-obs-windows-x64` artifact.
+CI (`.github/workflows/obs-plugin.yml`) does the same on `windows-2022` for changes under `obs-plugin/` and when `bridge.yml` calls it for a release, runs the tests, checks that `bin/64bit/tcg-obs.dll` and `data/locale/en-US.ini` are in `release/tcg-obs` and keeps that folder as the `tcg-obs-windows-x64` artifact.
 
 ## Licence
 
-The template's CMake files are GPL-2.0, and OBS's `libobs` is GPL-2.0-or-later, which the plugin links; see the repository `LICENSE` for the rest.
+Everything in `obs-plugin/` is licensed under the GNU General Public License, version 2 (`obs-plugin/LICENSE`), because the plugin links OBS's `libobs` (GPL-2.0-or-later) and its CMake files come from the GPL-2.0 obs-plugintemplate. The rest of the repository (the site, TCG Bridge, the Stream Deck plugin) stays under the root `LICENSE`. IXWebSocket, fetched at build time, is BSD-3-Clause.
