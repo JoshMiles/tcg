@@ -17,7 +17,7 @@ Work down the list. Granting a card is the last step, not the first, because a g
 
 ## They were told "Packs are paused, back soon"
 
-Pull pausing is on, either by hand or by a scene change in TCG Bridge. Nothing was charged and nothing queued. Pulls already waiting still play. Resume from the Pulls panel on the Live section of [Stream](/admin/stream), or from TCG Bridge or the Stream Deck.
+Pull pausing is on, either by hand or by a scene change in TCG Bridge. Nothing was charged and nothing queued. Pulls already waiting still play. Resume from the Pulls panel on the Live section of [Stream](/admin/stream), or from [TCG Bridge](/admin/wiki/tcg-bridge), [the Stream Deck plugin](/admin/wiki/stream-deck) or [the OBS plugin](/admin/wiki/obs-plugin).
 
 ## A paid pull was refused
 
@@ -37,7 +37,7 @@ It is off until switched on, and it shows once per raider per stream. Nothing sh
 
 ## TCG Bridge is offline
 
-Connections on the Stream page shows it. Chat commands then fall back to Mix It Up if that is set up. Staff notices sent to the app while it is offline are lost, so check the Live feed for what happened.
+Connections on the Stream page shows it, and [TCG Bridge for the streamer](/admin/wiki/tcg-bridge) lists the fixes. Chat commands then fall back to Mix It Up if that is set up. Staff notices sent to the app while it is offline are lost, so check the Live feed for what happened.
 
 ## They have two of the same card
 

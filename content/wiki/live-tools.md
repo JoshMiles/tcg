@@ -5,7 +5,7 @@ order: 40
 covers: app/admin/stream/**, lib/stream-page.ts, lib/stream-connections.ts, lib/viewers-cards.ts, lib/pull-pause.ts, app/admin/settings/OverlayPanels.tsx, app/admin/settings/WebhookConfig.tsx, lib/mixitup.ts
 ---
 
-Everything you run during a stream is on [Stream](/admin/stream) (press `g` then `m`). Older addresses such as `/admin/mixitup` and the old setup pages now send you there. TCG Bridge, the Stream Deck plugin and the OBS plugin are separate programs that run on the stream PC. They work with the same settings and are named below where they matter.
+Everything you run during a stream is on [Stream](/admin/stream) (press `g` then `m`). Older addresses such as `/admin/mixitup` and the old setup pages now send you there. [TCG Bridge](/admin/wiki/tcg-bridge), [the Stream Deck plugin](/admin/wiki/stream-deck) and [the OBS plugin](/admin/wiki/obs-plugin) are separate programs that run on the stream PC. They work with the same settings and are named below where they matter.
 
 ## The Stream page
 
@@ -76,11 +76,11 @@ Event rewards are free packs. They ignore the charge, the limits, the cooldown, 
 
 **Raid shout-out.** When a raider arrives, the overlay shows their best card as "Raid from (name)" and chat gets one line. Nothing shows for a private profile or a raider with no cards. It happens once per raider per stream, and it is off until you switch it on.
 
-**Channel points.** Each channel reward that already exists on Twitch can be given an award: None, Open a pack, Show the viewer's best card, A buff, or Start a happy hour. The list is read from Twitch. If an award fails, the Live feed shows it and a staff notice asks a mod to refund the redemption by hand in Twitch's reward queue. The site never fulfils or refunds a redemption on Twitch. While the Twitch channel is connected and any reward has an award, the Mix It Up Redeem event is ignored, so nothing runs twice.
+**Channel points** (see [Twitch connection](/admin/wiki/twitch)). Each channel reward that already exists on Twitch can be given an award: None, Open a pack, Show the viewer's best card, A buff, or Start a happy hour. The list is read from Twitch. If an award fails, the Live feed shows it and a staff notice asks a mod to refund the redemption by hand in Twitch's reward queue. The site never fulfils or refunds a redemption on Twitch. While the Twitch channel is connected and any reward has an award, the Mix It Up Redeem event is ignored, so nothing runs twice.
 
 ## Chat commands through TCG Bridge
 
-The Twitch channel connection lives under Connections: Connect Twitch channel, Disconnect, and "Reconnect to allow chat" if chat permission is missing. Chat replies go out as the channel account, or as an optional bot account (Connect bot account, Disconnect bot). Recent Twitch events are listed on the same card. It needs the Twitch and backup secrets listed in [Environments](/admin/wiki/environments).
+The [Twitch connection](/admin/wiki/twitch) lives under Connections: Connect Twitch channel, Disconnect, and "Reconnect to allow chat" if chat permission is missing. Chat replies go out as the channel account, or as an optional bot account (Connect bot account, Disconnect bot). Recent Twitch events are listed on the same card. It needs the Twitch and backup secrets listed in [Environments](/admin/wiki/environments).
 
 While that connection is live and allowed to chat:
 
@@ -92,7 +92,7 @@ Mix It Up commands stay as a fallback for when that connection is down.
 
 ## TCG Bridge on the stream PC
 
-TCG Bridge is the Windows app that sits between OBS, Twitch and this site. Each paired PC is listed under Connections with an Unlink button. When it is signed in with Twitch, its permissions come from the account's role:
+[TCG Bridge](/admin/wiki/tcg-bridge) is the Windows app that sits between OBS, Twitch and this site. Each paired PC is listed under Connections with an Unlink button. When it is signed in with Twitch, its permissions come from the account's role:
 
 - A mod PC can pause trading, block and unblock viewers and switch scenes, and read state, users, activity and a viewer.
 - Admin-only: gift, show a collection, show a card, preview URL, test pull, grant, extra pulls for the stream, back up now, and the cards and search reads.
@@ -101,7 +101,7 @@ TCG Bridge is the Windows app that sits between OBS, Twitch and this site. Each 
 - Staff notices arrive as Windows notifications. One sent while the app is offline is lost.
 - Back up now and Search the admin are in the app.
 
-The Stream Deck plugin and the OBS plugin are described in their own readme files in the repository. They drive actions from the Live section, such as pause, happy hour and extra pulls.
+The [Stream Deck plugin](/admin/wiki/stream-deck) and the [OBS plugin](/admin/wiki/obs-plugin) have their own pages. They drive actions from the Live section, such as pause, happy hour and extra pulls.
 
 ## The overlay
 
