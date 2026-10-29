@@ -56,7 +56,8 @@ export async function obsInstallChecks(): Promise<void> {
   assert.equal(obsVersionWarning('31.1.1'), '');
   assert.equal(obsVersionWarning('30.2.3'), '', 'older is not warned about here');
   assert.equal(obsVersionWarning(''), '', 'unknown version: no warning');
-  assert.equal(obsVersionWarning('32.0.1'), 'OBS 32.0.1 is newer than this plugin was built for (31). It may not load; tell Josh.');
+  assert.equal(obsVersionWarning('32.2.2'), '', 'OBS 32 loads the plugin built against 31');
+  assert.equal(obsVersionWarning('33.0.1'), 'OBS 33.0.1 is newer than this plugin has been tried with (32). It may not load; tell Josh.');
 
   // Reading OBS's version: the path goes in the environment, not the command; the first line that is a version wins.
   let seen: { args: string[]; env: Record<string, string | undefined> } | null = null;

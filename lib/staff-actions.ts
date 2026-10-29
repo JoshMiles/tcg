@@ -61,8 +61,8 @@ export async function grantCardTo(username: string, cardNumber: number, variant:
 }
 
 /** Shows one of a viewer's cards on the overlay (what a chat show-off does, POST /api/webhooks/show-card); `text` is what the viewer would type, empty = their best card. */
-export async function queueShowOff(username: string, text: unknown, opts: { caption?: string; best?: boolean } = {}): Promise<{ ok: true; message: string; card: string; variant: string; serial: number | null } | { ok: false; error: string; message: string; retryAfter?: number }> {
-  const result = await prepareShowOff(username, text, { best: opts.best });
+export async function queueShowOff(username: string, text: unknown, opts: { caption?: string; best?: boolean; uid?: number } = {}): Promise<{ ok: true; message: string; card: string; variant: string; serial: number | null } | { ok: false; error: string; message: string; retryAfter?: number }> {
+  const result = await prepareShowOff(username, text, { best: opts.best, uid: opts.uid });
   if (!result.ok) return result;
   const { plan } = result;
   await enqueueEvent({

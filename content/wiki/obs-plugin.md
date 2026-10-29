@@ -5,7 +5,7 @@ order: 44
 covers: obs-plugin/**, bridge/src/obsinstall.ts
 ---
 
-The OBS plugin adds a dock called **TCG** inside OBS, so the live controls are on the same screen as your scenes. Like the [Stream Deck plugin](/admin/wiki/stream-deck), it does not talk to the site. It talks to [TCG Bridge](/admin/wiki/tcg-bridge) on the same PC, and TCG Bridge does the work. It is built for Windows and for OBS 31.
+The OBS plugin adds a dock called **TCG** inside OBS, so the live controls are on the same screen as your scenes. Like the [Stream Deck plugin](/admin/wiki/stream-deck), it does not talk to the site. It talks to [TCG Bridge](/admin/wiki/tcg-bridge) on the same PC, and TCG Bridge does the work. It is built for Windows and for OBS 31, and also runs in OBS 32.
 
 ## Install
 
@@ -32,7 +32,7 @@ After a TCG Bridge update the plugin shows "Installed (older)": close OBS, press
 
 ### The "OBS is newer than 31" warning
 
-TCG Bridge reads the version of the OBS that is installed. If its major version is newer than the one the plugin was built for (31), the part shows something like "OBS 32.0.1 is newer than this plugin was built for (31). It may not load". The plugin still installs. If the dock does not appear in View, Docks after an OBS update, tell Josh; the plugin has to be rebuilt for the new OBS.
+TCG Bridge reads the version of the OBS that is installed. The plugin is built for OBS 31 and also loads in OBS 32 (tried in 32.2.2). If the major version is newer than 32, the part shows something like "OBS 33.0.1 is newer than this plugin has been tried with (32). It may not load". The plugin still installs. If the dock does not appear in View, Docks after an OBS update, tell Josh; the plugin has to be rebuilt for the new OBS.
 
 ## The dock
 

@@ -14,6 +14,7 @@ import { rankItems } from './palette';
 import type { BridgeToken } from './bridge';
 import { staffRefusal } from './bridge-core';
 import { getActivity } from './activity';
+import { readLastPull } from './bridge-stats';
 import { getActiveSeasonWithPacks, getAllCollectionUsers, getUserCards } from './kv';
 import { getSeasonLeaderboardCached } from './leaderboard';
 import { currentStreamKey, getMixItUpLog, getMixItUpSettings } from './mixitup';
@@ -54,6 +55,14 @@ export async function runStaffAction(pc: BridgeToken, body: Record<string, unkno
       return r;
     }
     case 'show-card': {
+      if (body.last === 'pull' || body.last === 'big') { // the Stream Deck's Show last pull keys: the copy that was pulled, while its puller still holds it
+        const big = body.last === 'big';
+        const p = await readLastPull(big);
+        if (!p) return done(false, big ? 'No big pull yet this stream.' : 'No pulls yet this stream.');
+        const r = await queueShowOff(p.username, `#${p.cardNumber} ${p.variant ?? 'regular'}`, { uid: p.uid });
+        if (r.ok) await audit(p.username, 'Showed a card on stream', r.card);
+        return done(r.ok, r.ok ? r.message : r.message || r.error);
+      }
       if (!user) return done(false, NO_USER);
       const r = await queueShowOff(user, typeof body.card === 'string' ? body.card : '');
       if (r.ok) await audit(user, 'Showed a card on stream', r.card);

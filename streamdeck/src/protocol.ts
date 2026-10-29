@@ -74,6 +74,7 @@ export type DeckRequest =
   | { what: 'happy-end' }
   | { what: 'test-pull' }
   | { what: 'show-card'; username: string; card?: string }
+  | { what: 'show-last'; big: boolean }
   | { what: 'refresh' }
   | { what: 'checklist' }
   | { what: 'skip' }
@@ -100,6 +101,7 @@ export function parseRequest(v: unknown): DeckRequest | null {
     case 'pause-awards': return typeof v.on === 'boolean' ? { what: 'pause-awards', on: v.on } : { what: 'pause-awards' };
     case 'happy-end': return { what: 'happy-end' };
     case 'test-pull': return { what: 'test-pull' };
+    case 'show-last': return typeof v.big === 'boolean' ? { what: 'show-last', big: v.big } : null;
     case 'skip': return { what: 'skip' };
     case 'clear-queue': return { what: 'clear-queue' };
     case 'preview': return { what: 'preview' };

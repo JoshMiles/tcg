@@ -30,7 +30,7 @@ export type ShowResult = { ok: true; plan: ShowPlan } | { ok: false; error: stri
  * running season and the viewer must really own it (in the version asked for), so the overlay can only ever be told to show a genuine
  * card of theirs. One show-off per viewer every few seconds, so a chat cannot flood the screen.
  */
-export async function prepareShowOff(username: string, text: unknown, opts: { dry?: boolean; /** Skip the pinned print and showcase: always the highest-value card (the raid shout-out). */ best?: boolean } = {}): Promise<ShowResult> {
+export async function prepareShowOff(username: string, text: unknown, opts: { dry?: boolean; /** Skip the pinned print and showcase: always the highest-value card (the raid shout-out). */ best?: boolean; /** This exact copy while the viewer still holds it (the Stream Deck's Show last pull), else `text` as usual. */ uid?: number } = {}): Promise<ShowResult> {
   const user = username.toLowerCase();
   const active = await getActiveSeasonWithPacks();
   if (!active) return { ok: false, error: 'no-season', message: 'There is no season running right now.' };
@@ -43,13 +43,13 @@ export async function prepareShowOff(username: string, text: unknown, opts: { dr
   const q = parseShowQuery(text);
   // No card named: the pinned print, else the first showcase pick they still hold, else the best card below.
   let forced: { card: ShowCard; variant: Variant; serial: number; uid: number } | null = null;
-  if (q.number === null && !q.name && !opts.best) {
+  if (opts.uid || (q.number === null && !q.name && !opts.best)) {
     const [settings, mine] = await Promise.all([
       getUserSettings(user).catch(() => null),
       getOwnerCopies(season.collectionName, user).catch(() => []),
     ]);
     const byUid = (uid: number | null | undefined) => (uid ? mine.find(c => c.uid === uid) : undefined);
-    const hit = byUid(settings?.pinned) ?? settings?.showcaseUids.map(byUid).find(c => c);
+    const hit = opts.uid ? byUid(opts.uid) : byUid(settings?.pinned) ?? settings?.showcaseUids.map(byUid).find(c => c);
     const card = hit ? cards.find(c => c.number === hit.card) : undefined;
     if (hit?.uid && card && (owned.get(card.number)?.[hit.variant] ?? 0) > 0) forced = { card, variant: hit.variant, serial: hit.n, uid: hit.uid };
   }

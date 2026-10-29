@@ -2,7 +2,7 @@
 // its own: it draws the state the app pushed and sends the app a request.
 import { DECK_STATS, type DeckRequest, type DeckState, type DeckStatKind } from './protocol';
 
-export type KeyKind = 'buff' | 'last-buff' | 'pause' | 'happy' | 'test-pull' | 'show-card' | 'stat' | 'skip' | 'clear-queue' | 'queue' | 'trading' | 'scene' | 'preview' | 'refresh' | 'checklist';
+export type KeyKind = 'buff' | 'last-buff' | 'pause' | 'happy' | 'test-pull' | 'show-card' | 'show-last' | 'show-big' | 'stat' | 'skip' | 'clear-queue' | 'queue' | 'trading' | 'scene' | 'preview' | 'refresh' | 'checklist';
 
 /** The action UUIDs in manifest.json. */
 export const ACTION_KIND: Record<string, KeyKind> = {
@@ -12,6 +12,8 @@ export const ACTION_KIND: Record<string, KeyKind> = {
   'tv.cheesygidds.tcgbridge.happy-hour': 'happy',
   'tv.cheesygidds.tcgbridge.test-pull': 'test-pull',
   'tv.cheesygidds.tcgbridge.show-card': 'show-card',
+  'tv.cheesygidds.tcgbridge.show-last': 'show-last',
+  'tv.cheesygidds.tcgbridge.show-big': 'show-big',
   'tv.cheesygidds.tcgbridge.stat': 'stat',
   'tv.cheesygidds.tcgbridge.skip': 'skip',
   'tv.cheesygidds.tcgbridge.clear-queue': 'clear-queue',
@@ -24,7 +26,7 @@ export const ACTION_KIND: Record<string, KeyKind> = {
 };
 
 /** The staff keys (61.3, and Test pull / Show a card since 61.5) and the staff action each needs, the names of bridge/src/staffpages.ts: a mod-linked PC has no 'preview-url', 'test-pull' or 'show-card'. */
-const STAFF_NEEDS: Partial<Record<KeyKind, string>> = { trading: 'trading', scene: 'scene', preview: 'preview-url', 'test-pull': 'test-pull', 'show-card': 'show-card' };
+const STAFF_NEEDS: Partial<Record<KeyKind, string>> = { trading: 'trading', scene: 'scene', preview: 'preview-url', 'test-pull': 'test-pull', 'show-card': 'show-card', 'show-last': 'show-card', 'show-big': 'show-card' };
 /** The staff-only part of a view: null when the key may be used. The app refuses the request again (bridge/src/deck.ts runStaffPcKey), this is only what the key shows. */
 function staffRefusal(kind: KeyKind, state: DeckState): string | null {
   const need = STAFF_NEEDS[kind];
@@ -52,8 +54,10 @@ export const statOf = (s: Settings): StatChoice | null => STAT_CHOICES.find(k =>
 /** The card a Show a card key shows, picked in its settings: a name or a number like "#12" (the same text as the Staff tab's card box); '' = the site picks one. */
 export const cardOf = (s: Settings): string => (typeof s.card === 'string' ? s.card.trim().slice(0, 80) : '');
 
-/** Test pull and Show a card play on the live overlay: while OBS is live they need the same 1 second hold as the other keys that cannot be undone (61.5). */
-export const liveHold = (kind: KeyKind, state: DeckState | null): boolean => (kind === 'test-pull' || kind === 'show-card') && !!state?.live;
+/** Test pull and the Show keys play on the live overlay. */
+export const onOverlay = (kind: KeyKind): boolean => kind === 'test-pull' || kind === 'show-card' || kind === 'show-last' || kind === 'show-big';
+/** While OBS is live they need the same 1 second hold as the other keys that cannot be undone (61.5). */
+export const liveHold = (kind: KeyKind, state: DeckState | null): boolean => onOverlay(kind) && !!state?.live;
 
 /** A name cut to fit one line of a key (about 10 characters). */
 export const fit = (t: string, n = 10): string => (t.length <= n ? t : `${t.slice(0, n - 1)}.`);
@@ -102,6 +106,8 @@ export const GLYPHS: Record<KeyKind | 'play', string> = {
   happy: '<circle cx="72" cy="72" r="46" fill="none" stroke-width="9"/><polyline points="72,42 72,74 94,86" fill="none" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>',
   'test-pull': '<rect x="38" y="20" width="68" height="104" rx="8" fill="none" stroke-width="9"/><polyline points="56,74 68,88 92,56" fill="none" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>',
   'show-card': '<rect x="24" y="32" width="58" height="86" rx="8" fill="none" stroke-width="9"/><rect x="62" y="26" width="58" height="86" rx="8" fill="#0a0f21" stroke-width="9"/>',
+  'show-last': '<rect x="40" y="24" width="64" height="96" rx="8" fill="none" stroke-width="9"/><polygon points="58,50 58,94 94,72"/>',
+  'show-big': '<rect x="40" y="24" width="64" height="96" rx="8" fill="none" stroke-width="9"/><polygon points="72,44 79,63 99,63 83,75 89,95 72,83 55,95 61,75 45,63 65,63"/>',
   stat: '<rect x="30" y="76" width="26" height="42" rx="4"/><rect x="59" y="48" width="26" height="70" rx="4"/><rect x="88" y="26" width="26" height="92" rx="4"/>',
   skip: '<polygon points="28,28 94,72 28,116"/><rect x="104" y="28" width="14" height="88" rx="3"/>',
   'clear-queue': '<rect x="30" y="40" width="84" height="12" rx="4"/><rect x="56" y="26" width="32" height="14" rx="3"/><path d="M42 62h60l-5 56H47z" fill="none" stroke-width="9" stroke-linejoin="round"/>',
@@ -154,6 +160,8 @@ export function view(kind: KeyKind, state: DeckState | null, s: Settings, now: n
       const title = !who ? 'Name a viewer' : card ? `${fit(who)}\n${fit(card)}` : `Show card\n${fit(who)}`;
       return { title, image: icon('show-card', !who ? 'off' : state.live ? 'warn' : 'idle') };
     }
+    case 'show-last': return { title: 'Show\nlast pull', image: icon('show-last', state.live ? 'warn' : 'idle') };
+    case 'show-big': return { title: 'Show last\nbig pull', image: icon('show-big', state.live ? 'warn' : 'idle') };
     case 'stat': return statView(statOf(s), state, now);
     case 'skip': return { title: 'Skip\nnext pull', image: icon('skip', 'idle') };
     case 'clear-queue': return { title: 'Clear\nqueue', image: icon('clear-queue', 'idle') };
@@ -208,6 +216,8 @@ export function requestFor(kind: KeyKind, s: Settings, state: DeckState | null =
     case 'happy': return happyStart(s);
     case 'test-pull': return { what: 'test-pull' };
     case 'show-card': { const username = viewerOf(s); const card = cardOf(s); return username ? { what: 'show-card', username, ...(card ? { card } : {}) } : null; }
+    case 'show-last': return { what: 'show-last', big: false };
+    case 'show-big': return { what: 'show-last', big: true };
     case 'refresh': return { what: 'refresh' };
     case 'checklist': return { what: 'checklist' };
     case 'stat': return statOf(s) === 'queue' ? { what: 'skip' } : null; // the other stats do nothing on a press
