@@ -20,7 +20,7 @@ If the plugin is installed but not talking to the app, the status pill reads "St
 
 ## The keys
 
-There are fifteen. A key that your account may not use shows "Staff only" (not a staff PC) or "Admins only" (a mod PC).
+There are seventeen. A key that your account may not use shows "Staff only" (not a staff PC) or "Admins only" (a mod PC).
 
 | Key | What it does |
 | --- | --- |
