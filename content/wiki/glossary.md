@@ -58,14 +58,23 @@ Short names for the things staff run into in the panel. The topic pages say how 
 | Scene | A named overlay setup with its own URL, for a second OBS scene (a vertical camera, for example). The queue is still shared. |
 | Mix It Up | The chat bot and currency tool the stream uses. It sends commands and payments to the site. |
 | Brie Bucks | The channel currency viewers spend on paid pulls. |
-| TCG Bridge | The Windows app on the stream PC that links OBS, Twitch chat and the site. |
-| Stream Deck plugin, OBS plugin | Controls for the stream PC with their own readme files. They drive actions such as pause and happy hour. |
+| TCG Bridge | The Windows app on the stream PC that links OBS, Twitch chat and the site. See [TCG Bridge for the streamer](/admin/wiki/tcg-bridge). |
+| Sign in with Twitch (TCG Bridge) | How the app is linked to a staff account. The account's role decides what that PC may do. |
+| Pairing code | The older way to link the app: a one-time code made on the Stream page. |
+| Staff PC | A PC running TCG Bridge with staff tools: signed in with a staff role, or paired with the switch on. |
+| Checklist | "Ready to go live" in TCG Bridge: green or red lines for the site, Mix It Up, OBS, the overlay, packs and Twitch. It changes nothing. |
+| Stream Deck plugin | Keys for an Elgato Stream Deck, installed from TCG Bridge. See [The Stream Deck plugin](/admin/wiki/stream-deck). |
+| OBS plugin, dock | The TCG dock inside OBS (View, Docks, TCG), installed from TCG Bridge. See [The OBS plugin](/admin/wiki/obs-plugin). |
+| Twitch channel connection | The channel linked on the Stream page. See [Twitch connection](/admin/wiki/twitch). |
+| Bot account | An optional second Twitch account that sends chat replies instead of the channel. |
+| Redemption | A viewer spending channel points on a reward. The site records it and may run an award. |
+| Refund by hand | Undoing a failed redemption in Twitch's reward queue. The site cannot do it. |
 | Queue | The pulls waiting to play on the overlay. Clear queue refunds paid ones. |
 | Pause | Stops new pulls and charges. It shows a reason: "Paused now" by hand, or "Paused by scene". |
 | Happy hour | A timed offer of free packs or a percent discount. |
 | Pack goal | A target number of packs opened by everyone, with an optional reward. |
 | Event reward | Free packs or a buff given for gifted subs, bits, a raid or a channel point redeem. |
-| Channel point award | What a Twitch channel reward gives the viewer who redeems it. |
+| Channel point award | What a Twitch channel reward gives the viewer who redeems it. It can be paused. |
 
 ## Staff and environments
 

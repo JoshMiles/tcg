@@ -33,7 +33,7 @@ Settings, Environment shows the newest backup and turns red when it is older tha
 
 Restoring is a script in the repo. By default it restores into a sandbox you then open from Admin, Sandbox. Putting keys straight back onto production is a separate, explicit flag. Do not run that because a viewer is missing one card.
 
-Brie Bucks (the Mix It Up currency) has its own backups. TCG Bridge keeps them on the stream PC, and the site records no backup runs for them.
+Brie Bucks (the Mix It Up currency) has its own backups. [TCG Bridge](/admin/wiki/tcg-bridge) keeps them on the stream PC, and the site records no backup runs for them.
 
 ## Scheduled jobs
 
@@ -58,7 +58,7 @@ The Environment tab lists every variable as set or not set. It never shows the v
 | `LEGAL_OPERATOR_NAME`, `LEGAL_CONTACT_EMAIL` and `LEGAL_GOVERNING_LAW` | The legal pages. |
 | `ADMIN_PASSWORD_LOGIN=off` | Switches that password door off. |
 | `SESSION_SECRET` | Website login, and the staff cookie. |
-| `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` | Twitch login and profile pictures. The Twitch channel connection on the Stream page also needs these, plus `BACKUP_ENCRYPTION_KEY`. |
+| `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` | Twitch login and profile pictures. The [Twitch connection](/admin/wiki/twitch) on the Stream page also needs these, plus `BACKUP_ENCRYPTION_KEY`. |
 | `TWITCH_EXTENSION_SECRET` | The panel's signed requests. |
 | `KV_REST_API_URL` and `KV_REST_API_TOKEN` | The database. Preview has these too, and is fenced in code. |
 | `BLOB_READ_WRITE_TOKEN` | Uploads and the Assets page. |

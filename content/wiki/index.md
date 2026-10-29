@@ -20,8 +20,9 @@ Signing in is the normal Twitch login. After that, a staff member with an admin 
 - **OBS overlay.** The browser source on stream. It plays pack openings, shows a collection, and saves a pull only when the server issued a ticket for it.
 - **Public site.** Home, profiles, binder, card dex, leaderboard, stats, trading, account, settings, feedback. Production is `https://cheesytcg.app`.
 - **Twitch Extension panel.** The panel on the channel. It can show the season, a collection, trades and upgrades. It is a separate front end from the website.
-- **TCG Bridge.** A Windows app on the stream PC that links OBS, Twitch chat and this site. It has its own staff notices and a few staff tools, and it is paired from the Stream page.
-- **Stream Deck plugin and OBS plugin.** Extra controls for the stream PC. They have their own readme files in the repository and drive the same actions as the Stream page.
+- **TCG Bridge.** A Windows app on the stream PC that links OBS, Twitch chat and this site. It has its own staff notices and a few staff tools, and it is signed in with Twitch. See [TCG Bridge for the streamer](/admin/wiki/tcg-bridge). Mods have a shorter guide at `/mod/guide`.
+- **Twitch connection.** The channel linked on the Stream page so channel points, bits, gifted subs, raids and chat commands reach the site. See [Twitch connection](/admin/wiki/twitch).
+- **Stream Deck plugin and OBS plugin.** Extra controls for the stream PC, installed from TCG Bridge. They drive the same actions as the Stream page. See [The Stream Deck plugin](/admin/wiki/stream-deck) and [The OBS plugin](/admin/wiki/obs-plugin).
 - **Admin panel (`/admin`).** The sidebar groups are below.
 - **Mod panel (`/mod`).** A smaller set, below.
 
@@ -58,6 +59,9 @@ These pages do not list work that is only planned. If something is still an open
 - [Cards, packs and seasons](/admin/wiki/cards) when the set itself is wrong.
 - [Trading](/admin/wiki/trading) when an offer, a listing or escrow looks stuck.
 - [Live tools](/admin/wiki/live-tools) for the Stream page, paid pulls, the overlay, chat commands and the Twitch panel.
+- [TCG Bridge for the streamer](/admin/wiki/tcg-bridge) for installing and fixing the stream PC app.
+- [Twitch connection](/admin/wiki/twitch) for channel point awards, refunds by hand, chat commands and the bot account.
+- [The Stream Deck plugin](/admin/wiki/stream-deck) and [The OBS plugin](/admin/wiki/obs-plugin) for the keys and the dock.
 - [Moderation](/admin/wiki/moderation) for roles, feedback and the activity feed.
 - [Support answers](/admin/wiki/support) for the questions that come up most.
 - [Environments](/admin/wiki/environments) before you change a secret, a backup, or a deploy.

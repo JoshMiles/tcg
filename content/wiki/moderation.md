@@ -19,7 +19,7 @@ The emergency password, if `ADMIN_PASSWORD_LOGIN` is not `off`, signs in as the 
 
 Removing someone stops their changes immediately, because every change re-reads the staff list. The staff record is cached for 15 seconds per server, so a page on another server can show the old role for up to that long. The staff cookie itself lasts an hour and is only renewed while the role is still valid. Logging out of the panel also sets a 12-hour marker that stops the cookie being renewed.
 
-A TCG Bridge PC signed in with Twitch gets its tools from the same role: a mod PC can pause trading, block and unblock viewers and switch scenes, and read state, users, activity and a viewer. Gifts, grants and test pulls are admin-only. See [Live tools](/admin/wiki/live-tools).
+A [TCG Bridge](/admin/wiki/tcg-bridge) PC signed in with Twitch gets its tools from the same role: a mod PC can pause trading, block and unblock viewers and switch scenes, and read state, users, activity and a viewer. Gifts, grants and test pulls are admin-only. See [Live tools](/admin/wiki/live-tools).
 
 The public site shows a purple Admin panel or Mod panel button only to people on this list. It is a shortcut. The panel checks again.
 
