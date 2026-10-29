@@ -170,7 +170,7 @@ This is a personal project for one community, so outside pull requests are not e
 
 Copyright (c) 2026 Josh Miles. All rights reserved.
 
-The source is published for reading and reference only. You may not copy, modify, host or redistribute the code, card art, sounds or branding without written permission. See [`LICENSE`](LICENSE). Bundled fonts keep their own licenses (OFL, in `public/fonts/back`).
+The source is published for reading and reference only. You may not copy, modify, host or redistribute the code, card art, sounds or branding without written permission. See [`LICENSE`](LICENSE). Bundled fonts keep their own licenses (OFL, in `public/fonts/back`). The folder `obs-plugin/` (the OBS plugin) is the exception: it is licensed under the GNU GPL version 2, see [`obs-plugin/LICENSE`](obs-plugin/LICENSE).
 
 ---
 
