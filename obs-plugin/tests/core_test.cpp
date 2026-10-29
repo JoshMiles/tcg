@@ -76,6 +76,36 @@ int main()
 	for (int n = 0; n < 20; n++)
 		CHECK(retryDelayMs(n + 1) >= retryDelayMs(n));
 
+	// requests the dock sends, as the app's parseRequest reads them
+	CHECK(buildDo(7, reqPause()) == "{\"t\":\"do\",\"n\":7,\"req\":{\"what\":\"pause\"}}");
+	CHECK(reqPauseAwards(true) == "{\"what\":\"pause-awards\",\"on\":true}");
+	CHECK(reqPauseAwards(false) == "{\"what\":\"pause-awards\",\"on\":false}");
+	CHECK(reqHappyStart(15, false, 50) == "{\"what\":\"happy-start\",\"minutes\":15,\"kind\":\"free\",\"percent\":0}");
+	CHECK(reqHappyStart(30, true, 50) == "{\"what\":\"happy-start\",\"minutes\":30,\"kind\":\"discount\",\"percent\":50}");
+	CHECK(reqHappyEnd() == "{\"what\":\"happy-end\"}" && reqSkip() == "{\"what\":\"skip\"}" && reqClearQueue() == "{\"what\":\"clear-queue\"}");
+	auto d = parseObject(buildDo(12, reqSkip()));
+	CHECK(d && d->at("t").text == "do" && d->at("n").text == "12" && d->count("req") == 0); // req is an object, skipped by the flat parser
+
+	// minutes left: rounded up, never negative
+	CHECK(minutesLeft(0, 1000) == 0);
+	CHECK(minutesLeft(1000, 1000) == 0);
+	CHECK(minutesLeft(1001, 1000) == 1);
+	CHECK(minutesLeft(61000, 1000) == 1);
+	CHECK(minutesLeft(61001, 1000) == 2);
+	CHECK(minutesLeft(1000LL + 29 * 60000LL + 1, 1000) == 30);
+	CHECK(minutesLeft(9000000000000000LL, 0) == 100000);
+
+	// queue row, right side
+	CHECK(waitingText(0, true) == "showing" && waitingText(99, true) == "showing");
+	CHECK(waitingText(12, false) == "12s" && waitingText(-3, false) == "0s");
+
+	// feed chips
+	CHECK(feedShows(FeedFilter::All, "pulls") && feedShows(FeedFilter::All, "anything"));
+	CHECK(feedShows(FeedFilter::Pulls, "pulls") && !feedShows(FeedFilter::Pulls, "events"));
+	CHECK(feedShows(FeedFilter::Requests, "requests") && !feedShows(FeedFilter::Requests, "problems"));
+	CHECK(feedShows(FeedFilter::Events, "events") && !feedShows(FeedFilter::Events, "pulls"));
+	CHECK(feedShows(FeedFilter::Problems, "problems") && !feedShows(FeedFilter::Problems, "requests") && !feedShows(FeedFilter::Problems, ""));
+
 	if (failures) {
 		std::fprintf(stderr, "%d check(s) failed\n", failures);
 		return 1;

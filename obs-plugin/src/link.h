@@ -8,6 +8,10 @@
 #include <string>
 #include <thread>
 
+namespace ix {
+class WebSocket;
+}
+
 namespace tcg {
 
 enum class LinkState {
@@ -19,12 +23,16 @@ enum class LinkState {
 class Link {
 public:
 	// `file` = the path of streamdeck.json, `pluginVersion` = sent in the hello.
-	Link(std::string file, std::string pluginVersion, std::function<void(LinkState, std::string appVersion)> onChange);
+	// `onMessage` gets the raw text of every message after the hello (the welcome too, right after the state change it causes), on the link's thread (62.4).
+	Link(std::string file, std::string pluginVersion, std::function<void(LinkState, std::string appVersion)> onChange,
+	     std::function<void(const std::string &)> onMessage);
 	~Link();
 	void start();
 	void stop();
 	// The "Try again" button: skip the wait and try now.
 	void retryNow();
+	// Sends one request (a body from core.h: reqPause() ...) as {t:'do', n, req} from any thread. Returns n (the answer {t:'done', n, ...} carries it), or 0 when the link is not up.
+	int send(const std::string &req);
 
 private:
 	void run();
@@ -34,7 +42,12 @@ private:
 
 	std::string file_, version_;
 	std::function<void(LinkState, std::string)> onChange_;
+	std::function<void(const std::string &)> onMessage_;
 	std::thread thread_;
+	std::mutex sendM_; // guards ws_ and up_; held while sending, so attempt() never destroys the socket under a send
+	ix::WebSocket *ws_ = nullptr;
+	bool up_ = false;
+	int nextN_ = 0;
 	std::mutex m_;
 	std::condition_variable cv_;
 	bool stopping_ = false;

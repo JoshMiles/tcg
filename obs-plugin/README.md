@@ -1,6 +1,6 @@
 # TCG for OBS
 
-A native OBS Studio plugin (ROADMAP Track 62): a dock called **TCG** that talks to TCG Bridge on the same PC. This is the skeleton (62.3): the dock shows whether TCG Bridge is running and nothing else yet; the live controls come with 62.4 and the install button in TCG Bridge with 62.5.
+A native OBS Studio plugin (ROADMAP Track 62): a dock called **TCG** that talks to TCG Bridge on the same PC. The dock has the live controls (62.4): pause pulls, pause channel point awards, happy hour, the queue and the live feed. The install button in TCG Bridge comes with 62.5.
 
 - Windows x64, OBS 31 (built against OBS 31.1.1), C++17, CMake, Qt6 Widgets for the dock.
 - The plugin has TCG Bridge's version (CMake reads `bridge/package.json` when it configures, so a build from the repo is always the app's version). The dock footer shows it.
@@ -9,11 +9,25 @@ A native OBS Studio plugin (ROADMAP Track 62): a dock called **TCG** that talks 
 
 | State | Header (right side) | Body |
 |-------|---------------------|------|
-| Connected | green dot, "TCG Bridge connected" | a line saying it is connected (62.4 puts the controls here) |
+| Connected | green dot, "Live · TCG Bridge connected" or "Offline · TCG Bridge connected" (from `live` in the state) | the controls, below |
 | TCG Bridge not running | red dot, "TCG Bridge not running" | "The dock needs TCG Bridge", what to do, **Try again** |
 | TCG Bridge older than 0.43.0 | amber dot, "TCG Bridge needs an update" | "Update TCG Bridge" and the version it found |
 
 TCG Bridge 0.43.0 is the first with what the dock needs (the `pause-awards` request, the queue and the live feed on the Stream Deck link, ROADMAP 62.2). The dock tells the app's version from the `welcome` message.
+
+## The controls (62.4)
+
+Top to bottom, dark like OBS (colours from the mockup; the stylesheets are set on the dock's own widgets, so OBS's other docks look as before):
+
+- **Pulls**: two 44 px buttons. **Pulls** is green "Pulls on / Press to pause" or amber "Pulls paused / Press to resume"; **Awards** (channel point awards) the same ("Awards on", "Awards paused"). While the site has not said yet (`null`) the button reads "Waiting for the site" and is disabled. A muted line under them shows the pause reason (for example "scene BRB"). The awards button sends an explicit target (`pause-awards` with `on`), so a late second press cannot flip it back; the pulls button toggles (`pause`).
+- **Happy hour**: while one runs, its name in yellow and "N min left" (rounded up, redrawn every 30 seconds) with **End**; always three presets: **Free 15 min**, **Free 30 min**, **50% off 30 min**.
+- **Queue (n)**: **Skip** and **Clear** (Clear asks "Clear the whole queue?" first). Each row is viewer and what, then "showing" for the one on screen or the seconds it waited ("12s"); "Nothing waiting" when empty.
+- **Feed**: filter chips **All / Pulls / Requests / Events / Problems** (one is checked at a time), then the lines newest first with the local time (HH:MM) in grey; problems in red. It scrolls and takes the remaining height; the whole controls page scrolls when the dock is very small.
+- Footer: "Plugin x.y.z". There is no link to the Stream page: the Stream Deck link does not tell the dock the site address, and the app is not changed for it.
+
+Sending: every button sends `{"t":"do","n":N,"req":{...}}` through the link (`Link::send`, safe from any thread). The app answers `{"t":"done","n":N,"ok":true|false,"text":"..."}` and then pushes its new state. All the buttons that send are disabled from the press until the answer and the next state have both come (or 3 seconds pass; 0.8 seconds after an `ok` answer whose state did not change), so a press cannot be sent twice. A `false` answer shows its text in red under the Pulls buttons. If the link drops, the dock goes back to the "not running" page and reconnects by itself.
+
+Keyboard and screen readers: Tab goes top to bottom (Pulls, Awards, End, the three presets, Skip, Clear, the five chips, the feed), Space or Enter presses, the chips are checkable and show a focus ring, and every button has an accessible name ("Pulls on. Press to pause", "Feed filter: Problems"). The state is parsed with `QJsonDocument` on the UI thread; a field of the wrong type gets the old-app default.
 
 ## How it finds TCG Bridge
 
@@ -27,7 +41,7 @@ Only plain `ws://` to `127.0.0.1` is used; the plugin never talks to the interne
 
 ## Files
 
-- `src/core.h`: the parts with no OBS or Qt (token-file parsing, the hello message, version comparison, the retry wait). `tests/core_test.cpp` tests them; `ctest` runs it.
+- `src/core.h`: the parts with no OBS or Qt (token-file parsing, the hello message, version comparison, the retry wait, and for the controls the request bodies, minutes left, the waiting text and the feed filter). `tests/core_test.cpp` tests them; `ctest` runs it.
 - `src/link.h`, `src/link.cpp`: the connection, on its own thread, with [IXWebSocket](https://github.com/machinezone/IXWebSocket) v11.4.6 (BSD-3-Clause, fetched by CMake at a pinned commit, built static, no TLS and no zlib).
 - `src/dock.cpp`, `src/plugin-main.cpp`: the dock and the module entry points (`obs_frontend_add_dock_by_id`).
 - `data/locale/en-US.ini`: the dock's title.
