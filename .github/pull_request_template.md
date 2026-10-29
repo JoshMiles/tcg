@@ -13,7 +13,7 @@ Tags: new
 ## Summary
 
 
-<!-- A PR that changes bridge/ or streamdeck/ also adds a "## TCG Bridge" section here: only bullets, written for the streamer, saying what changed in the app. They become the app's What's new for that version. -->
+<!-- A PR that changes bridge/, streamdeck/ or obs-plugin/ also adds a "## TCG Bridge" section here: only bullets, written for the streamer, saying what changed in the app. They become the app's What's new for that version. -->
 
 ## Docs
 <!-- Name the docs this PR updates (docs/*.md, content/wiki/*.md, README.md, CLAUDE.md, bridge/README.md): "Docs updated: docs/overlay.md".
