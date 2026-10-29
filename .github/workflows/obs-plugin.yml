@@ -1,0 +1,58 @@
+name: OBS plugin
+
+# Builds obs-plugin/ (the TCG dock for OBS, ROADMAP Track 62) against OBS 31.1.1 with the prebuilt obs-deps and Qt6 that obs-plugin/buildspec.json pins,
+# runs its tests and keeps the built plugin as an artifact.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'obs-plugin/**'
+      - '.github/workflows/obs-plugin.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'obs-plugin/**'
+      - '.github/workflows/obs-plugin.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: obs-plugin-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: obs-plugin
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache OBS sources and dependencies
+        uses: actions/cache@v4
+        with:
+          path: obs-plugin/.deps
+          key: obs-deps-${{ hashFiles('obs-plugin/buildspec.json') }}
+
+      - name: Configure (downloads OBS 31.1.1, obs-deps and Qt6 on a cold cache)
+        run: cmake --preset windows-ci-x64
+
+      - name: Build
+        run: cmake --build --preset windows-x64 --parallel
+
+      - name: Test
+        run: ctest --preset windows-x64
+
+      - name: Install
+        run: cmake --install build_x64 --config RelWithDebInfo --prefix "${{ github.workspace }}/obs-plugin/release"
+
+      - name: Keep the plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: tcg-obs-windows-x64
+          path: obs-plugin/release/tcg-obs
+          if-no-files-found: error

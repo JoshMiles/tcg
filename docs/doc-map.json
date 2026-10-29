@@ -3,6 +3,7 @@
   "docs": [
     { "doc": "README.md", "code": ["package.json", "vercel.json", "next.config.ts", "middleware.ts", ".github/workflows/*.yml", "scripts/run-checks.mjs"] },
     { "doc": "bridge/README.md", "code": ["bridge/**"], "exclude": ["bridge/README.md", "bridge/package-lock.json"] },
+    { "doc": "obs-plugin/README.md", "code": ["obs-plugin/**", ".github/workflows/obs-plugin.yml"], "exclude": ["obs-plugin/README.md"] },
     { "doc": "CLAUDE.md", "code": ["package.json", "scripts/run-checks.mjs", "scripts/check-pr-body.mjs", "scripts/check-docs.mjs", "scripts/changelog-parse.mjs", ".github/workflows/*.yml", "middleware.ts", "next.config.ts"] },
     { "doc": "docs/git-and-prs.md", "code": ["scripts/check-pr-body.mjs", "scripts/check-docs.mjs", "scripts/changelog-parse.mjs", "docs/doc-map.json", ".github/workflows/pr-body.yml", ".github/workflows/claude-code-review.yml", ".github/workflows/claude.yml"] },
     { "doc": "docs/model-workflow.md", "code": [".claude/settings.json"] },

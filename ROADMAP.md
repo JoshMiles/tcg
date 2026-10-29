@@ -154,7 +154,7 @@ Josh's choices: v1 is a native dock with the live controls only (pause pulls, pa
 ### 62.2 Link additions (Done #680)
 The three things the dock needs that the Stream Deck link lacks: a `pause-awards` request (the same action as the control server's), the queue list (viewer, what, seconds waiting; the first one marked showing) and the live feed (time, kind pulls / requests / events / problems, one line of text, the last 30) in the pushed state. Both copies of the protocol file stay identical and the Stream Deck plugin keeps working unchanged. Site and TCG Bridge only, no C++.
 
-### 62.3 Plugin skeleton (Ready, M)
+### 62.3 Plugin skeleton (Done #PR)
 `obs-plugin/` from obs-plugintemplate: C++, CMake, Windows x64, built in CI against OBS 31. It reads the token file, connects to TCG Bridge, and shows a dock with only "TCG Bridge connected" or the not-running state from the mockup, reconnecting by itself.
 
 ### 62.4 The dock (Ready, M)
