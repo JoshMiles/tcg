@@ -160,7 +160,7 @@ The three things the dock needs that the Stream Deck link lacks: a `pause-awards
 ### 62.4 The dock (Done #682)
 The dock as in the mockup, in Qt: header (live time, connection), the pulls and awards buttons, happy hour (time left, End, three presets), the queue with Skip and Clear, the feed with its filters, the Stream page link and the plugin version. Buttons are 44 px tall where the dock allows, readable by screen readers, and work from the keyboard.
 
-### 62.5 Install from TCG Bridge (Ready, S; TCG Bridge release)
+### 62.5 Install from TCG Bridge (Done #683)
 An "Install OBS plugin" button next to the Stream Deck one: copies the plugin from TCG Bridge into OBS's plugin folder (asks to close OBS first), and warns when the installed OBS is a newer major version than the plugin was built for. The plugin's version follows TCG Bridge's. README and the docs updated.
 
 ## Track 60: staff wiki refresh (2026-10-28)
