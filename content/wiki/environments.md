@@ -13,7 +13,7 @@ covers: lib/sandbox.ts, lib/db.ts, lib/backup.ts, app/admin/settings/PreviewData
 
 **Local** is your machine against a fake database (the mock KV described in `docs/local-dev.md`). It must not be pointed at production. A saved pull writes a real card for a real viewer. The overlay test panel's Reset buttons write too.
 
-Sandboxes inside production (Admin, Sandbox) are named copies for trying a trade or an upgrade. They do not call Discord or charge Mix It Up. Leaving a sandbox returns you to live data. Check the sandbox pill before you grant or delete.
+Sandboxes inside production (Admin, Sandbox) are named copies for trying a trade or an upgrade. They do not call Discord, and paid pulls do not run in them. Leaving a sandbox returns you to live data. Check the sandbox pill before you grant or delete.
 
 ## Deploys
 
@@ -33,7 +33,16 @@ Settings, Environment shows the newest backup and turns red when it is older tha
 
 Restoring is a script in the repo. By default it restores into a sandbox you then open from Admin, Sandbox. Putting keys straight back onto production is a separate, explicit flag. Do not run that because a viewer is missing one card.
 
-A weekly job picks the print of the week. It uses the same cron secret and also does nothing outside production.
+Brie Bucks (the Mix It Up currency) has its own backups. TCG Bridge keeps them on the stream PC, and the site records no backup runs for them.
+
+## Scheduled jobs
+
+All of them use the cron secret and do nothing outside production. They are set in `vercel.json`:
+
+- Backup, daily at 04:00.
+- Accounts, daily at 04:30.
+- A job every minute.
+- Weekly, Sundays at 20:00 UTC: it picks the edition of the week and sends the community digest and the admin digest. On the first Sunday of the month it also runs a restore drill and posts PASSED, a warning or FAILED to the Discord admin log.
 
 ## Secrets, by what they unlock
 
@@ -41,10 +50,15 @@ The Environment tab lists every variable as set or not set. It never shows the v
 
 | Name | What stays off without it |
 | --- | --- |
-| `ADMIN_SECRET` and `ADMIN_PASSWORD` | The emergency password login. The cookie is a signature of the secret, not the secret itself. |
+| `ADMIN_PASSWORD` and `ADMIN_COOKIE_SECRET` | The emergency password login. The cookie secret signs the cookie and needs 16 or more characters. `ADMIN_SECRET` no longer signs anything and can be removed. |
+| `SITE_URL` | Nothing breaks. It sets the public address used in login redirects and links, and defaults to the production domain. |
+| `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` | The Cloudflare Turnstile check before trades and upgrades on the website. Without both, those skip the check. |
+| `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` and `DISCORD_BOT_TOKEN` | Linking a Discord account (viewer Settings, Notifications) and Discord direct message alerts. All three must be set or the option stays hidden. |
+| `GITHUB_CHANGELOG_TOKEN` | The What's new pages. Without it only the hand-written history shows. |
+| `LEGAL_OPERATOR_NAME`, `LEGAL_CONTACT_EMAIL` and `LEGAL_GOVERNING_LAW` | The legal pages. |
 | `ADMIN_PASSWORD_LOGIN=off` | Switches that password door off. |
 | `SESSION_SECRET` | Website login, and the staff cookie. |
-| `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` | Twitch login and profile pictures. |
+| `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` | Twitch login and profile pictures. The Twitch channel connection on the Stream page also needs these, plus `BACKUP_ENCRYPTION_KEY`. |
 | `TWITCH_EXTENSION_SECRET` | The panel's signed requests. |
 | `KV_REST_API_URL` and `KV_REST_API_TOKEN` | The database. Preview has these too, and is fenced in code. |
 | `BLOB_READ_WRITE_TOKEN` | Uploads and the Assets page. |
@@ -52,8 +66,8 @@ The Environment tab lists every variable as set or not set. It never shows the v
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Phone and browser push. Hidden until the pair is set. |
 | `SUPER_ADMIN_TWITCH_IDS` | Extra super admins, by numeric Twitch id, besides the owner baked into the code. |
 
-Never paste a value into chat, a pull request, or this wiki. If one leaks, rotate it in Vercel and redeploy. Rotating `SESSION_SECRET` signs everyone out. Rotating the overlay key is done from Settings, OBS Overlay, and then every OBS source must be updated.
+Never paste a value into chat, a pull request, or this wiki. If one leaks, rotate it in Vercel and redeploy. Rotating `SESSION_SECRET` signs everyone out. Rotating `ADMIN_COOKIE_SECRET` ends any emergency password session. Rotating the overlay key is done from Settings, OBS Overlay, and then every OBS source must be updated.
 
 ## Data health
 
-The same Environment tab measures how big each season's collection blob is. The whole collection is rewritten on every pull, trade, and upgrade. The panel warns as it grows (from about 512 KB, and louder from about 2 MB). That is a capacity warning, not a button that splits the data. Stuck escrow is listed there too.
+The same Environment tab (sections Security, Backups, Data health and the variable list) measures how big each season's collection blob is. The whole collection is rewritten on every pull, trade, and upgrade. The panel warns as it grows (from about 512 KB, and louder from about 2 MB). That is a capacity warning, not a button that splits the data. Stuck escrow is listed there too.

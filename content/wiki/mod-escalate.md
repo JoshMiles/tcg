@@ -13,6 +13,8 @@ Tell an admin (or the streamer) in your usual staff chat, with the viewer's name
 - **Deletion requests.** Only admins answer them.
 - **Missing cards.** Mods cannot grant, take or restore cards. Say which viewer, which card and what they were doing.
 - **A trade you cannot reverse**, or one that is too old to reverse automatically.
+- **A Golden edition or a very large trade** that was reversed or needs to be. An admin should know about it.
+- **Anything on the Stream page.** The stream desk on your Overview is read-only. If packs are paused, the queue is stuck or the overlay is offline, tell the streamer or an admin.
 - **Cards that look stuck** after an offer ended.
 - **A restriction an admin set** that you think is wrong.
 - **Anything about other staff or the streamer's account.** You cannot moderate them.
