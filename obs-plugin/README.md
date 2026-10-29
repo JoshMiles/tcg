@@ -46,7 +46,7 @@ cmake --install build_x64 --config RelWithDebInfo --prefix release
 
 The first configure downloads about 1 GB (OBS sources, obs-deps, Qt6) and builds OBS's `libobs` and `obs-frontend-api` once. `release/tcg-obs/` then holds `bin/64bit/tcg-obs.dll` (and its `.pdb`) and `data/`; copy that folder to `%ProgramData%\obs-studio\plugins\` to try it by hand. To build against another OBS 31 release, change the versions and hashes in `buildspec.json` (the template's `buildspec.json` lists them).
 
-CI (`.github/workflows/obs-plugin.yml`) does the same on `windows-latest` for changes under `obs-plugin/`, runs the tests and keeps `release/tcg-obs` as the `tcg-obs-windows-x64` artifact.
+CI (`.github/workflows/obs-plugin.yml`) does the same on `windows-2022` for changes under `obs-plugin/`, runs the tests and keeps `release/tcg-obs` as the `tcg-obs-windows-x64` artifact.
 
 ## Licence
 

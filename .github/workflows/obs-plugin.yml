@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022 # windows-latest now has Visual Studio 2026 only; the preset (the template's) uses Visual Studio 17 2022
     timeout-minutes: 40
     defaults:
       run:
