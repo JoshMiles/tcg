@@ -81,7 +81,7 @@ function built(root: string): { dir: string; packed: string } {
   return { dir, packed };
 }
 
-const state = (over: Partial<DeckState> = {}): DeckState => ({ ready: true, paused: false, reason: '', happy: null, buffs: [{ id: 'b1', name: 'Speed up' }], stats: { queue: 3 }, staff: null, live: false, checklist: null, ...over });
+const state = (over: Partial<DeckState> = {}): DeckState => ({ ready: true, paused: false, reason: '', happy: null, buffs: [{ id: 'b1', name: 'Speed up' }], stats: { queue: 3 }, staff: null, live: false, checklist: null, awardsPaused: null, queue: [], feed: [], ...over });
 const adminStaff: DeckStaff = { can: ['trading', 'scene', 'preview-url', 'test-pull', 'show-card'], tradingPaused: false, scene: 'Main', scenes: ['Main', 'Break'] };
 
 export async function deckPluginChecks(): Promise<void> {

@@ -9,6 +9,8 @@ import type { ControlAction } from '../src/control';
 import { DeckServer, deckChecklist, deckStaff, deckStats, runStaffKey, runStaffPcKey, toAction, toStaff, type StaffPcEnv } from '../src/deck';
 import { statsPlan, noStatMap } from '../src/obsstats';
 import { manifestVersion, installedPluginVersion, pluginOutdated, streamDeckAppFound, type DeckEnv, PLUGIN_UUID } from '../src/deckinstall';
+import { deckFeed, deckQueue } from '../src/deckfeed';
+import { mergeFeed } from '../src/home';
 import { CLOSE_REFUSED, parseClient, parseLinkFile, parseRequest, parseServer, type DeckStaff, type DeckState } from '../src/deckprotocol';
 import { versionProblems } from './check-version';
 import { Keys, type KeyHandle } from '../../streamdeck/src/controller';
@@ -17,7 +19,7 @@ import { BridgeLink, type Socket } from '../../streamdeck/src/link';
 
 const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 const until = async (what: string, ok: () => boolean) => { for (let i = 0; i < 200 && !ok(); i++) await wait(10); assert.ok(ok(), `timed out waiting for ${what}`); };
-const state = (over: Partial<DeckState> = {}): DeckState => ({ ready: true, paused: false, reason: '', happy: null, buffs: [{ id: 'b1', name: 'Speed up' }], stats: {}, staff: null, live: false, checklist: null, ...over });
+const state = (over: Partial<DeckState> = {}): DeckState => ({ ready: true, paused: false, reason: '', happy: null, buffs: [{ id: 'b1', name: 'Speed up' }], stats: {}, staff: null, live: false, checklist: null, awardsPaused: null, queue: [], feed: [], ...over });
 
 /** A raw client: what it was sent and how it closed (or why it was never let in). */
 function client(url: string, opts: WebSocket.ClientOptions = {}) {
@@ -328,6 +330,46 @@ export async function deckChecks(): Promise<void> {
   const lines = (ok: number, bad: number, muted = 0) => ({ lines: [...Array(ok).fill({ tone: 'ok' }), ...Array(bad).fill({ tone: 'bad' }), ...Array(muted).fill({ tone: 'muted' })] });
   assert.deepEqual(deckChecklist(lines(8, 0)), { total: 8, failing: 0 });
   assert.deepEqual(deckChecklist(lines(6, 2, 1)), { total: 9, failing: 2 }, 'only the red lines fail');
+  // ── 62.2 link additions: pause-awards, the queue list and the live feed ──
+  assert.deepEqual(parseRequest({ what: 'pause-awards' }), { what: 'pause-awards' });
+  assert.deepEqual(parseRequest({ what: 'pause-awards', on: true }), { what: 'pause-awards', on: true });
+  assert.deepEqual(parseRequest({ what: 'pause-awards', on: 'yes' }), { what: 'pause-awards' }, 'an on that is not true or false is left out (it toggles)');
+  assert.deepEqual(toAction({ what: 'pause-awards' }), { action: 'pause-awards' }, 'the same action as the control server and the tray');
+  assert.deepEqual(toAction({ what: 'pause-awards', on: false }), { action: 'pause-awards', on: false });
+  assert.equal(toStaff({ what: 'pause-awards' }), null);
+  assert.deepEqual(parseClient(JSON.stringify({ t: 'do', n: 4, req: { what: 'pause-awards', on: true } })), { t: 'do', n: 4, req: { what: 'pause-awards', on: true } });
+  const qRows = Array.from({ length: 12 }, (_, i) => ({ id: 'q' + i, kind: i === 1 ? 'show-off' : 'pull', username: i === 2 ? '  ' : 'viewer' + i, pack: i === 3 ? '' : 'Base pack', waitedS: i === 4 ? -5 : 10 + i }));
+  const dq = deckQueue(qRows);
+  assert.equal(dq.length, 10, 'at most ten');
+  assert.deepEqual(dq[0], { viewer: 'viewer0', what: 'Base pack', waitingSec: 10, showing: true });
+  assert.deepEqual(dq.map(r => r.showing), [true, ...Array(9).fill(false)], 'only the first is showing');
+  assert.equal(dq[1].what, 'Show-off');
+  assert.equal(dq[2].viewer, '-');
+  assert.equal(dq[3].what, 'Pack pull', 'a pull whose pack is unknown');
+  assert.equal(dq[4].waitingSec, 0, 'a negative wait is 0');
+  assert.deepEqual(deckQueue([]), []);
+  const pullAt = (at: number, viewer: string) => ({ at, viewer, card: 'Brie', rarity: 'Rare', stars: 3, variant: 'Regular' });
+  const feed = deckFeed(mergeFeed(
+    [pullAt(5000, 'ann'), pullAt(1000, 'old')],
+    [{ at: 4000, time: '', event: 'Bits', viewer: 'bob', amount: '100', ok: true, result: 'Pack added' }, { at: 3000, time: '', event: 'Raid', viewer: 'cy', amount: '-', ok: false, result: 'Refused' }],
+    [{ at: 2000, kind: 'pull', username: 'dee', ok: true, detail: 'queued\nok', ms: 5 }, { at: 1500, kind: 'pull', username: '', ok: false, detail: 'site down', ms: 5 }],
+    100));
+  assert.deepEqual(feed.map(f => [f.at, f.kind]), [[5000, 'pulls'], [4000, 'events'], [3000, 'problems'], [2000, 'requests'], [1500, 'problems'], [1000, 'pulls']], 'newest first; refused and failed lines are problems');
+  assert.equal(feed[0].text, 'ann pulled Brie (Rare)');
+  assert.equal(feed[1].text, 'bob Bits 100: Pack added');
+  assert.equal(feed[3].text, 'dee queued ok', 'control characters become spaces');
+  assert.equal(feed[4].text, 'site down', 'no viewer, no name');
+  const many = deckFeed(mergeFeed(Array.from({ length: 50 }, (_, i) => pullAt(i + 1, 'v')), [], [], 100));
+  assert.equal(many.length, 30, 'the last thirty');
+  assert.equal(many[0].at, 50);
+  assert.ok(deckFeed(mergeFeed([pullAt(1, 'x'.repeat(40))], [], [], 100))[0].text.length <= 200);
+  const wire = parseServer(JSON.stringify({ t: 'state', state: { ...state(), awardsPaused: true, queue: [...dq, ...dq], feed: [...feed, { at: 'x', kind: 'pulls', text: 'bad' }, { at: 1, kind: 'nope', text: 'bad' }, { at: 1, kind: 'events', text: 'ok', extra: 1 }], } }));
+  const ws = wire?.t === 'state' ? wire.state : null;
+  assert.equal(ws?.awardsPaused, true);
+  assert.equal(ws?.queue.length, 10, 'the queue is cut to ten on the wire');
+  assert.deepEqual(ws?.feed.at(-1), { at: 1, kind: 'events', text: 'ok' }, 'a feed line is rebuilt field by field; bad lines are dropped');
+  assert.equal(ws?.feed.length, feed.length + 1);
+  assert.deepEqual(oldApp?.t === 'state' ? [oldApp.state.awardsPaused, oldApp.state.queue, oldApp.state.feed] : null, [null, [], []], 'an app without them sends none');
   // Refresh overlay and Run checklist: the views.
   assert.equal(view('refresh', state(), {}, now).title, 'Refresh\noverlay');
   assert.deepEqual(requestFor('refresh', {}), { what: 'refresh' });
