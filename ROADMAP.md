@@ -157,7 +157,7 @@ The three things the dock needs that the Stream Deck link lacks: a `pause-awards
 ### 62.3 Plugin skeleton (Done #681)
 `obs-plugin/` from obs-plugintemplate: C++, CMake, Windows x64, built in CI against OBS 31. It reads the token file, connects to TCG Bridge, and shows a dock with only "TCG Bridge connected" or the not-running state from the mockup, reconnecting by itself.
 
-### 62.4 The dock (Ready, M)
+### 62.4 The dock (Done #682)
 The dock as in the mockup, in Qt: header (live time, connection), the pulls and awards buttons, happy hour (time left, End, three presets), the queue with Skip and Clear, the feed with its filters, the Stream page link and the plugin version. Buttons are 44 px tall where the dock allows, readable by screen readers, and work from the keyboard.
 
 ### 62.5 Install from TCG Bridge (Ready, S; TCG Bridge release)
