@@ -70,4 +70,4 @@ CI (`.github/workflows/obs-plugin.yml`) does the same on `windows-2022` for chan
 
 ## Licence
 
-The template's CMake files are GPL-2.0, and OBS's `libobs` is GPL-2.0-or-later, which the plugin links; see the repository `LICENSE` for the rest.
+Everything in `obs-plugin/` is licensed under the GNU General Public License, version 2 (`obs-plugin/LICENSE`), because the plugin links OBS's `libobs` (GPL-2.0-or-later) and its CMake files come from the GPL-2.0 obs-plugintemplate. The rest of the repository (the site, TCG Bridge, the Stream Deck plugin) stays under the root `LICENSE`. IXWebSocket, fetched at build time, is BSD-3-Clause.
