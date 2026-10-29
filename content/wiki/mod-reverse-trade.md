@@ -6,7 +6,7 @@ covers: app/mod/trades/**, lib/trades.ts
 audience: mods
 ---
 
-Reversing a completed trade gives each person their prints back. Open the trade from **Trades** (or its trade page), write a reason, and confirm.
+Reversing a completed trade gives each person their editions back. Open the trade from **Trades** (or its trade page), write a reason in the **Reverse this trade** box, and press **Reverse trade**.
 
 ## Reverse when
 
@@ -22,8 +22,9 @@ Reversing a completed trade gives each person their prints back. Open the trade 
 ## What to know
 
 - A reason is required. Both people get a notice, and the trade stays in history with a "Reversed by staff" line.
-- It only works if the prints are still with the people who received them and are not in a new offer. If not, nothing moves, and the message names the first print that cannot go back.
+- It only works if the editions are still with the people who received them and are not in a new offer. If not, nothing moves, and the message names the first edition that cannot go back.
 - A very old trade may say it is too old to reverse automatically. Do not try to fix it by hand. Escalate it.
+- A trade with a Golden edition, or six or more editions, is logged as one that "would need a second approval". This is a trial and nothing is blocked, but tell an admin.
 - It is all or nothing. A failed reversal changes nothing, so it is safe to try.
 - You cannot reverse a trade involving other staff or the streamer's account. Ask an admin.
 

@@ -167,7 +167,7 @@ An "Install OBS plugin" button next to the Stream Deck one: copies the plugin fr
 
 Josh: a complete update to the staff wiki (`content/wiki/*.md`, shown at /admin/wiki, and at /mod/guide for pages with `audience: mods`), last on the roadmap so it describes everything above as built. The wiki was last updated 2026-10-27, before Tracks 55 to 59.
 
-### 60.1 Wiki audit and rewrite (Ready, M; last)
+### 60.1 Wiki audit and rewrite (In progress: part 1 #684)
 1. **Audit.** Read every page against the site and TCG Bridge as they stand (the area docs in `docs/`, `bridge/README.md`, the admin pages), and list what is wrong, missing or out of date. Plain-language, for staff, not developers.
 2. **Update the existing twelve pages** (Overview, Cards, Environments, Glossary, Live tools, Moderation, the three mod how-tos, Support answers, Trading, Viewers): Mix It Up paid pulls and prices (55.4), happy hour, pack goal, raid shout-out and event rewards, pause reasons, the overlay preview, and anything the redesign (Track 59) moved.
 3. **New pages:** TCG Bridge for the streamer (install, Twitch sign-in 58.0, the update flow, the checklist, OBS stats, errors), TCG Bridge for mods (what a staff PC can do; `audience: mods`), Twitch connection (58.1 to 58.6: channel points awards, refunds by hand, chat commands and the bot account), the Stream Deck plugin (57.13, Track 61) and the OBS plugin (Track 62). Each linked from Overview, and new words in the Glossary.

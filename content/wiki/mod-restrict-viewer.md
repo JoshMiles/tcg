@@ -31,6 +31,6 @@ The page shows when it was set and by whom. To lift a restriction, flip the swit
 
 - You cannot restrict yourself, other staff, or the streamer's account.
 - You cannot change a restriction an admin set. Ask an admin.
-- Their open offers stay open. Cancel them from the viewer's Trades list so the cards go back to their owner.
+- Their open offers stay open. Cancel them from the Trades panel on the viewer's page so the cards go back to their owner.
 
 If you are unsure, restrict only what stops the problem and tell an admin. See "What to escalate to an admin".
