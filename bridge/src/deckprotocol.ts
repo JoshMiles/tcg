@@ -47,14 +47,29 @@ export interface DeckState {
   live: boolean;
   /** The last pre-stream checklist run (61.5): how many lines it had and how many were red; null = none run yet. An older app sends none. */
   checklist: DeckChecklist | null;
+  /** Channel point awards paused on the site (62.2); null = the site has not said yet. An older app sends none (= null). */
+  awardsPaused: boolean | null;
+  /** The overlay queue, the next pull first (62.2), at most DECK_QUEUE_MAX. An older app sends none (= []). */
+  queue: DeckQueueRow[];
+  /** The live feed, newest first (62.2), at most DECK_FEED_MAX. An older app sends none (= []). */
+  feed: DeckFeedLine[];
 }
 export interface DeckChecklist { total: number; failing: number }
+export const DECK_QUEUE_MAX = 10;
+export const DECK_FEED_MAX = 30;
+/** One waiting overlay event: who, what (the pack, or "Show-off"), seconds waited when the app last asked the site, and `showing` for the one on screen now (the first). */
+export interface DeckQueueRow { viewer: string; what: string; waitingSec: number; showing: boolean }
+export const DECK_FEED_KINDS = ['pulls', 'requests', 'events', 'problems'] as const;
+export type DeckFeedKind = (typeof DECK_FEED_KINDS)[number];
+/** One line of the live feed: `at` is epoch milliseconds. */
+export interface DeckFeedLine { at: number; kind: DeckFeedKind; text: string }
 
 /** What a key asks the app to do. Each one is run by the same code as the Control tab and the tray. */
 export type DeckRequest =
   | { what: 'buff'; id: string }
   | { what: 'last-buff' }
   | { what: 'pause' }
+  | { what: 'pause-awards'; on?: boolean }
   | { what: 'happy-start'; minutes: number; kind: 'free' | 'discount'; percent: number }
   | { what: 'happy-end' }
   | { what: 'test-pull' }
@@ -82,6 +97,7 @@ export function parseRequest(v: unknown): DeckRequest | null {
     case 'buff': return text(v.id, 100) && v.id ? { what: 'buff', id: v.id } : null;
     case 'last-buff': return { what: 'last-buff' };
     case 'pause': return { what: 'pause' };
+    case 'pause-awards': return typeof v.on === 'boolean' ? { what: 'pause-awards', on: v.on } : { what: 'pause-awards' };
     case 'happy-end': return { what: 'happy-end' };
     case 'test-pull': return { what: 'test-pull' };
     case 'skip': return { what: 'skip' };
@@ -120,9 +136,13 @@ function parseState(v: unknown): DeckState | null {
   if (isObject(s) && Array.isArray(s.can) && typeof s.tradingPaused === 'boolean' && text(s.scene, 80) && Array.isArray(s.scenes)) {
     staff = { can: s.can.filter((x): x is string => text(x, 30)).slice(0, 20), tradingPaused: s.tradingPaused, scene: s.scene, scenes: s.scenes.filter((x): x is string => text(x, 80)).slice(0, 200) };
   }
+  const queue: DeckQueueRow[] = [];
+  if (Array.isArray(v.queue)) for (const q of v.queue.slice(0, DECK_QUEUE_MAX)) if (isObject(q) && text(q.viewer, 80) && text(q.what, 120) && num(q.waitingSec)) queue.push({ viewer: q.viewer, what: q.what, waitingSec: q.waitingSec, showing: q.showing === true });
+  const feed: DeckFeedLine[] = [];
+  if (Array.isArray(v.feed)) for (const f of v.feed.slice(0, DECK_FEED_MAX)) if (isObject(f) && num(f.at) && DECK_FEED_KINDS.includes(f.kind as DeckFeedKind) && text(f.text, 300)) feed.push({ at: f.at, kind: f.kind as DeckFeedKind, text: f.text });
   const c = v.checklist;
   const checklist = isObject(c) && num(c.total) && num(c.failing) ? { total: c.total, failing: c.failing } : null;
-  return { ready: v.ready, paused: v.paused, reason: v.reason, happy: h === null ? null : { what: (h as { what: string }).what, endsAt: (h as { endsAt: number }).endsAt }, buffs, stats, staff, live: v.live === true, checklist };
+  return { ready: v.ready, paused: v.paused, reason: v.reason, happy: h === null ? null : { what: (h as { what: string }).what, endsAt: (h as { endsAt: number }).endsAt }, buffs, stats, staff, live: v.live === true, checklist, awardsPaused: typeof v.awardsPaused === 'boolean' ? v.awardsPaused : null, queue, feed };
 }
 
 const json = (raw: string): unknown => { try { return JSON.parse(raw); } catch { return null; } };

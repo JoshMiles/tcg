@@ -54,6 +54,7 @@ export function toAction(r: DeckRequest): ControlAction | null {
     case 'buff': return { action: 'buff', id: r.id };
     case 'last-buff': return { action: 'last-buff' };
     case 'pause': return { action: 'pause' };
+    case 'pause-awards': return { action: 'pause-awards', ...(r.on !== undefined ? { on: r.on } : {}) };
     case 'happy-end': return { action: 'happy-hour-end' };
     case 'happy-start': return { action: 'happy-hour-start', minutes: r.minutes, kind: r.kind, ...(r.kind === 'discount' ? { percent: r.percent } : {}) };
   }

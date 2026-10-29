@@ -8,8 +8,9 @@ import { Alerts, snapshotOf } from './alerts';
 import { aboutParts, commitUrl, readBuildInfo, stampText } from './buildinfo';
 import { Ledger } from './bucks';
 import { buttonUrl, ControlServer, HOTKEY_ACTION, HOTKEYS, Hotkeys, newControlKey, type ControlAction, type ControlResult, type HotkeyMap, type HotkeyName } from './control';
+import { deckFeed, deckQueue } from './deckfeed';
 import { DeckServer, deckChecklist, deckStaff, deckStats, runStaffKey, runStaffPcKey } from './deck';
-import type { DeckStaff, DeckState } from './deckprotocol';
+import { DECK_FEED_MAX, type DeckStaff, type DeckState } from './deckprotocol';
 import { installedPluginVersion, PLUGIN_FILE, pluginOutdated, realEnv, streamDeckAppFound } from './deckinstall';
 import { diagnosticsText } from './diagnostics';
 import { HAPPY_PRESETS, happyText, type HappyFacts } from './happyhour';
@@ -140,7 +141,7 @@ function deckInfo() {
   };
 }
 const deckStaffNow = (): DeckStaff | null => deckStaff(staff && !!staffTools, staffShown(settings), tradingPaused, service?.obs.state.scene ?? '', sceneList());
-const deckState = (): DeckState => ({ ready: !!client, paused, reason: pauseReason, happy, buffs, stats: deckStats(statFacts), staff: deckStaffNow(), live: service?.state.obs.streaming === true, checklist: deckChecklist(lastChecklist) });
+const deckState = (): DeckState => ({ ready: !!client, paused, reason: pauseReason, happy, buffs, stats: deckStats(statFacts), staff: deckStaffNow(), live: service?.state.obs.streaming === true, checklist: deckChecklist(lastChecklist), awardsPaused, queue: deckQueue(queueRows), feed: deckFeed(mergeFeed(pulls, eventLines, service?.state.jobs ?? [], DECK_FEED_MAX)) });
 /** The Stream Deck link's part of the Connections facts. */
 function deckLink() {
   const d = deckInfo();
@@ -392,6 +393,13 @@ function tickStats(): void {
 }
 
 /** Documents\TCG Bridge\backups: the Brie Bucks CSVs (ROADMAP 55.10). */
+/** While a Stream Deck / OBS dock client is connected, reads the overlay queue every 5 seconds (a skip or clear asks again at once) and pushes it when it changed. */
+function tickDeckQueue(): void {
+  if (!client || !deck?.connected || Date.now() - queueAt < 5000) return;
+  queueAt = Date.now();
+  void client.queue().then(rows => { queueRows = rows; deck?.broadcast(); }, () => undefined); // quiet: asked again in 5 seconds
+}
+
 const backupDir = () => join(app.getPath('documents'), 'TCG Bridge', 'backups');
 
 const obsConfig = () => ({ enabled: settings.obsEnabled, address: settings.obsAddress, password: settings.obsPassword, startReplay: settings.obsStartReplay });
@@ -426,6 +434,7 @@ async function disconnect(): Promise<void> {
   client = null;
   paused = null;
   awardsPaused = null;
+  queueRows = [];
   happy = null;
   commandsMissing = null;
   pauseReason = '';
@@ -1113,6 +1122,7 @@ async function launchApp(): Promise<void> {
   setInterval(() => void loadStatus(), 30_000); // the site's pause switch and happy hour can be changed elsewhere
   setInterval(tickHappy, 1000);
   setInterval(tickStats, 1000);
+  setInterval(tickDeckQueue, 1000);
   setInterval(tickEvents, 5000);
   setInterval(tickAlerts, 5000); // the 15 seconds of "down" are counted here
   void startMixWithBridge();
