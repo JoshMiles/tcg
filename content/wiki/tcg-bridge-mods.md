@@ -47,7 +47,7 @@ The Home page has Pause pulls, Pause channel point awards, the happy hour preset
 
 ## Stream Deck and OBS
 
-If you also use the Stream Deck plugin, a mod PC gets Pause trading and Switch scene. The Test pull, Show a card and Preview overlay keys show "Admins only" on a mod PC. The OBS plugin's buttons (Pulls, Awards, happy hour, Skip and Clear) are the same Home controls, so the note above applies to them.
+If you also use the Stream Deck plugin, a mod PC gets Pause trading and Switch scene. The Test pull, Show a card, Show last pull, Show last big pull and Preview overlay keys show "Admins only" on a mod PC. The OBS plugin's buttons (Pulls, Awards, happy hour, Skip and Clear) are the same Home controls, so the note above applies to them.
 
 ## When to ask an admin
 

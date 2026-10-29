@@ -48,6 +48,7 @@ export function toAction(r: DeckRequest): ControlAction | null {
     case 'checklist':
     case 'test-pull':
     case 'show-card':
+    case 'show-last':
     case 'trading':
     case 'scene':
     case 'preview': return null;
@@ -64,6 +65,7 @@ export function toAction(r: DeckRequest): ControlAction | null {
 export function toStaff(r: DeckRequest): Record<string, unknown> | null {
   if (r.what === 'test-pull') return { action: 'test-pull' };
   if (r.what === 'show-card') return { action: 'show-card', username: r.username, ...(r.card ? { card: r.card } : {}) };
+  if (r.what === 'show-last') return { action: 'show-card', last: r.big ? 'big' : 'pull' }; // the newest pull this stream (big: 4 stars or more), as the copy pulled
   return null;
 }
 
@@ -201,9 +203,12 @@ export class DeckServer {
     });
   }
 
-  /** A browser always sends an Origin and the Stream Deck plugin never does; the Host must be this PC's own address (a name pointed here from the web is refused). */
+  /** A browser always sends its page's http(s) Origin; the Stream Deck plugin sends none, and the OBS dock (IXWebSocket) always sends `ws://<its Host>`, which no
+   *  web page can send. The Host must be this PC's own address (a name pointed here from the web is refused). */
   private allowed(req: IncomingMessage): boolean {
-    return req.headers.origin === undefined && (req.headers.host === `127.0.0.1:${this.port}` || req.headers.host === `localhost:${this.port}`);
+    const host = req.headers.host;
+    if (host !== `127.0.0.1:${this.port}` && host !== `localhost:${this.port}`) return false;
+    return req.headers.origin === undefined || req.headers.origin === `ws://${host}`;
   }
 
   private accept(ws: WebSocket): void {

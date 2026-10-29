@@ -36,6 +36,8 @@ export function cleanStaffAction(raw: Record<string, unknown>): Record<string, u
     const username = cleanViewer(raw.username);
     if (username) out.username = username;
     out.force = raw.force === true;
+  } else if (action === 'show-card' && (raw.last === 'pull' || raw.last === 'big')) { // the Stream Deck's Show last pull keys: the site finds the viewer
+    out.last = raw.last;
   } else if (action !== 'stream-extra' && action !== 'trading' && action !== 'backup') {
     const username = cleanViewer(raw.username);
     if (!username) return null;
@@ -43,7 +45,7 @@ export function cleanStaffAction(raw: Record<string, unknown>): Record<string, u
   }
   if (action === 'gift') out.count = Math.min(10, Math.max(1, Math.trunc(Number(raw.count)) || 1));
   if (action === 'gift' || action === 'show-collection') out.force = raw.force === true;
-  if (action === 'show-card') out.card = clean(raw.card, 80);
+  if (action === 'show-card' && !out.last) out.card = clean(raw.card, 80);
   if (action === 'grant') { out.cardNumber = Math.trunc(Number(raw.cardNumber)); out.variant = clean(raw.variant, 30) || 'regular'; }
   if (action === 'stream-extra') out.amount = Math.max(0, Math.trunc(Number(raw.amount)) || 0);
   if (action === 'trading') out.on = raw.on === true;

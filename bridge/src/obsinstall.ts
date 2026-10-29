@@ -6,6 +6,8 @@ import { join } from 'node:path';
 
 /** The OBS major version the plugin is built against (obs-plugin/buildspec.json, "obs-studio"); check-obsinstall.ts fails when the two differ. */
 export const OBS_TARGET_MAJOR = 31;
+/** The newest OBS major the plugin is known to load in (built against 31, seen loading in OBS 32.2.2 on 2026-10-29). */
+export const OBS_LOADS_UP_TO = 32;
 /** The module's name in OBS (obs-plugin/buildspec.json "name"). */
 export const MODULE = 'tcg-obs';
 /** The built plugin folder (bin/64bit/tcg-obs.dll and data/), shipped inside the app (electron-builder extraResources) and built by obs-plugin.yml. */
@@ -55,10 +57,10 @@ export const OBS_BUTTON_LABEL: Record<ObsPluginState, string> = {
 /** The major of "31.1.1", or 0 when it does not read as a version. */
 export const obsMajor = (version: string): number => Number(/^(\d+)(?:\.\d+)*/.exec(version.trim())?.[1] ?? 0);
 
-/** The warning beside the button: OBS is a newer major than the plugin was built for. '' when fine or OBS's version is unknown. */
-export function obsVersionWarning(obsVersion: string, target = OBS_TARGET_MAJOR): string {
+/** The warning beside the button: OBS is a newer major than the plugin is known to load in. '' when fine or OBS's version is unknown. */
+export function obsVersionWarning(obsVersion: string, max = OBS_LOADS_UP_TO): string {
   const major = obsMajor(obsVersion);
-  return major > target ? `OBS ${obsVersion.trim()} is newer than this plugin was built for (${target}). It may not load; tell Josh.` : '';
+  return major > max ? `OBS ${obsVersion.trim()} is newer than this plugin has been tried with (${max}). It may not load; tell Josh.` : '';
 }
 
 const SCRIPT = '$v=(Get-Item -LiteralPath $env:TCG_OBS_EXE).VersionInfo; $v.ProductVersion; $v.FileVersion';

@@ -9,7 +9,7 @@ const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED:
 const b = await import('../lib/bridge');
 const { recordActivity } = await import('../lib/activity');
 const { enqueueEvent } = await import('../lib/webhooks');
-const { streamStart, cleanWanted, statsFromEvents, BIG_PULL_STARS } = await import('../lib/bridge-stats');
+const { streamStart, cleanWanted, statsFromEvents, lastPull, BIG_PULL_STARS } = await import('../lib/bridge-stats');
 const actionRoute = await import('../app/api/bridge/action/route');
 
 // ── The window and the list of stats asked for ──
@@ -28,6 +28,11 @@ ok(s.lastBig?.username === 'ann' && s.lastBig.cardName === 'Bird', `the last big
 ok(s.topPuller?.username === 'bob' && s.topPuller.packs === 3, `bob pulled most: ${JSON.stringify(s.topPuller)}`);
 const none = statsFromEvents([ev(1, 'old', T - 5000, 5)], T, T + 10_000);
 ok(none.packs === 0 && none.lastBig === null && none.topPuller === null, 'a quiet stream has no big pull or top puller');
+// Show last pull keys: the newest pull in the window, or the newest big one; a test pull never counts.
+const evs = [{ ...(ev(6, 'tess', T + 6000, 5) as object), test: true } as never, ev(5, 'bob', T + 5000, 3), ev(4, 'ann', T + 4000, BIG_PULL_STARS, 'Bird')];
+ok(lastPull(evs, T, false, T + 10_000)?.username === 'bob', 'the last pull is the newest real one');
+ok(lastPull(evs, T, true, T + 10_000)?.cardName === 'Bird', 'the last big pull skips a 3 star pull');
+ok(lastPull([ev(1, 'old', T - 5000, 5)], T, false, T + 10_000) === null, 'nothing this stream: null');
 
 // ── The action ──
 const token = (await b.pairBridge((await b.createPairCode('josh')).code, 'Stream PC'))!.token;

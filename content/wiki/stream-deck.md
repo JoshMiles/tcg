@@ -20,7 +20,7 @@ If the plugin is installed but not talking to the app, the status pill reads "St
 
 ## The keys
 
-There are fifteen. A key that your account may not use shows "Staff only" (not a staff PC) or "Admins only" (a mod PC).
+There are seventeen. A key that your account may not use shows "Staff only" (not a staff PC) or "Admins only" (a mod PC).
 
 | Key | What it does |
 | --- | --- |
@@ -30,6 +30,8 @@ There are fifteen. A key that your account may not use shows "Staff only" (not a
 | **Happy hour** | Starts a happy hour (three presets, or custom in its settings). While one runs the key counts down; hold it for 1 second to end it. |
 | **Test pull** | Plays a test pull on the overlay. Admin staff PC only. While OBS is live it reads "Test pull LIVE" and needs a 1 second hold. |
 | **Show a card** | Shows a card of the viewer named in its settings on the overlay. Leave the card empty and the site picks one. Admin staff PC only; the same live hold applies. |
+| **Show last pull** | Shows the card pulled most recently this stream on the overlay, as the copy its viewer pulled. Nothing to set. Admin staff PC only; the same live hold applies. |
+| **Show last big pull** | The same, for the most recent pull of 4 stars or more (the same rule as the Last big pull stat). |
 | **Stat** | A display. Pick in its settings: queue length, packs this stream, pack goal progress, last big pull, top puller or happy hour time left. A queue Stat key skips the next pull if pressed twice within 3 seconds. |
 | **Skip next pull** | Skips the next pull in the queue. A paid pull is refunded. |
 | **Clear queue** | Hold for 1 second to clear the whole queue. Paid pulls are refunded. A short press shows "Hold 1 second to clear". |

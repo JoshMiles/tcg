@@ -10,6 +10,7 @@ import { DeckServer, deckChecklist, deckStaff, deckStats, runStaffKey, runStaffP
 import { statsPlan, noStatMap } from '../src/obsstats';
 import { manifestVersion, installedPluginVersion, pluginOutdated, streamDeckAppFound, type DeckEnv, PLUGIN_UUID } from '../src/deckinstall';
 import { deckFeed, deckQueue } from '../src/deckfeed';
+import { cleanStaffAction } from '../src/staff';
 import { mergeFeed } from '../src/home';
 import { CLOSE_REFUSED, parseClient, parseLinkFile, parseRequest, parseServer, type DeckStaff, type DeckState } from '../src/deckprotocol';
 import { versionProblems } from './check-version';
@@ -108,6 +109,17 @@ export async function deckChecks(): Promise<void> {
   assert.deepEqual(toStaff({ what: 'test-pull' }), { action: 'test-pull' });
   assert.deepEqual(toStaff({ what: 'show-card', username: 'cheesy_1' }), { action: 'show-card', username: 'cheesy_1' });
   assert.equal(toStaff({ what: 'skip' }), null);
+  // Show last pull / last big pull: a show-card staff action the site resolves (no viewer from the key).
+  assert.deepEqual(parseRequest({ what: 'show-last', big: true }), { what: 'show-last', big: true });
+  assert.equal(parseRequest({ what: 'show-last' }), null, 'big must be said');
+  assert.equal(toAction({ what: 'show-last', big: false }), null);
+  assert.deepEqual(toStaff({ what: 'show-last', big: false }), { action: 'show-card', last: 'pull' });
+  assert.deepEqual(toStaff({ what: 'show-last', big: true }), { action: 'show-card', last: 'big' });
+  assert.deepEqual(cleanStaffAction({ action: 'show-card', last: 'big', card: 'x' }), { action: 'show-card', last: 'big' }, 'no viewer needed, no card kept');
+  assert.equal(cleanStaffAction({ action: 'show-card', last: 'other' }), null, 'any other last still needs a viewer');
+  assert.deepEqual(requestFor('show-last', {}), { what: 'show-last', big: false });
+  assert.deepEqual(requestFor('show-big', {}), { what: 'show-last', big: true });
+  assert.equal(liveHold('show-big', { ...state(), live: true }), true, 'live needs the 1 second hold');
   assert.deepEqual(deckStats({ queue: 2, packs: 0, goal: 'Goal: 3 / 50', lastBig: null }), { queue: 2, packs: 0, goal: 'Goal: 3 / 50', lastBig: null }, 'nobody yet is said, not left out');
   assert.deepEqual(deckStats({ lastBig: { username: 'brie_fan', cardName: 'Brie' }, topPuller: { username: 'cheese', packs: 9 } }), { lastBig: { username: 'brie_fan', cardName: 'Brie' }, topPuller: { username: 'cheese', packs: 9 } });
   assert.deepEqual(deckStats(null), {});
@@ -468,6 +480,13 @@ export async function deckChecks(): Promise<void> {
     const web = client(url, { headers: { Origin: 'https://evil.example' } });
     await until('origin refusal', () => web.failed !== '' || web.opened);
     assert.equal(web.opened, false, 'a browser page cannot connect');
+    const dock = client(url, { origin: `ws://127.0.0.1:${link.port}` }); // the OBS dock (IXWebSocket) always sends ws://<host>
+    await until('dock origin', () => dock.failed !== '' || dock.opened);
+    assert.equal(dock.opened, true, 'the OBS dock can connect');
+    dock.ws.close();
+    const wsOther = client(url, { origin: `ws://evil.example:${link.port}` });
+    await until('ws origin refusal', () => wsOther.failed !== '' || wsOther.opened);
+    assert.equal(wsOther.opened, false, 'a ws:// Origin for another host is refused');
     const host = client(url, { headers: { Host: `evil.example:${link.port}` } });
     await until('host refusal', () => host.failed !== '' || host.opened);
     assert.equal(host.opened, false, 'a wrong Host is refused');

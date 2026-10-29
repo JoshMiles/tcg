@@ -3,7 +3,7 @@
 // The app asks for the stats it has mapped and only while OBS is connected, so an unmapped stat costs nothing. A test pull is never counted
 // (getActivity leaves it out). The log keeps 500 events, so on a very long stream the numbers are a floor.
 import { getActivity, type ActivityEvent } from './activity';
-import { asPullEvent } from './activity-view';
+import { asPullEvent, type PullEvent } from './activity-view';
 import { currentStreamKey } from './mixitup';
 import { packGoalText } from './pack-goal';
 import { buildStreamRecap } from './stream-recap';
@@ -33,9 +33,23 @@ export function streamStart(key: string): number {
 /** Packs, the last big pull and the top puller since `since`, from the activity log (newest first). */
 export function statsFromEvents(events: ActivityEvent[], since: number, now = Date.now()): Required<Pick<BridgeStats, 'packs' | 'lastBig' | 'topPuller'>> {
   const recap = buildStreamRecap(events, since, now);
-  const big = events.find(e => e.at >= since && e.at <= now && !e.test && (asPullEvent(e)?.stars ?? 0) >= BIG_PULL_STARS);
-  const p = big && asPullEvent(big);
+  const p = lastPull(events, since, true, now);
   return { packs: recap.packs, lastBig: p ? { username: p.username, cardName: p.cardName } : null, topPuller: recap.topPuller };
+}
+
+/** The newest pull since `since` (`big`: of BIG_PULL_STARS or more), never a test pull; null when there is none. */
+export function lastPull(events: ActivityEvent[], since: number, big: boolean, now = Date.now()): PullEvent | null {
+  for (const e of events) {
+    const p = e.at >= since && e.at <= now && !e.test ? asPullEvent(e) : null;
+    if (p && (!big || p.stars >= BIG_PULL_STARS)) return p;
+  }
+  return null;
+}
+
+/** The Stream Deck's Show last pull keys: the newest pull (or big pull) of this stream. */
+export async function readLastPull(big: boolean): Promise<PullEvent | null> {
+  const [{ events }, key] = await Promise.all([getActivity({ limit: 500 }), currentStreamKey()]);
+  return lastPull(events, streamStart(key), big);
 }
 
 /** Only what was asked for (`want`), so a queue-only app never reads the log. */
